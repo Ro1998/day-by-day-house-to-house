@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { Expense, MonthlyPayment, Menu, User, Activity } from '@/types'
+import { Activity, ApiError, Expense, Menu, MonthlyPayment, User } from '@/types'
 
 interface DataContextType {
   expenses: Expense[]
@@ -13,11 +13,13 @@ interface DataContextType {
   balance: number
   budget: number
   loading: boolean
+  error: string | null
   addExpense: (expense: Omit<Expense, 'id' | 'userId'>) => Promise<void>
   deleteExpense: (id: string) => Promise<void>
   undoDelete: () => void
   addMonthlyPayment: (payment: Omit<MonthlyPayment, 'id' | 'userId'>) => Promise<void>
   updateMenu: (menu: Menu) => Promise<void>
+  createUser: (name: string) => Promise<User | null>
   login: (user: User) => void
   logout: () => void
   logActivity: (action: string) => Promise<void>
@@ -40,11 +42,36 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [budget, setBudget] = useState(1000)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [deletedExpense, setDeletedExpense] = useState<Expense | null>(null)
+
+  const readJson = async <T,>(res: Response, fallbackMessage: string): Promise<T> => {
+    let payload: T | ApiError | null = null
+
+    try {
+      payload = await res.json()
+    } catch {
+      payload = null
+    }
+
+    if (!res.ok) {
+      const message = payload && typeof payload === 'object' && 'error' in payload
+        ? payload.error
+        : fallbackMessage
+      throw new Error(message)
+    }
+
+    if (payload === null) {
+      throw new Error(fallbackMessage)
+    }
+
+    return payload as T
+  }
 
   useEffect(() => {
     const loadData = async () => {
       try {
+        setError(null)
         const [expensesRes, paymentsRes, menusRes, usersRes, activitiesRes] = await Promise.all([
           fetch('/api/expenses'),
           fetch('/api/monthly-payments'),
@@ -52,11 +79,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           fetch('/api/users'),
           fetch('/api/activities')
         ])
-        const expensesData = await expensesRes.json()
-        const paymentsData = await paymentsRes.json()
-        const menusData = await menusRes.json()
-        const usersData = await usersRes.json()
-        const activitiesData = await activitiesRes.json()
+        const expensesData = await readJson<Expense[]>(expensesRes, 'Failed to load expenses')
+        const paymentsData = await readJson<MonthlyPayment[]>(paymentsRes, 'Failed to load monthly payments')
+        const menusData = await readJson<Menu[]>(menusRes, 'Failed to load menus')
+        const usersData = await readJson<User[]>(usersRes, 'Failed to load users')
+        const activitiesData = await readJson<Activity[]>(activitiesRes, 'Failed to load activities')
 
         setExpenses(expensesData)
         setMonthlyPayments(paymentsData)
@@ -64,6 +91,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setUsers(usersData)
         setActivities(activitiesData)
       } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to load application data'
+        setError(message)
         console.error('Failed to load data', error)
       } finally {
         setLoading(false)
@@ -86,27 +115,34 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const addExpense = async (expense: Omit<Expense, 'id' | 'userId'>) => {
     if (!currentUser) return
-    const res = await fetch('/api/expenses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...expense, userId: currentUser.id })
-    })
-    if (res.ok) {
-      const newExpense = await res.json()
+    try {
+      setError(null)
+      const res = await fetch('/api/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...expense, userId: currentUser.id })
+      })
+      const newExpense = await readJson<Expense>(res, 'Failed to create expense')
       setExpenses(prev => [...prev, newExpense])
       await logActivity(`Added expense: ${expense.description}`)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to create expense')
     }
   }
 
   const deleteExpense = async (id: string) => {
-    const res = await fetch(`/api/expenses?id=${id}`, { method: 'DELETE' })
-    if (res.ok) {
+    try {
+      setError(null)
+      const res = await fetch(`/api/expenses?id=${id}`, { method: 'DELETE' })
+      await readJson<{ success: boolean }>(res, 'Failed to delete expense')
       const expense = expenses.find(e => e.id === id)
       if (expense) {
         setDeletedExpense(expense)
         setExpenses(prev => prev.filter(e => e.id !== id))
         await logActivity(`Deleted expense: ${expense.description}`)
       }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to delete expense')
     }
   }
 
@@ -120,15 +156,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const addMonthlyPayment = async (payment: Omit<MonthlyPayment, 'id' | 'userId'>) => {
     if (!currentUser) return
-    const res = await fetch('/api/monthly-payments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...payment, userId: currentUser.id })
-    })
-    if (res.ok) {
-      const newPayment = await res.json()
+    try {
+      setError(null)
+      const res = await fetch('/api/monthly-payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payment, userId: currentUser.id })
+      })
+      const newPayment = await readJson<MonthlyPayment>(res, 'Failed to create monthly payment')
       setMonthlyPayments(prev => [...prev, newPayment])
       await logActivity(`Added monthly payment for ${payment.month}`)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to create monthly payment')
     }
   }
 
@@ -137,13 +176,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const existing = menus.find(m => m.week === menu.week)
     const method = existing ? 'PUT' : 'POST'
     const body = existing ? { ...menu, id: existing.id } : { ...menu, userId: currentUser.id }
-    const res = await fetch('/api/menus', {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    })
-    if (res.ok) {
-      const updatedMenu = await res.json()
+    try {
+      setError(null)
+      const res = await fetch('/api/menus', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+      const updatedMenu = await readJson<Menu>(res, 'Failed to save menu')
       setMenus(prev => {
         const index = prev.findIndex(m => m.week === menu.week)
         if (index >= 0) {
@@ -155,6 +195,35 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }
       })
       await logActivity(`Updated menu for week ${menu.week}`)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to save menu')
+    }
+  }
+
+  const createUser = async (name: string) => {
+    const trimmedName = name.trim()
+    if (!trimmedName) {
+      setError('Please enter a name before creating a user.')
+      return null
+    }
+
+    try {
+      setError(null)
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: trimmedName,
+          role: users.length === 0 ? 'admin' : 'user',
+        }),
+      })
+      const user = await readJson<User>(res, 'Failed to create user')
+      setUsers(prev => [...prev, user])
+      setCurrentUser(user)
+      return user
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to create user')
+      return null
     }
   }
 
@@ -191,11 +260,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       balance,
       budget,
       loading,
+      error,
       addExpense,
       deleteExpense,
       undoDelete,
       addMonthlyPayment,
       updateMenu,
+      createUser,
       login,
       logout,
       logActivity,

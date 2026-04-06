@@ -60,6 +60,11 @@ export function Expenses() {
 
   return (
     <div className="space-y-6">
+      {!currentUser && (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+          Log in first to add or delete expenses.
+        </div>
+      )}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
         <h2 className="text-xl font-semibold mb-4">Add Expense</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -101,7 +106,8 @@ export function Expenses() {
           </div>
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            disabled={!currentUser}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-blue-300"
           >
             Add Expense
           </button>

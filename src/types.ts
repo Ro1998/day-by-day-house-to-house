@@ -32,6 +32,7 @@ export interface Menu {
   items: MenuItem[]
   purchasers: string[]
   userId?: string
+  user?: string
 }
 
 export interface User {
@@ -46,4 +47,8 @@ export interface Activity {
   action: string
   timestamp: string
   userId?: string
+}
+
+export interface ApiError {
+  error: string
 }

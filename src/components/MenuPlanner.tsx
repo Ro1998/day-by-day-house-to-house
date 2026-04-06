@@ -5,17 +5,15 @@ import { useData } from '@/components/DataProvider'
 import { Menu, MenuItem } from '@/types'
 import { Download } from 'lucide-react'
 import html2canvas from 'html2canvas'
-import { format, addDays, startOfWeek } from 'date-fns'
+import { format, startOfWeek } from 'date-fns'
 
 export function MenuPlanner() {
   const { menus, updateMenu, users, currentUser } = useData()
-  const [currentWeek, setCurrentWeek] = useState('')
   const [menu, setMenu] = useState<Menu | null>(null)
 
   useEffect(() => {
     const tuesday = startOfWeek(new Date(), { weekStartsOn: 2 }) // Tuesday
     const weekStr = format(tuesday, 'yyyy-MM-dd')
-    setCurrentWeek(weekStr)
     const existing = menus.find(m => m.week === weekStr)
     if (existing) {
       setMenu(existing)
@@ -62,13 +60,19 @@ export function MenuPlanner() {
 
   return (
     <div className="space-y-6">
+      {!currentUser && (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+          Log in first to save a weekly menu.
+        </div>
+      )}
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Weekly Menu Planner</h2>
           <div className="flex space-x-2">
             <button
               onClick={saveMenu}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              disabled={!currentUser}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-blue-300"
             >
               Save Menu
             </button>

@@ -13,14 +13,24 @@ interface LayoutProps {
 
 export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   const { theme, toggleTheme } = useTheme()
-  const { currentUser, login, logout, users } = useData()
+  const { currentUser, login, logout, users, loading, error, createUser } = useData()
   const [showLogin, setShowLogin] = useState(false)
   const [selectedUser, setSelectedUser] = useState('')
+  const [newUserName, setNewUserName] = useState('')
 
   const handleLogin = () => {
     const user = users.find(u => u.id === selectedUser)
     if (user) {
       login(user)
+      setShowLogin(false)
+    }
+  }
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const user = await createUser(newUserName)
+    if (user) {
+      setNewUserName('')
       setShowLogin(false)
     }
   }
@@ -88,37 +98,85 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
       </header>
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {loading && (
+          <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            Connecting to your workspace data...
+          </div>
+        )}
+        {error && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {error}
+          </div>
+        )}
+        {!loading && users.length === 0 && (
+          <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            No users were found yet. Create the first user to start using the app.
+          </div>
+        )}
         {children}
       </main>
 
       {showLogin && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg">
-            <h2 className="text-lg font-semibold mb-4">Login</h2>
-            <select
-              value={selectedUser}
-              onChange={(e) => setSelectedUser(e.target.value)}
-              className="w-full p-2 border rounded mb-4"
-            >
-              <option value="">Select User</option>
-              {users.map(user => (
-                <option key={user.id} value={user.id}>{user.name}</option>
-              ))}
-            </select>
-            <div className="flex space-x-2">
-              <button
-                onClick={handleLogin}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              >
-                Login
-              </button>
-              <button
-                onClick={() => setShowLogin(false)}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
-              >
-                Cancel
-              </button>
-            </div>
+            <h2 className="text-lg font-semibold mb-4">
+              {users.length === 0 ? 'Create First User' : 'Login'}
+            </h2>
+            {users.length > 0 ? (
+              <>
+                <select
+                  value={selectedUser}
+                  onChange={(e) => setSelectedUser(e.target.value)}
+                  className="w-full p-2 border rounded mb-4"
+                >
+                  <option value="">Select User</option>
+                  {users.map(user => (
+                    <option key={user.id} value={user.id}>{user.name}</option>
+                  ))}
+                </select>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={handleLogin}
+                    disabled={!selectedUser}
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-blue-300"
+                  >
+                    Login
+                  </button>
+                  <button
+                    onClick={() => setShowLogin(false)}
+                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <form onSubmit={handleCreateUser} className="space-y-4">
+                <input
+                  type="text"
+                  value={newUserName}
+                  onChange={(e) => setNewUserName(e.target.value)}
+                  className="w-full p-2 border rounded"
+                  placeholder="Enter your name"
+                  required
+                />
+                <div className="flex space-x-2">
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  >
+                    Create User
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowLogin(false)}
+                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
