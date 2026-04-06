@@ -28,7 +28,7 @@ model Expense {
   amount      Float
   description String
   userId      String
-  user        User     @map("userId")
+  user        User     @relation(fields: [userId], references: [id])
   createdAt   DateTime @default(now())
 }
 
@@ -48,7 +48,7 @@ model Menu {
   items       MenuItem[]
   purchasers  String[]
   userId      String
-  user        User         @map("userId")
+  user        User         @relation(fields: [userId], references: [id])
   createdAt   DateTime     @default(now())
 }
 
@@ -60,7 +60,7 @@ model MenuItem {
   lunchCooks String[]
   dinnerCooks String[]
   menuId    String
-  menu      Menu   @map("menuId")
+  menu      Menu   @relation(fields: [menuId], references: [id])
 }
 
 model Activity {
