@@ -1,10 +1,22 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+const serializeExpense = (expense: Awaited<ReturnType<typeof prisma.expense.findFirstOrThrow>> & { user: { name: string } }) => ({
+  id: expense.id,
+  date: expense.date,
+  type: expense.type,
+  category: expense.category,
+  amount: expense.amount,
+  description: expense.description,
+  user: expense.user.name,
+  userId: expense.userId,
+  createdAt: expense.createdAt,
+})
+
 export async function GET() {
   try {
     const expenses = await prisma.expense.findMany({ include: { user: true } })
-    return NextResponse.json(expenses)
+    return NextResponse.json(expenses.map(serializeExpense))
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch expenses' }, { status: 500 })
   }
@@ -13,8 +25,8 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const expense = await prisma.expense.create({ data: body })
-    return NextResponse.json(expense)
+    const expense = await prisma.expense.create({ data: body, include: { user: true } })
+    return NextResponse.json(serializeExpense(expense))
   } catch (error) {
     return NextResponse.json({ error: 'Failed to create expense' }, { status: 500 })
   }

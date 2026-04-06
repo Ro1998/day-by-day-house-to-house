@@ -6,6 +6,7 @@ export interface Expense {
   amount: number
   description: string
   user: string
+  userId?: string
 }
 
 export interface MonthlyPayment {
@@ -14,6 +15,7 @@ export interface MonthlyPayment {
   paid: boolean
   amount: number
   user: string
+  userId?: string
 }
 
 export interface MenuItem {
@@ -25,9 +27,11 @@ export interface MenuItem {
 }
 
 export interface Menu {
+  id?: string
   week: string // start date
   items: MenuItem[]
   purchasers: string[]
+  userId?: string
 }
 
 export interface User {
@@ -41,4 +45,5 @@ export interface Activity {
   user: string
   action: string
   timestamp: string
+  userId?: string
 }
