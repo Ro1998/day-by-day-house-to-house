@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id    String @id @default(cuid())
+  name  String
+  role  String @default("user")
+  expenses Expense[]
+  monthlyPayments MonthlyPayment[]
+  activities Activity[]
+  menus Menu[]
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  date        String
+  type        String
+  category    String
+  amount      Float
+  description String
+  userId      String
+  user        User     @map("userId")
+  createdAt   DateTime @default(now())
+}
+
+model MonthlyPayment {
+  id        String   @id @default(cuid())
+  month     String
+  paid      Boolean
+  amount    Float
+  userId    String
+  user      User     @map("userId")
+  createdAt DateTime @default(now())
+}
+
+model Menu {
+  id          String       @id @default(cuid())
+  week        String
+  items       MenuItem[]
+  purchasers  String[]
+  userId      String
+  user        User         @map("userId")
+  createdAt   DateTime     @default(now())
+}
+
+model MenuItem {
+  id        String @id @default(cuid())
+  day       String
+  lunch     String
+  dinner    String
+  lunchCooks String[]
+  dinnerCooks String[]
+  menuId    String
+  menu      Menu   @map("menuId")
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @map("userId")
+  action    String
+  timestamp DateTime @default(now())
+}
