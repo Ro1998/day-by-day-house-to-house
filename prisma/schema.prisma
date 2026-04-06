@@ -28,7 +28,7 @@ model Expense {
   amount      Float
   description String
   userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  user        User
   createdAt   DateTime @default(now())
 }
 
@@ -38,7 +38,7 @@ model MonthlyPayment {
   paid      Boolean
   amount    Float
   userId    String
-  user      User     @map("userId")
+  user      User
   createdAt DateTime @default(now())
 }
 
@@ -48,7 +48,7 @@ model Menu {
   items       MenuItem[]
   purchasers  String[]
   userId      String
-  user        User         @relation(fields: [userId], references: [id])
+  user        User
   createdAt   DateTime     @default(now())
 }
 
@@ -60,13 +60,13 @@ model MenuItem {
   lunchCooks String[]
   dinnerCooks String[]
   menuId    String
-  menu      Menu   @relation(fields: [menuId], references: [id])
+  menu      Menu
 }
 
 model Activity {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @map("userId")
+  user      User
   action    String
   timestamp DateTime @default(now())
 }
