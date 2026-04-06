@@ -1,3 +1,5 @@
+export type UserRole = 'admin' | 'coordinator' | 'user'
+
 export interface Expense {
   id: string
   date: string
@@ -38,7 +40,8 @@ export interface Menu {
 export interface User {
   id: string
   name: string
-  role: string
+  role: UserRole
+  approved: boolean
 }
 
 export interface Activity {

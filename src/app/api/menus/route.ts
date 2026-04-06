@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { apiError } from '@/lib/api-error'
+import { requireApprovedUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 const serializeMenu = (menu: Awaited<ReturnType<typeof prisma.menu.findFirstOrThrow>> & {
@@ -15,8 +16,11 @@ const serializeMenu = (menu: Awaited<ReturnType<typeof prisma.menu.findFirstOrTh
   createdAt: menu.createdAt,
 })
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const auth = await requireApprovedUser(request)
+    if (auth.error) return auth.error
+
     const menus = await prisma.menu.findMany({ include: { items: true, user: true } })
     return NextResponse.json(menus.map(serializeMenu))
   } catch (error) {
@@ -26,11 +30,16 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireApprovedUser(request, ['admin', 'coordinator'])
+    if (auth.error) return auth.error
+
     const body = await request.json()
-    const { items, ...menuData } = body
+    const { items, user, id: _ignoreId, createdAt: _ignoreCreatedAt, ...menuData } = body
     const menu = await prisma.menu.create({
       data: {
-        ...menuData,
+        week: menuData.week,
+        purchasers: menuData.purchasers,
+        userId: menuData.userId,
         items: {
           create: items
         }
@@ -45,13 +54,18 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const auth = await requireApprovedUser(request, ['admin', 'coordinator'])
+    if (auth.error) return auth.error
+
     const body = await request.json()
-    const { id, items, ...menuData } = body
+    const { id, items, user, createdAt: _ignoreCreatedAt, ...menuData } = body
     await prisma.menuItem.deleteMany({ where: { menuId: id } })
     const menu = await prisma.menu.update({
       where: { id },
       data: {
-        ...menuData,
+        week: menuData.week,
+        purchasers: menuData.purchasers,
+        userId: menuData.userId,
         items: {
           create: items
         }

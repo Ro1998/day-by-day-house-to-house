@@ -8,6 +8,7 @@ import { Expenses } from '@/components/Expenses'
 import { LoginScreen } from '@/components/LoginScreen'
 import { MonthlyFoodMoney } from '@/components/MonthlyFoodMoney'
 import { MenuPlanner } from '@/components/MenuPlanner'
+import { UserManagement } from '@/components/UserManagement'
 
 export default function Home() {
   const { currentUser } = useData()
@@ -23,6 +24,8 @@ export default function Home() {
         return <MonthlyFoodMoney />
       case 'menu':
         return <MenuPlanner />
+      case 'users':
+        return currentUser?.role === 'admin' ? <UserManagement /> : <Dashboard />
       default:
         return <Dashboard />
     }

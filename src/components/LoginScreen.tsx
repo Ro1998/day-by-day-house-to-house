@@ -10,7 +10,7 @@ interface LoginScreenProps {
 }
 
 export function LoginScreen({ onContinue }: LoginScreenProps) {
-  const { users, login, createUser, loading, error } = useData()
+  const { users, login, createUser, loading, error, notice } = useData()
   const { theme, toggleTheme } = useTheme()
   const [selectedUser, setSelectedUser] = useState('')
   const [newUserName, setNewUserName] = useState('')
@@ -114,6 +114,12 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
             {error && (
               <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {error}
+              </div>
+            )}
+
+            {notice && (
+              <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                {notice}
               </div>
             )}
 

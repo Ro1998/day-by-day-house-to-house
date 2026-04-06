@@ -3,9 +3,11 @@
 import { useState } from 'react'
 import { useData } from '@/components/DataProvider'
 import { format } from 'date-fns'
+import { formatCurrency } from '@/lib/format'
 
 export function MonthlyFoodMoney() {
   const { monthlyPayments, addMonthlyPayment, currentUser } = useData()
+  const canManageEntries = currentUser?.role === 'admin' || currentUser?.role === 'coordinator'
   const [form, setForm] = useState({
     month: format(new Date(), 'yyyy-MM'),
     paid: false,
@@ -34,6 +36,7 @@ export function MonthlyFoodMoney() {
           Log in first to add monthly payments.
         </div>
       )}
+      {canManageEntries && (
       <div className="app-panel rounded-3xl p-6">
         <h2 className="text-xl font-semibold mb-4">Add Monthly Payment</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -63,13 +66,14 @@ export function MonthlyFoodMoney() {
           </div>
           <button
             type="submit"
-            disabled={!currentUser}
+            disabled={!canManageEntries}
             className="app-button app-button-primary"
           >
             Add Payment
           </button>
         </form>
       </div>
+      )}
 
       <div className="app-panel rounded-3xl p-6">
         <h2 className="text-xl font-semibold mb-4">Monthly Payments</h2>
@@ -94,7 +98,7 @@ export function MonthlyFoodMoney() {
                       {payment.paid ? 'Yes' : 'No'}
                     </span>
                   </td>
-                  <td className="p-2">${payment.amount}</td>
+                  <td className="p-2">{formatCurrency(payment.amount)}</td>
                   <td className="p-2">{payment.user}</td>
                 </tr>
               ))}
@@ -118,7 +122,7 @@ export function MonthlyFoodMoney() {
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-[var(--primary-strong)]">
-              ${currentPayments.reduce((sum, p) => sum + p.amount, 0)}
+              {formatCurrency(currentPayments.reduce((sum, p) => sum + p.amount, 0))}
             </p>
             <p className="app-muted text-sm">Total Amount</p>
           </div>

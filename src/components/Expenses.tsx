@@ -2,13 +2,13 @@
 
 import { useState } from 'react'
 import { useData } from '@/components/DataProvider'
-import { Expense } from '@/types'
 import { Trash2, Undo, Download } from 'lucide-react'
 import jsPDF from 'jspdf'
 import * as XLSX from 'xlsx'
+import { formatCurrency, getCurrentMonthKey } from '@/lib/format'
 
 export function Expenses() {
-  const { expenses, addExpense, deleteExpense, undoDelete, currentUser } = useData()
+  const { expenses, addExpense, deleteExpense, undoDelete, currentUser, notice } = useData()
   const [form, setForm] = useState({
     type: 'out' as 'in' | 'out',
     category: '',
@@ -37,20 +37,29 @@ export function Expenses() {
     const categoryMatch = !filter.category || exp.category === filter.category
     return dateMatch && categoryMatch
   })
+  const isGeneralUser = currentUser?.role === 'user'
+  const canManageEntries = currentUser?.role === 'admin' || currentUser?.role === 'coordinator'
+  const currentMonthKey = getCurrentMonthKey()
+  const visibleExpenses = isGeneralUser
+    ? filteredExpenses.filter((expense) => expense.date.startsWith(currentMonthKey) && expense.type === 'out')
+    : filteredExpenses
+  const visibleIncomeTotal = filteredExpenses
+    .filter((expense) => expense.date.startsWith(currentMonthKey) && expense.type === 'in')
+    .reduce((sum, expense) => sum + expense.amount, 0)
 
   const exportPDF = () => {
     const doc = new jsPDF()
     doc.text('Expense Report', 20, 20)
     let y = 40
-    filteredExpenses.forEach(exp => {
-      doc.text(`${exp.date} - ${exp.category} - $${exp.amount} - ${exp.description}`, 20, y)
+    visibleExpenses.forEach(exp => {
+      doc.text(`${exp.date} - ${exp.category} - INR ${exp.amount} - ${exp.description}`, 20, y)
       y += 10
     })
     doc.save('expenses.pdf')
   }
 
   const exportXLS = () => {
-    const ws = XLSX.utils.json_to_sheet(filteredExpenses)
+    const ws = XLSX.utils.json_to_sheet(visibleExpenses)
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Expenses')
     XLSX.writeFile(wb, 'expenses.xlsx')
@@ -65,6 +74,14 @@ export function Expenses() {
           Log in first to add or delete expenses.
         </div>
       )}
+      {isGeneralUser && (
+        <div className="app-panel rounded-3xl p-6">
+          <h2 className="mb-2 text-xl font-semibold">This Month&apos;s Income</h2>
+          <p className="text-2xl font-bold text-[var(--accent-strong)]">{formatCurrency(visibleIncomeTotal)}</p>
+          <p className="app-muted mt-2 text-sm">Income details stay hidden for general users.</p>
+        </div>
+      )}
+      {canManageEntries && (
       <div className="app-panel rounded-3xl p-6">
         <h2 className="text-xl font-semibold mb-4">Add Expense</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -106,13 +123,14 @@ export function Expenses() {
           </div>
           <button
             type="submit"
-            disabled={!currentUser}
+            disabled={!canManageEntries}
             className="app-button app-button-primary"
           >
             Add Expense
           </button>
         </form>
       </div>
+      )}
 
       <div className="app-panel rounded-3xl p-6">
         <h2 className="text-xl font-semibold mb-4">Filters & Export</h2>
@@ -155,13 +173,15 @@ export function Expenses() {
       <div className="app-panel rounded-3xl p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Expense List</h2>
-          <button
-            onClick={undoDelete}
-            className="app-button app-button-secondary flex items-center space-x-1 px-3 py-2"
-          >
-            <Undo size={16} />
-            <span>Undo</span>
-          </button>
+          {notice?.includes('Deleted') && (
+            <button
+              onClick={undoDelete}
+              className="app-button app-button-secondary flex items-center space-x-1 px-3 py-2"
+            >
+              <Undo size={16} />
+              <span>Undo</span>
+            </button>
+          )}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full table-auto">
@@ -177,21 +197,24 @@ export function Expenses() {
               </tr>
             </thead>
             <tbody>
-              {filteredExpenses.map(exp => (
+              {visibleExpenses.map(exp => (
                 <tr key={exp.id} className="border-b border-[var(--border)]">
                   <td className="p-2">{exp.date}</td>
                   <td className="p-2">{exp.type}</td>
                   <td className="p-2">{exp.category}</td>
-                  <td className="p-2">${exp.amount}</td>
+                  <td className="p-2">{formatCurrency(exp.amount)}</td>
                   <td className="p-2">{exp.description}</td>
                   <td className="p-2">{exp.user}</td>
                   <td className="p-2">
-                    <button
-                      onClick={() => deleteExpense(exp.id)}
-                      className="p-1 text-[var(--primary)] hover:text-[var(--primary-strong)]"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    {canManageEntries && (
+                      <button
+                        onClick={() => deleteExpense(exp.id)}
+                        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[var(--primary)] hover:text-[var(--primary-strong)]"
+                      >
+                        <Trash2 size={16} />
+                        Delete
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

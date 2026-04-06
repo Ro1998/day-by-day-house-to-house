@@ -2,7 +2,7 @@
 
 import { useTheme } from './ThemeProvider'
 import { useData } from './DataProvider'
-import { Home, LogOut, MenuSquare, Moon, Receipt, Sun, Wallet } from 'lucide-react'
+import { Home, LogOut, MenuSquare, Moon, Receipt, Settings2, Sun, Wallet } from 'lucide-react'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -12,13 +12,15 @@ interface LayoutProps {
 
 export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   const { theme, toggleTheme } = useTheme()
-  const { currentUser, logout, loading, error, users } = useData()
+  const { currentUser, logout, loading, error, notice, users } = useData()
+  const canManageOperations = currentUser?.role === 'admin' || currentUser?.role === 'coordinator'
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'expenses', label: 'Expenses', icon: Receipt },
-    { id: 'monthly', label: 'Monthly Food Money', icon: Wallet },
-    { id: 'menu', label: 'Menu Planner', icon: MenuSquare },
+    ...(canManageOperations ? [{ id: 'monthly', label: 'Monthly Food Money', icon: Wallet }] : []),
+    ...(canManageOperations ? [{ id: 'menu', label: 'Menu Planner', icon: MenuSquare }] : []),
+    ...(currentUser?.role === 'admin' ? [{ id: 'users', label: 'User Access', icon: Settings2 }] : []),
   ]
 
   return (
@@ -95,6 +97,11 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
         {error && (
           <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
             {error}
+          </div>
+        )}
+        {notice && (
+          <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            {notice}
           </div>
         )}
         {!loading && users.length === 0 && (

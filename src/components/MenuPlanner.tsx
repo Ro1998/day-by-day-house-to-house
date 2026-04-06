@@ -7,9 +7,16 @@ import { Download } from 'lucide-react'
 import html2canvas from 'html2canvas'
 import { format, startOfWeek } from 'date-fns'
 
+const parseNames = (value: string) =>
+  value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+
 export function MenuPlanner() {
-  const { menus, updateMenu, users, currentUser } = useData()
+  const { menus, updateMenu, currentUser } = useData()
   const [menu, setMenu] = useState<Menu | null>(null)
+  const canManageMenu = currentUser?.role === 'admin' || currentUser?.role === 'coordinator'
 
   useEffect(() => {
     const tuesday = startOfWeek(new Date(), { weekStartsOn: 2 }) // Tuesday
@@ -65,13 +72,18 @@ export function MenuPlanner() {
           Log in first to save a weekly menu.
         </div>
       )}
+      {currentUser && !canManageMenu && (
+        <div className="app-panel rounded-2xl px-4 py-3 text-sm">
+          Only the Coordinator (CO) or Admin can update the weekly menu.
+        </div>
+      )}
       <div className="app-panel rounded-3xl p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Weekly Menu Planner</h2>
           <div className="flex space-x-2">
             <button
               onClick={saveMenu}
-              disabled={!currentUser}
+              disabled={!canManageMenu}
               className="app-button app-button-primary"
             >
               Save Menu
@@ -88,23 +100,14 @@ export function MenuPlanner() {
 
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Vegetable Purchasers (2 people)</label>
-          <div className="flex flex-wrap gap-2">
-            {users.map(user => (
-              <label key={user.id} className="flex items-center space-x-1 rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={menu.purchasers.includes(user.name)}
-                  onChange={(e) => {
-                    const newPurchasers = e.target.checked
-                      ? [...menu.purchasers, user.name]
-                      : menu.purchasers.filter(p => p !== user.name)
-                    setMenu({ ...menu, purchasers: newPurchasers })
-                  }}
-                />
-                <span>{user.name}</span>
-              </label>
-            ))}
-          </div>
+          <input
+            type="text"
+            value={menu.purchasers.join(', ')}
+            onChange={(e) => setMenu({ ...menu, purchasers: parseNames(e.target.value) })}
+            className="app-input"
+            placeholder="Enter purchaser names separated by commas"
+            disabled={!canManageMenu}
+          />
         </div>
 
         <div id="menu-table" className="overflow-x-auto">
@@ -131,26 +134,18 @@ export function MenuPlanner() {
                       onChange={(e) => updateMenuItem(index, 'lunch', e.target.value)}
                       className="app-input"
                       placeholder="Lunch menu"
+                      disabled={!canManageMenu}
                     />
                   </td>
                   <td className="border border-[var(--border)] p-2">
-                    <div className="flex flex-wrap gap-1">
-                      {users.map(user => (
-                        <label key={user.id} className="flex items-center space-x-1 rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-2 py-1 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={item.lunchCooks.includes(user.name)}
-                            onChange={(e) => {
-                              const cooks = e.target.checked
-                                ? [...item.lunchCooks, user.name]
-                                : item.lunchCooks.filter(c => c !== user.name)
-                              updateMenuItem(index, 'lunchCooks', cooks)
-                            }}
-                          />
-                          <span>{user.name}</span>
-                        </label>
-                      ))}
-                    </div>
+                    <input
+                      type="text"
+                      value={item.lunchCooks.join(', ')}
+                      onChange={(e) => updateMenuItem(index, 'lunchCooks', parseNames(e.target.value))}
+                      className="app-input"
+                      placeholder="Enter lunch cook names"
+                      disabled={!canManageMenu}
+                    />
                   </td>
                   <td className="border border-[var(--border)] p-2">
                     <input
@@ -159,26 +154,18 @@ export function MenuPlanner() {
                       onChange={(e) => updateMenuItem(index, 'dinner', e.target.value)}
                       className="app-input"
                       placeholder="Dinner menu"
+                      disabled={!canManageMenu}
                     />
                   </td>
                   <td className="border border-[var(--border)] p-2">
-                    <div className="flex flex-wrap gap-1">
-                      {users.map(user => (
-                        <label key={user.id} className="flex items-center space-x-1 rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-2 py-1 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={item.dinnerCooks.includes(user.name)}
-                            onChange={(e) => {
-                              const cooks = e.target.checked
-                                ? [...item.dinnerCooks, user.name]
-                                : item.dinnerCooks.filter(c => c !== user.name)
-                              updateMenuItem(index, 'dinnerCooks', cooks)
-                            }}
-                          />
-                          <span>{user.name}</span>
-                        </label>
-                      ))}
-                    </div>
+                    <input
+                      type="text"
+                      value={item.dinnerCooks.join(', ')}
+                      onChange={(e) => updateMenuItem(index, 'dinnerCooks', parseNames(e.target.value))}
+                      className="app-input"
+                      placeholder="Enter dinner cook names"
+                      disabled={!canManageMenu}
+                    />
                   </td>
                 </tr>
               ))}
