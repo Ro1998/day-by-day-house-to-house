@@ -61,18 +61,18 @@ export function Expenses() {
   return (
     <div className="space-y-6">
       {!currentUser && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+        <div className="app-panel rounded-2xl px-4 py-3 text-sm">
           Log in first to add or delete expenses.
         </div>
       )}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+      <div className="app-panel rounded-3xl p-6">
         <h2 className="text-xl font-semibold mb-4">Add Expense</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <select
               value={form.type}
               onChange={(e) => setForm(prev => ({ ...prev, type: e.target.value as 'in' | 'out' }))}
-              className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+              className="app-input"
             >
               <option value="in">Cash In</option>
               <option value="out">Cash Out</option>
@@ -80,7 +80,7 @@ export function Expenses() {
             <select
               value={form.category}
               onChange={(e) => setForm(prev => ({ ...prev, category: e.target.value }))}
-              className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+              className="app-input"
             >
               <option value="">Select Category</option>
               {categories.map(cat => (
@@ -92,7 +92,7 @@ export function Expenses() {
               placeholder="Amount"
               value={form.amount}
               onChange={(e) => setForm(prev => ({ ...prev, amount: e.target.value }))}
-              className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+              className="app-input"
               required
             />
             <input
@@ -100,21 +100,21 @@ export function Expenses() {
               placeholder="Description"
               value={form.description}
               onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
-              className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+              className="app-input"
               required
             />
           </div>
           <button
             type="submit"
             disabled={!currentUser}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-blue-300"
+            className="app-button app-button-primary"
           >
             Add Expense
           </button>
         </form>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+      <div className="app-panel rounded-3xl p-6">
         <h2 className="text-xl font-semibold mb-4">Filters & Export</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
           <input
@@ -122,19 +122,19 @@ export function Expenses() {
             placeholder="From Date"
             value={filter.dateFrom}
             onChange={(e) => setFilter(prev => ({ ...prev, dateFrom: e.target.value }))}
-            className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+            className="app-input"
           />
           <input
             type="date"
             placeholder="To Date"
             value={filter.dateTo}
             onChange={(e) => setFilter(prev => ({ ...prev, dateTo: e.target.value }))}
-            className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+            className="app-input"
           />
           <select
             value={filter.category}
             onChange={(e) => setFilter(prev => ({ ...prev, category: e.target.value }))}
-            className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+            className="app-input"
           >
             <option value="">All Categories</option>
             {categories.map(cat => (
@@ -142,22 +142,22 @@ export function Expenses() {
             ))}
           </select>
           <div className="flex space-x-2">
-            <button onClick={exportPDF} className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+            <button onClick={exportPDF} className="app-button app-button-ghost px-3 py-2">
               <Download size={16} />
             </button>
-            <button onClick={exportXLS} className="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+            <button onClick={exportXLS} className="app-button app-button-secondary px-3 py-2">
               <Download size={16} />
             </button>
           </div>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+      <div className="app-panel rounded-3xl p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Expense List</h2>
           <button
             onClick={undoDelete}
-            className="px-3 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 flex items-center space-x-1"
+            className="app-button app-button-secondary flex items-center space-x-1 px-3 py-2"
           >
             <Undo size={16} />
             <span>Undo</span>
@@ -166,7 +166,7 @@ export function Expenses() {
         <div className="overflow-x-auto">
           <table className="w-full table-auto">
             <thead>
-              <tr className="border-b dark:border-gray-700">
+              <tr className="border-b border-[var(--border)]">
                 <th className="text-left p-2">Date</th>
                 <th className="text-left p-2">Type</th>
                 <th className="text-left p-2">Category</th>
@@ -178,7 +178,7 @@ export function Expenses() {
             </thead>
             <tbody>
               {filteredExpenses.map(exp => (
-                <tr key={exp.id} className="border-b dark:border-gray-700">
+                <tr key={exp.id} className="border-b border-[var(--border)]">
                   <td className="p-2">{exp.date}</td>
                   <td className="p-2">{exp.type}</td>
                   <td className="p-2">{exp.category}</td>
@@ -188,7 +188,7 @@ export function Expenses() {
                   <td className="p-2">
                     <button
                       onClick={() => deleteExpense(exp.id)}
-                      className="p-1 text-red-500 hover:text-red-700"
+                      className="p-1 text-[var(--primary)] hover:text-[var(--primary-strong)]"
                     >
                       <Trash2 size={16} />
                     </button>

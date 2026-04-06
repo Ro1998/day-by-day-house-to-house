@@ -61,24 +61,24 @@ export function MenuPlanner() {
   return (
     <div className="space-y-6">
       {!currentUser && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+        <div className="app-panel rounded-2xl px-4 py-3 text-sm">
           Log in first to save a weekly menu.
         </div>
       )}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+      <div className="app-panel rounded-3xl p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Weekly Menu Planner</h2>
           <div className="flex space-x-2">
             <button
               onClick={saveMenu}
               disabled={!currentUser}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-blue-300"
+              className="app-button app-button-primary"
             >
               Save Menu
             </button>
             <button
               onClick={exportPNG}
-              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 flex items-center space-x-1"
+              className="app-button app-button-secondary flex items-center space-x-1"
             >
               <Download size={16} />
               <span>Export PNG</span>
@@ -90,7 +90,7 @@ export function MenuPlanner() {
           <label className="block text-sm font-medium mb-2">Vegetable Purchasers (2 people)</label>
           <div className="flex flex-wrap gap-2">
             {users.map(user => (
-              <label key={user.id} className="flex items-center space-x-1">
+              <label key={user.id} className="flex items-center space-x-1 rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-sm">
                 <input
                   type="checkbox"
                   checked={menu.purchasers.includes(user.name)}
@@ -108,35 +108,35 @@ export function MenuPlanner() {
         </div>
 
         <div id="menu-table" className="overflow-x-auto">
-          <table className="w-full table-auto border-collapse border border-gray-300 dark:border-gray-600">
+          <table className="w-full table-auto border-collapse border border-[var(--border)]">
             <thead>
-              <tr className="bg-gray-100 dark:bg-gray-700">
-                <th className="border border-gray-300 dark:border-gray-600 p-2">Day</th>
-                <th className="border border-gray-300 dark:border-gray-600 p-2">Lunch</th>
-                <th className="border border-gray-300 dark:border-gray-600 p-2">Lunch Cooks (2)</th>
-                <th className="border border-gray-300 dark:border-gray-600 p-2">Dinner</th>
-                <th className="border border-gray-300 dark:border-gray-600 p-2">Dinner Cooks (2)</th>
+              <tr className="bg-[var(--surface-soft)]">
+                <th className="border border-[var(--border)] p-2">Day</th>
+                <th className="border border-[var(--border)] p-2">Lunch</th>
+                <th className="border border-[var(--border)] p-2">Lunch Cooks (2)</th>
+                <th className="border border-[var(--border)] p-2">Dinner</th>
+                <th className="border border-[var(--border)] p-2">Dinner Cooks (2)</th>
               </tr>
             </thead>
             <tbody>
               {menu.items.map((item, index) => (
-                <tr key={item.day} className="border-b border-gray-300 dark:border-gray-600">
-                  <td className="border border-gray-300 dark:border-gray-600 p-2 font-medium">
+                <tr key={item.day} className="border-b border-[var(--border)]">
+                  <td className="border border-[var(--border)] p-2 font-medium">
                     {item.day}
                   </td>
-                  <td className="border border-gray-300 dark:border-gray-600 p-2">
+                  <td className="border border-[var(--border)] p-2">
                     <input
                       type="text"
                       value={item.lunch}
                       onChange={(e) => updateMenuItem(index, 'lunch', e.target.value)}
-                      className="w-full p-1 border rounded dark:bg-gray-700 dark:border-gray-600"
+                      className="app-input"
                       placeholder="Lunch menu"
                     />
                   </td>
-                  <td className="border border-gray-300 dark:border-gray-600 p-2">
+                  <td className="border border-[var(--border)] p-2">
                     <div className="flex flex-wrap gap-1">
                       {users.map(user => (
-                        <label key={user.id} className="flex items-center space-x-1 text-sm">
+                        <label key={user.id} className="flex items-center space-x-1 rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-2 py-1 text-sm">
                           <input
                             type="checkbox"
                             checked={item.lunchCooks.includes(user.name)}
@@ -152,19 +152,19 @@ export function MenuPlanner() {
                       ))}
                     </div>
                   </td>
-                  <td className="border border-gray-300 dark:border-gray-600 p-2">
+                  <td className="border border-[var(--border)] p-2">
                     <input
                       type="text"
                       value={item.dinner}
                       onChange={(e) => updateMenuItem(index, 'dinner', e.target.value)}
-                      className="w-full p-1 border rounded dark:bg-gray-700 dark:border-gray-600"
+                      className="app-input"
                       placeholder="Dinner menu"
                     />
                   </td>
-                  <td className="border border-gray-300 dark:border-gray-600 p-2">
+                  <td className="border border-[var(--border)] p-2">
                     <div className="flex flex-wrap gap-1">
                       {users.map(user => (
-                        <label key={user.id} className="flex items-center space-x-1 text-sm">
+                        <label key={user.id} className="flex items-center space-x-1 rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-2 py-1 text-sm">
                           <input
                             type="checkbox"
                             checked={item.dinnerCooks.includes(user.name)}

@@ -39,7 +39,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [menus, setMenus] = useState<Menu[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [activities, setActivities] = useState<Activity[]>([])
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    if (typeof window === 'undefined') return null
+
+    const savedUser = localStorage.getItem('currentUser')
+    return savedUser ? JSON.parse(savedUser) : null
+  })
   const [budget, setBudget] = useState(1000)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -99,11 +104,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
     }
     loadData()
-  }, [])
-
-  useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser')
-    if (savedUser) setCurrentUser(JSON.parse(savedUser))
   }, [])
 
   useEffect(() => {

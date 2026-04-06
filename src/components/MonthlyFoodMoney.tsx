@@ -30,11 +30,11 @@ export function MonthlyFoodMoney() {
   return (
     <div className="space-y-6">
       {!currentUser && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+        <div className="app-panel rounded-2xl px-4 py-3 text-sm">
           Log in first to add monthly payments.
         </div>
       )}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+      <div className="app-panel rounded-3xl p-6">
         <h2 className="text-xl font-semibold mb-4">Add Monthly Payment</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -42,10 +42,10 @@ export function MonthlyFoodMoney() {
               type="month"
               value={form.month}
               onChange={(e) => setForm(prev => ({ ...prev, month: e.target.value }))}
-              className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+              className="app-input"
               required
             />
-            <label className="flex items-center space-x-2">
+            <label className="flex items-center space-x-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3">
               <input
                 type="checkbox"
                 checked={form.paid}
@@ -58,25 +58,25 @@ export function MonthlyFoodMoney() {
               placeholder="Amount"
               value={form.amount}
               onChange={(e) => setForm(prev => ({ ...prev, amount: e.target.value }))}
-              className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+              className="app-input"
             />
           </div>
           <button
             type="submit"
             disabled={!currentUser}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-blue-300"
+            className="app-button app-button-primary"
           >
             Add Payment
           </button>
         </form>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+      <div className="app-panel rounded-3xl p-6">
         <h2 className="text-xl font-semibold mb-4">Monthly Payments</h2>
         <div className="overflow-x-auto">
           <table className="w-full table-auto">
             <thead>
-              <tr className="border-b dark:border-gray-700">
+              <tr className="border-b border-[var(--border)]">
                 <th className="text-left p-2">Month</th>
                 <th className="text-left p-2">Paid</th>
                 <th className="text-left p-2">Amount</th>
@@ -85,11 +85,11 @@ export function MonthlyFoodMoney() {
             </thead>
             <tbody>
               {monthlyPayments.map(payment => (
-                <tr key={payment.id} className="border-b dark:border-gray-700">
+                <tr key={payment.id} className="border-b border-[var(--border)]">
                   <td className="p-2">{payment.month}</td>
                   <td className="p-2">
                     <span className={`px-2 py-1 rounded text-sm ${
-                      payment.paid ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
+                      payment.paid ? 'bg-[var(--accent)]/30 text-[var(--primary-strong)]' : 'bg-[var(--primary)]/15 text-[var(--primary-strong)]'
                     }`}>
                       {payment.paid ? 'Yes' : 'No'}
                     </span>
@@ -103,24 +103,24 @@ export function MonthlyFoodMoney() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+      <div className="app-panel rounded-3xl p-6">
         <h2 className="text-xl font-semibold mb-4">Current Month Summary</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="text-center">
-            <p className="text-2xl font-bold text-blue-600">{currentPayments.length}</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Total Entries</p>
+            <p className="text-2xl font-bold text-[var(--primary)]">{currentPayments.length}</p>
+            <p className="app-muted text-sm">Total Entries</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-green-600">
+            <p className="text-2xl font-bold text-[var(--accent-strong)]">
               {currentPayments.filter(p => p.paid).length}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Paid</p>
+            <p className="app-muted text-sm">Paid</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-purple-600">
+            <p className="text-2xl font-bold text-[var(--primary-strong)]">
               ${currentPayments.reduce((sum, p) => sum + p.amount, 0)}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Total Amount</p>
+            <p className="app-muted text-sm">Total Amount</p>
           </div>
         </div>
       </div>
