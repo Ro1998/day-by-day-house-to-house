@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { apiError } from '@/lib/api-error'
 import { prisma } from '@/lib/prisma'
 
 const serializePayment = (payment: Awaited<ReturnType<typeof prisma.monthlyPayment.findFirstOrThrow>> & { user: { name: string } }) => ({
@@ -16,7 +17,7 @@ export async function GET() {
     const payments = await prisma.monthlyPayment.findMany({ include: { user: true } })
     return NextResponse.json(payments.map(serializePayment))
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch payments' }, { status: 500 })
+    return apiError('monthly-payments.GET', error, 'Failed to fetch payments')
   }
 }
 
@@ -26,6 +27,6 @@ export async function POST(request: Request) {
     const payment = await prisma.monthlyPayment.create({ data: body, include: { user: true } })
     return NextResponse.json(serializePayment(payment))
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create payment' }, { status: 500 })
+    return apiError('monthly-payments.POST', error, 'Failed to create payment')
   }
 }

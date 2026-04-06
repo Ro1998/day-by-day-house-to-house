@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { apiError } from '@/lib/api-error'
 import { prisma } from '@/lib/prisma'
 
 const serializeActivity = (activity: Awaited<ReturnType<typeof prisma.activity.findFirstOrThrow>> & { user: { name: string } }) => ({
@@ -14,7 +15,7 @@ export async function GET() {
     const activities = await prisma.activity.findMany({ include: { user: true }, orderBy: { timestamp: 'desc' } })
     return NextResponse.json(activities.map(serializeActivity))
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch activities' }, { status: 500 })
+    return apiError('activities.GET', error, 'Failed to fetch activities')
   }
 }
 
@@ -24,6 +25,6 @@ export async function POST(request: Request) {
     const activity = await prisma.activity.create({ data: body, include: { user: true } })
     return NextResponse.json(serializeActivity(activity))
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create activity' }, { status: 500 })
+    return apiError('activities.POST', error, 'Failed to create activity')
   }
 }

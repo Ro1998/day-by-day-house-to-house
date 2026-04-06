@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { apiError } from '@/lib/api-error'
 import { prisma } from '@/lib/prisma'
 
 const serializeMenu = (menu: Awaited<ReturnType<typeof prisma.menu.findFirstOrThrow>> & {
@@ -19,7 +20,7 @@ export async function GET() {
     const menus = await prisma.menu.findMany({ include: { items: true, user: true } })
     return NextResponse.json(menus.map(serializeMenu))
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch menus' }, { status: 500 })
+    return apiError('menus.GET', error, 'Failed to fetch menus')
   }
 }
 
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
     })
     return NextResponse.json(serializeMenu(menu))
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create menu' }, { status: 500 })
+    return apiError('menus.POST', error, 'Failed to create menu')
   }
 }
 
@@ -59,6 +60,6 @@ export async function PUT(request: Request) {
     })
     return NextResponse.json(serializeMenu(menu))
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to update menu' }, { status: 500 })
+    return apiError('menus.PUT', error, 'Failed to update menu')
   }
 }
