@@ -20,8 +20,19 @@ interface DataContextType {
   undoDelete: () => Promise<void>
   addMonthlyPayment: (payment: Omit<MonthlyPayment, 'id' | 'userId'>) => Promise<void>
   updateMenu: (menu: Menu) => Promise<void>
-  createUser: (input: { name: string; username: string; password: string }) => Promise<User | null>
-  claimExistingUser: (input: { name: string; username: string; password: string }) => Promise<User | null>
+  createUser: (input: {
+    name: string
+    username: string
+    password: string
+    securityAnswers: Record<string, string>
+  }) => Promise<User | null>
+  resetPasswordWithSecurityAnswers: (input: {
+    username: string
+    newPassword: string
+    securityAnswers: Record<string, string>
+  }) => Promise<boolean>
+  createAdminResetLink: (userId: string) => Promise<{ resetLink: string; expiresAt: string } | null>
+  resetPasswordWithToken: (input: { token: string; newPassword: string }) => Promise<boolean>
   updateUserAccess: (input: { id: string; role: UserRole; approved: boolean }) => Promise<void>
   login: (input: { username: string; password: string }) => Promise<boolean>
   logout: () => void
@@ -318,7 +329,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const createUser = async (input: { name: string; username: string; password: string }) => {
+  const createUser = async (input: {
+    name: string
+    username: string
+    password: string
+    securityAnswers: Record<string, string>
+  }) => {
     const trimmedName = input.name.trim()
     const trimmedUsername = input.username.trim().toLowerCase()
     if (!trimmedName || !trimmedUsername || !input.password.trim()) {
@@ -332,7 +348,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: trimmedName, username: trimmedUsername, password: input.password }),
+        body: JSON.stringify({
+          name: trimmedName,
+          username: trimmedUsername,
+          password: input.password,
+          securityAnswers: input.securityAnswers,
+        }),
       })
       const user = await readJson<User>(res, 'Failed to create user')
 
@@ -350,29 +371,78 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const claimExistingUser = async (input: { name: string; username: string; password: string }) => {
-    const trimmedName = input.name.trim()
-    const trimmedUsername = input.username.trim().toLowerCase()
-    if (!trimmedName || !trimmedUsername || !input.password.trim()) {
-      setError('Please fill in name, username, and password before claiming an account.')
-      return null
+  const resetPasswordWithSecurityAnswers = async (input: {
+    username: string
+    newPassword: string
+    securityAnswers: Record<string, string>
+  }) => {
+    if (!input.username.trim() || !input.newPassword.trim()) {
+      setError('Please fill in username, new password, and your security answers.')
+      return false
     }
 
     try {
       setError(null)
       setNotice(null)
-      const res = await fetch('/api/auth/claim', {
+      const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: trimmedName, username: trimmedUsername, password: input.password }),
+        body: JSON.stringify({
+          username: input.username.trim().toLowerCase(),
+          newPassword: input.newPassword,
+          securityAnswers: input.securityAnswers,
+        }),
       })
-      const user = await readJson<User>(res, 'Failed to claim existing account')
-      setCurrentUser(user)
-      setNotice('Account claimed successfully. You are now signed in.')
-      return user
+      await readJson<{ success: boolean }>(res, 'Failed to reset password')
+      setNotice('Password reset successful. You can sign in with your new password now.')
+      return true
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : 'Failed to claim existing account')
+      setError(actionError instanceof Error ? actionError.message : 'Failed to reset password')
+      return false
+    }
+  }
+
+  const createAdminResetLink = async (userId: string) => {
+    if (!currentUser) return null
+
+    try {
+      setError(null)
+      setNotice(null)
+      const res = await fetch('/api/auth/admin-reset-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ userId }),
+      })
+      const payload = await readJson<{ resetToken: string; expiresAt: string }>(res, 'Failed to create reset link')
+      const resetLink = `${window.location.origin}/?resetToken=${payload.resetToken}`
+      setNotice('Reset link created successfully.')
+      return { resetLink, expiresAt: payload.expiresAt }
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to create reset link')
       return null
+    }
+  }
+
+  const resetPasswordWithToken = async (input: { token: string; newPassword: string }) => {
+    if (!input.token.trim() || !input.newPassword.trim()) {
+      setError('A reset token and new password are required.')
+      return false
+    }
+
+    try {
+      setError(null)
+      setNotice(null)
+      const res = await fetch('/api/auth/reset-with-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+      await readJson<{ success: boolean }>(res, 'Failed to reset password with link')
+      setNotice('Password reset successful. Please sign in with your new password.')
+      return true
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to reset password with link')
+      return false
     }
   }
 
@@ -457,7 +527,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       addMonthlyPayment,
       updateMenu,
       createUser,
-      claimExistingUser,
+      resetPasswordWithSecurityAnswers,
+      createAdminResetLink,
+      resetPasswordWithToken,
       updateUserAccess,
       login,
       logout,

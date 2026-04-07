@@ -1,21 +1,50 @@
 'use client'
 
 import { useState } from 'react'
-import { KeyRound, LogIn, Moon, Sparkles, Sun, UserPlus } from 'lucide-react'
+import { LogIn, Moon, RotateCcw, ShieldCheck, Sparkles, Sun, UserPlus } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
 import { useData } from '@/components/DataProvider'
 import { useTheme } from '@/components/ThemeProvider'
+import { SECURITY_QUESTIONS } from '@/lib/security-questions'
 
 interface LoginScreenProps {
   onContinue: () => void
 }
 
 export function LoginScreen({ onContinue }: LoginScreenProps) {
-  const { login, createUser, claimExistingUser, loading, error, notice } = useData()
+  const {
+    login,
+    createUser,
+    resetPasswordWithSecurityAnswers,
+    resetPasswordWithToken,
+    loading,
+    error,
+    notice,
+  } = useData()
   const { theme, toggleTheme } = useTheme()
-  const [authMode, setAuthMode] = useState<'login' | 'register' | 'claim'>('login')
+  const searchParams = useSearchParams()
+  const resetToken = searchParams.get('resetToken') ?? ''
+  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot'>('login')
   const [loginForm, setLoginForm] = useState({ username: '', password: '' })
-  const [registerForm, setRegisterForm] = useState({ name: '', username: '', password: '' })
-  const [claimForm, setClaimForm] = useState({ name: '', username: '', password: '' })
+  const [registerForm, setRegisterForm] = useState({
+    name: '',
+    username: '',
+    password: '',
+    securityAnswers: {} as Record<string, string>,
+  })
+  const [forgotForm, setForgotForm] = useState({
+    username: '',
+    newPassword: '',
+    securityAnswers: {} as Record<string, string>,
+  })
+  const [linkResetPassword, setLinkResetPassword] = useState('')
+
+  const registerAnsweredCount = SECURITY_QUESTIONS.filter(
+    ({ id }) => registerForm.securityAnswers[id]?.trim(),
+  ).length
+  const forgotAnsweredCount = SECURITY_QUESTIONS.filter(
+    ({ id }) => forgotForm.securityAnswers[id]?.trim(),
+  ).length
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,16 +58,23 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
     e.preventDefault()
     const user = await createUser(registerForm)
     if (!user) return
-    setRegisterForm({ name: '', username: '', password: '' })
+    setRegisterForm({ name: '', username: '', password: '', securityAnswers: {} })
     onContinue()
   }
 
-  const handleClaimUser = async (e: React.FormEvent) => {
+  const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault()
-    const user = await claimExistingUser(claimForm)
-    if (!user) return
-    setClaimForm({ name: '', username: '', password: '' })
-    onContinue()
+    const success = await resetPasswordWithSecurityAnswers(forgotForm)
+    if (!success) return
+    setForgotForm({ username: '', newPassword: '', securityAnswers: {} })
+    setAuthMode('login')
+  }
+
+  const handleLinkReset = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const success = await resetPasswordWithToken({ token: resetToken, newPassword: linkResetPassword })
+    if (!success) return
+    setLinkResetPassword('')
   }
 
   return (
@@ -132,31 +168,33 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
               </div>
             )}
 
-            <div className="mb-5 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setAuthMode('login')}
-                className={`app-button ${authMode === 'login' ? 'app-button-primary' : 'app-button-ghost'}`}
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => setAuthMode('register')}
-                className={`app-button ${authMode === 'register' ? 'app-button-primary' : 'app-button-ghost'}`}
-              >
-                Register
-              </button>
-              <button
-                type="button"
-                onClick={() => setAuthMode('claim')}
-                className={`app-button ${authMode === 'claim' ? 'app-button-primary' : 'app-button-ghost'}`}
-              >
-                Claim Existing Account
-              </button>
-            </div>
+            {!resetToken && (
+              <div className="mb-5 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAuthMode('login')}
+                  className={`app-button ${authMode === 'login' ? 'app-button-primary' : 'app-button-ghost'}`}
+                >
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthMode('register')}
+                  className={`app-button ${authMode === 'register' ? 'app-button-primary' : 'app-button-ghost'}`}
+                >
+                  Register
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthMode('forgot')}
+                  className={`app-button ${authMode === 'forgot' ? 'app-button-primary' : 'app-button-ghost'}`}
+                >
+                  Forgot Password
+                </button>
+              </div>
+            )}
 
-            {authMode === 'login' && (
+            {!resetToken && authMode === 'login' && (
               <form onSubmit={handleLogin} className="space-y-4">
                 <input
                   type="text"
@@ -184,10 +222,17 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                   <LogIn size={18} />
                   Continue to Dashboard
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthMode('forgot')}
+                  className="text-sm font-semibold text-[var(--accent-strong)] underline underline-offset-4"
+                >
+                  Forgot password?
+                </button>
               </form>
             )}
 
-            {authMode === 'register' && (
+            {!resetToken && authMode === 'register' && (
               <form onSubmit={handleCreateUser} className="space-y-4">
                 <input
                   type="text"
@@ -215,9 +260,46 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                   autoComplete="new-password"
                   required
                 />
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                  <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--primary-strong)]">
+                    <ShieldCheck size={16} />
+                    Security Questions
+                  </div>
+                  <p className="app-muted mb-4 text-sm">
+                    Answer any 3 or more. You will use these to reset your password if needed.
+                  </p>
+                  <div className="space-y-3">
+                    {SECURITY_QUESTIONS.map(({ id, question }) => (
+                      <div key={id}>
+                        <label className="mb-1 block text-sm font-medium">{question}</label>
+                        <input
+                          type="text"
+                          value={registerForm.securityAnswers[id] ?? ''}
+                          onChange={(e) => setRegisterForm((prev) => ({
+                            ...prev,
+                            securityAnswers: {
+                              ...prev.securityAnswers,
+                              [id]: e.target.value,
+                            },
+                          }))}
+                          className="app-input"
+                          placeholder="Your answer"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="app-muted mt-3 text-xs">
+                    Answered: {registerAnsweredCount} of 5
+                  </p>
+                </div>
                 <button
                   type="submit"
-                  disabled={!registerForm.name.trim() || !registerForm.username.trim() || !registerForm.password.trim()}
+                  disabled={
+                    !registerForm.name.trim() ||
+                    !registerForm.username.trim() ||
+                    !registerForm.password.trim() ||
+                    registerAnsweredCount < 3
+                  }
                   className="app-button app-button-secondary inline-flex w-full items-center justify-center gap-2"
                 >
                   <UserPlus size={18} />
@@ -226,32 +308,78 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
               </form>
             )}
 
-            {authMode === 'claim' && (
-              <form onSubmit={handleClaimUser} className="space-y-4">
-                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm">
-                  Use this once if your account already existed before usernames and passwords were added.
-                </div>
+            {!resetToken && authMode === 'forgot' && (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
                 <input
                   type="text"
-                  value={claimForm.name}
-                  onChange={(e) => setClaimForm((prev) => ({ ...prev, name: e.target.value }))}
+                  value={forgotForm.username}
+                  onChange={(e) => setForgotForm((prev) => ({ ...prev, username: e.target.value }))}
                   className="app-input"
-                  placeholder="Your existing full name"
-                  required
-                />
-                <input
-                  type="text"
-                  value={claimForm.username}
-                  onChange={(e) => setClaimForm((prev) => ({ ...prev, username: e.target.value }))}
-                  className="app-input"
-                  placeholder="New username"
+                  placeholder="Username"
                   autoComplete="username"
                   required
                 />
                 <input
                   type="password"
-                  value={claimForm.password}
-                  onChange={(e) => setClaimForm((prev) => ({ ...prev, password: e.target.value }))}
+                  value={forgotForm.newPassword}
+                  onChange={(e) => setForgotForm((prev) => ({ ...prev, newPassword: e.target.value }))}
+                  className="app-input"
+                  placeholder="New password"
+                  autoComplete="new-password"
+                  required
+                />
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                  <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--primary-strong)]">
+                    <RotateCcw size={16} />
+                    Security Question Check
+                  </div>
+                  <p className="app-muted mb-4 text-sm">
+                    Answer at least 3 correctly to reset your password. If you cannot, ask an admin for a reset link.
+                  </p>
+                  <div className="space-y-3">
+                    {SECURITY_QUESTIONS.map(({ id, question }) => (
+                      <div key={id}>
+                        <label className="mb-1 block text-sm font-medium">{question}</label>
+                        <input
+                          type="text"
+                          value={forgotForm.securityAnswers[id] ?? ''}
+                          onChange={(e) => setForgotForm((prev) => ({
+                            ...prev,
+                            securityAnswers: {
+                              ...prev.securityAnswers,
+                              [id]: e.target.value,
+                            },
+                          }))}
+                          className="app-input"
+                          placeholder="Your answer"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="app-muted mt-3 text-xs">
+                    Answered: {forgotAnsweredCount} of 5
+                  </p>
+                </div>
+                <button
+                  type="submit"
+                  disabled={!forgotForm.username.trim() || !forgotForm.newPassword.trim() || forgotAnsweredCount < 3}
+                  className="app-button app-button-secondary inline-flex w-full items-center justify-center gap-2"
+                >
+                  <RotateCcw size={18} />
+                  Reset Password
+                </button>
+              </form>
+            )}
+
+            {resetToken && (
+              <form onSubmit={handleLinkReset} className="space-y-4">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm">
+                  This password reset link was created by an admin. Enter your new password to finish resetting your account.
+                </div>
+                <input
+                  type="password"
+                  value={linkResetPassword}
+                  onChange={(e) => setLinkResetPassword(e.target.value)}
                   className="app-input"
                   placeholder="New password"
                   autoComplete="new-password"
@@ -259,11 +387,11 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                 />
                 <button
                   type="submit"
-                  disabled={!claimForm.name.trim() || !claimForm.username.trim() || !claimForm.password.trim()}
-                  className="app-button app-button-secondary inline-flex w-full items-center justify-center gap-2"
+                  disabled={!linkResetPassword.trim()}
+                  className="app-button app-button-primary inline-flex w-full items-center justify-center gap-2"
                 >
-                  <KeyRound size={18} />
-                  Claim Existing Account
+                  <RotateCcw size={18} />
+                  Set New Password
                 </button>
               </form>
             )}

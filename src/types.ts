@@ -48,6 +48,7 @@ export interface User {
   id: string
   name: string
   username?: string | null
+  passwordResetTokenExpiresAt?: string | null
   role: UserRole
   approved: boolean
 }

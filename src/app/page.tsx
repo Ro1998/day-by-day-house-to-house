@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useData } from '@/components/DataProvider'
 import { Layout } from '@/components/Layout'
 import { Dashboard } from '@/components/Dashboard'
@@ -32,7 +32,11 @@ export default function Home() {
   }
 
   if (!currentUser) {
-    return <LoginScreen onContinue={() => setActiveTab('dashboard')} />
+    return (
+      <Suspense fallback={<div className="px-6 py-8 text-sm">Loading login...</div>}>
+        <LoginScreen onContinue={() => setActiveTab('dashboard')} />
+      </Suspense>
+    )
   }
 
   return (

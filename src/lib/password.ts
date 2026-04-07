@@ -1,4 +1,4 @@
-import { randomBytes, scryptSync, timingSafeEqual } from 'crypto'
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'crypto'
 
 const KEY_LENGTH = 64
 
@@ -19,3 +19,7 @@ export const verifyPassword = (password: string, passwordHash: string) => {
 
   return timingSafeEqual(hashedBuffer, storedBuffer)
 }
+
+export const hashValue = (value: string) => createHash('sha256').update(value).digest('hex')
+
+export const createResetToken = () => randomBytes(24).toString('hex')

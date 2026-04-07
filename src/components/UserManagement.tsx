@@ -5,8 +5,9 @@ import { useData } from '@/components/DataProvider'
 import type { UserRole } from '@/types'
 
 export function UserManagement() {
-  const { users, updateUserAccess } = useData()
+  const { users, updateUserAccess, createAdminResetLink } = useData()
   const [drafts, setDrafts] = useState<Record<string, { role: UserRole; approved: boolean }>>({})
+  const [resetLinks, setResetLinks] = useState<Record<string, { resetLink: string; expiresAt: string }>>({})
 
   const getDraft = (id: string, role: UserRole, approved: boolean) =>
     drafts[id] ?? { role, approved }
@@ -77,6 +78,7 @@ export function UserManagement() {
                 <th className="p-2 text-left">Username</th>
                 <th className="p-2 text-left">Role</th>
                 <th className="p-2 text-left">Status</th>
+                <th className="p-2 text-left">Password Reset</th>
               </tr>
             </thead>
             <tbody>
@@ -86,6 +88,35 @@ export function UserManagement() {
                   <td className="p-2">{user.username || 'Not set yet'}</td>
                   <td className="p-2 capitalize">{user.role}</td>
                   <td className="p-2">Approved</td>
+                  <td className="p-2">
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const result = await createAdminResetLink(user.id)
+                          if (!result) return
+                          setResetLinks((prev) => ({
+                            ...prev,
+                            [user.id]: result,
+                          }))
+                        }}
+                        className="app-button app-button-ghost px-3 py-2"
+                        disabled={!user.username}
+                      >
+                        Create Reset Link
+                      </button>
+                      {resetLinks[user.id] && (
+                        <div className="rounded-2xl bg-[var(--surface-soft)] p-3 text-xs">
+                          <div className="mb-2 break-all font-medium text-[var(--primary-strong)]">
+                            {resetLinks[user.id].resetLink}
+                          </div>
+                          <div className="app-muted">
+                            Expires: {new Date(resetLinks[user.id].expiresAt).toLocaleString()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
