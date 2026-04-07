@@ -74,6 +74,7 @@ export function UserManagement() {
             <thead>
               <tr className="border-b border-[var(--border)]">
                 <th className="p-2 text-left">Name</th>
+                <th className="p-2 text-left">Username</th>
                 <th className="p-2 text-left">Role</th>
                 <th className="p-2 text-left">Status</th>
               </tr>
@@ -82,6 +83,7 @@ export function UserManagement() {
               {approvedUsers.map((user) => (
                 <tr key={user.id} className="border-b border-[var(--border)]">
                   <td className="p-2">{user.name}</td>
+                  <td className="p-2">{user.username || 'Not set yet'}</td>
                   <td className="p-2 capitalize">{user.role}</td>
                   <td className="p-2">Approved</td>
                 </tr>

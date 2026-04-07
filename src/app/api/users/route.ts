@@ -2,12 +2,15 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { apiError } from '@/lib/api-error'
 import { requireApprovedUser } from '@/lib/auth'
+import { hashPassword } from '@/lib/password'
 
 export async function GET(request: Request) {
   try {
     const auth = await requireApprovedUser(request, ['admin'])
+    if (auth.error) return auth.error
+
     const users = await prisma.user.findMany({
-      where: auth.user ? undefined : { approved: true },
+      where: undefined,
       orderBy: [{ approved: 'asc' }, { name: 'asc' }],
     })
     return NextResponse.json(users)
@@ -20,9 +23,19 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const approvedUserCount = await prisma.user.count({ where: { approved: true } })
+    const name = String(body.name ?? '').trim()
+    const username = String(body.username ?? '').trim().toLowerCase()
+    const password = String(body.password ?? '')
+
+    if (!name || !username || !password) {
+      return NextResponse.json({ error: 'Name, username, and password are required.' }, { status: 400 })
+    }
+
     const user = await prisma.user.create({
       data: {
-        name: String(body.name).trim(),
+        name,
+        username,
+        passwordHash: hashPassword(password),
         role: approvedUserCount === 0 ? 'admin' : 'user',
         approved: approvedUserCount === 0,
       },

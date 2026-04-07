@@ -20,9 +20,10 @@ interface DataContextType {
   undoDelete: () => Promise<void>
   addMonthlyPayment: (payment: Omit<MonthlyPayment, 'id' | 'userId'>) => Promise<void>
   updateMenu: (menu: Menu) => Promise<void>
-  createUser: (name: string) => Promise<User | null>
+  createUser: (input: { name: string; username: string; password: string }) => Promise<User | null>
+  claimExistingUser: (input: { name: string; username: string; password: string }) => Promise<User | null>
   updateUserAccess: (input: { id: string; role: UserRole; approved: boolean }) => Promise<void>
-  login: (user: User) => void
+  login: (input: { username: string; password: string }) => Promise<boolean>
   logout: () => void
   logActivity: (action: string) => Promise<void>
 }
@@ -41,12 +42,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [menus, setMenus] = useState<Menu[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [activities, setActivities] = useState<Activity[]>([])
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    if (typeof window === 'undefined') return null
-
-    const savedUser = localStorage.getItem('currentUser')
-    return savedUser ? JSON.parse(savedUser) : null
-  })
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [budget] = useState(1000)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -85,31 +81,36 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       try {
         setError(null)
 
-        const usersRes = await fetch('/api/users', {
-          headers: authHeaders(),
-        })
-        const usersData = await readJson<User[]>(usersRes, 'Failed to load users')
-        setUsers(usersData)
-
-        const refreshedCurrentUser = currentUser
-          ? usersData.find((user) => user.id === currentUser.id) ?? null
-          : null
-
-        if (currentUser && !refreshedCurrentUser) {
-          setCurrentUser(null)
-        } else if (
-          refreshedCurrentUser &&
-          JSON.stringify(refreshedCurrentUser) !== JSON.stringify(currentUser)
-        ) {
-          setCurrentUser(refreshedCurrentUser)
-        }
-
         if (!currentUser) {
+          setUsers([])
           setExpenses([])
           setMonthlyPayments([])
           setMenus([])
           setActivities([])
           return
+        }
+
+        const usersRes = await fetch('/api/users', {
+          headers: authHeaders(),
+        })
+        if (usersRes.ok) {
+          const usersData = await readJson<User[]>(usersRes, 'Failed to load users')
+          setUsers(usersData)
+
+          const refreshedCurrentUser = currentUser
+            ? usersData.find((user) => user.id === currentUser.id) ?? null
+            : null
+
+          if (currentUser && !refreshedCurrentUser) {
+            setCurrentUser(null)
+          } else if (
+            refreshedCurrentUser &&
+            JSON.stringify(refreshedCurrentUser) !== JSON.stringify(currentUser)
+          ) {
+            setCurrentUser(refreshedCurrentUser)
+          }
+        } else {
+          setUsers([])
         }
 
         const [expensesRes, paymentsRes, menusRes, activitiesRes] = await Promise.all([
@@ -141,8 +142,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [currentUser?.id])
 
   useEffect(() => {
-    if (currentUser) localStorage.setItem('currentUser', JSON.stringify(currentUser))
-    else localStorage.removeItem('currentUser')
+    if (!currentUser || typeof window === 'undefined') return
+
+    let timeoutId: number
+
+    const resetTimer = () => {
+      window.clearTimeout(timeoutId)
+      timeoutId = window.setTimeout(() => {
+        setNotice('You were signed out after 10 minutes of inactivity.')
+        setCurrentUser(null)
+      }, 10 * 60 * 1000)
+    }
+
+    const activityEvents: Array<keyof WindowEventMap> = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart']
+    activityEvents.forEach((eventName) => window.addEventListener(eventName, resetTimer))
+    resetTimer()
+
+    return () => {
+      window.clearTimeout(timeoutId)
+      activityEvents.forEach((eventName) => window.removeEventListener(eventName, resetTimer))
+    }
   }, [currentUser])
 
   const balance = expenses.reduce((acc, exp) => acc + (exp.type === 'in' ? exp.amount : -exp.amount), 0)
@@ -299,10 +318,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const createUser = async (name: string) => {
-    const trimmedName = name.trim()
-    if (!trimmedName) {
-      setError('Please enter a name before creating a user.')
+  const createUser = async (input: { name: string; username: string; password: string }) => {
+    const trimmedName = input.name.trim()
+    const trimmedUsername = input.username.trim().toLowerCase()
+    if (!trimmedName || !trimmedUsername || !input.password.trim()) {
+      setError('Please fill in name, username, and password before creating a user.')
       return null
     }
 
@@ -312,12 +332,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: trimmedName }),
+        body: JSON.stringify({ name: trimmedName, username: trimmedUsername, password: input.password }),
       })
       const user = await readJson<User>(res, 'Failed to create user')
 
       if (user.approved) {
-        setUsers((prev) => [...prev.filter((entry) => entry.id !== user.id), user])
         setCurrentUser(user)
         setNotice('Your admin account is ready. You are now signed in.')
         return user
@@ -327,6 +346,32 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       return null
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Failed to create user')
+      return null
+    }
+  }
+
+  const claimExistingUser = async (input: { name: string; username: string; password: string }) => {
+    const trimmedName = input.name.trim()
+    const trimmedUsername = input.username.trim().toLowerCase()
+    if (!trimmedName || !trimmedUsername || !input.password.trim()) {
+      setError('Please fill in name, username, and password before claiming an account.')
+      return null
+    }
+
+    try {
+      setError(null)
+      setNotice(null)
+      const res = await fetch('/api/auth/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmedName, username: trimmedUsername, password: input.password }),
+      })
+      const user = await readJson<User>(res, 'Failed to claim existing account')
+      setCurrentUser(user)
+      setNotice('Account claimed successfully. You are now signed in.')
+      return user
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to claim existing account')
       return null
     }
   }
@@ -355,9 +400,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const login = (user: User) => {
-    setNotice(null)
-    setCurrentUser(user)
+  const login = async (input: { username: string; password: string }) => {
+    try {
+      setError(null)
+      setNotice(null)
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: input.username.trim().toLowerCase(), password: input.password }),
+      })
+      const user = await readJson<User>(res, 'Failed to sign in')
+      setCurrentUser(user)
+      return true
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to sign in')
+      return false
+    }
   }
 
   const logout = () => {
@@ -399,6 +457,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       addMonthlyPayment,
       updateMenu,
       createUser,
+      claimExistingUser,
       updateUserAccess,
       login,
       logout,

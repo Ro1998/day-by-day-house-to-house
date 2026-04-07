@@ -47,6 +47,7 @@ export interface Menu {
 export interface User {
   id: string
   name: string
+  username?: string | null
   role: UserRole
   approved: boolean
 }

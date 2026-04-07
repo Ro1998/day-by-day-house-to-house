@@ -17,6 +17,7 @@ export function Expenses() {
     description: '',
   })
   const [filter, setFilter] = useState({ dateFrom: '', dateTo: '', category: '' })
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; description: string } | null>(null)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -79,15 +80,42 @@ export function Expenses() {
 
   const categories = ['grocery', 'vegetables', 'gas', 'others', 'food money', 'offering', 'separate meal']
 
-  const handleDelete = async (id: string, description: string) => {
-    const confirmed = window.confirm(`Do you really want to delete "${description}"?`)
-    if (!confirmed) return
-
-    await deleteExpense(id)
+  const confirmDelete = async () => {
+    if (!pendingDelete) return
+    await deleteExpense(pendingDelete.id)
+    setPendingDelete(null)
   }
 
   return (
     <div className="space-y-6">
+      {pendingDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(18,24,18,0.42)] px-4">
+          <div className="app-panel w-full max-w-md rounded-3xl p-6">
+            <h3 className="mb-2 text-xl font-semibold text-red-700">Delete Entry?</h3>
+            <p className="app-muted mb-6 text-sm">
+              This will remove <span className="font-semibold text-[var(--text)]">"{pendingDelete.description}"</span> from the cash flow list.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setPendingDelete(null)}
+                className="app-button app-button-ghost"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmDelete()}
+                className="app-button inline-flex items-center gap-2 bg-red-600 text-white hover:bg-red-700"
+              >
+                <Trash2 size={16} />
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {!currentUser && (
         <div className="app-panel rounded-2xl px-4 py-3 text-sm">
           Log in first to add or delete expenses.
@@ -258,9 +286,9 @@ export function Expenses() {
                     {canManageEntries && (
                       <button
                         type="button"
-                        onClick={() => void handleDelete(exp.id, exp.description)}
+                        onClick={() => setPendingDelete({ id: exp.id, description: exp.description })}
                         className="inline-flex items-center gap-1 rounded-full bg-red-50 px-3 py-1.5 text-red-700 transition-colors hover:bg-red-100 hover:text-red-800"
-                        title="Delete this entry from the cash flow list after confirmation."
+                        title="Open a confirmation box before deleting this entry."
                       >
                         <Trash2 size={16} />
                         Delete

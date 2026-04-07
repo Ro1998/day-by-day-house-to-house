@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { LogIn, Moon, Sparkles, Sun, UserPlus } from 'lucide-react'
+import { KeyRound, LogIn, Moon, Sparkles, Sun, UserPlus } from 'lucide-react'
 import { useData } from '@/components/DataProvider'
 import { useTheme } from '@/components/ThemeProvider'
 
@@ -10,23 +10,34 @@ interface LoginScreenProps {
 }
 
 export function LoginScreen({ onContinue }: LoginScreenProps) {
-  const { users, login, createUser, loading, error, notice } = useData()
+  const { login, createUser, claimExistingUser, loading, error, notice } = useData()
   const { theme, toggleTheme } = useTheme()
-  const [selectedUser, setSelectedUser] = useState('')
-  const [newUserName, setNewUserName] = useState('')
+  const [authMode, setAuthMode] = useState<'login' | 'register' | 'claim'>('login')
+  const [loginForm, setLoginForm] = useState({ username: '', password: '' })
+  const [registerForm, setRegisterForm] = useState({ name: '', username: '', password: '' })
+  const [claimForm, setClaimForm] = useState({ name: '', username: '', password: '' })
 
-  const handleLogin = () => {
-    const user = users.find((item) => item.id === selectedUser)
-    if (!user) return
-    login(user)
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const success = await login(loginForm)
+    if (!success) return
+    setLoginForm({ username: '', password: '' })
     onContinue()
   }
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault()
-    const user = await createUser(newUserName)
+    const user = await createUser(registerForm)
     if (!user) return
-    setNewUserName('')
+    setRegisterForm({ name: '', username: '', password: '' })
+    onContinue()
+  }
+
+  const handleClaimUser = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const user = await claimExistingUser(claimForm)
+    if (!user) return
+    setClaimForm({ name: '', username: '', password: '' })
     onContinue()
   }
 
@@ -96,18 +107,16 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                 Welcome Back
               </p>
               <h2 className="text-3xl font-black tracking-tight">
-                {users.length > 0 ? 'Choose your account' : 'Create the first account'}
+                Sign in to your account
               </h2>
               <p className="app-muted mt-3 text-sm">
-                {users.length > 0
-                  ? 'Start from the login page every time, then continue into the shared dashboard.'
-                  : 'No users found yet. Create one account to unlock the workspace.'}
+                Use your username and password each time you enter the workspace.
               </p>
             </div>
 
             {loading && (
               <div className="mb-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm">
-                Connecting to your workspace data...
+                Preparing your workspace...
               </div>
             )}
 
@@ -123,69 +132,138 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
               </div>
             )}
 
-            {users.length > 0 ? (
-              <div className="space-y-4">
-                <select
-                  value={selectedUser}
-                  onChange={(e) => setSelectedUser(e.target.value)}
+            <div className="mb-5 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setAuthMode('login')}
+                className={`app-button ${authMode === 'login' ? 'app-button-primary' : 'app-button-ghost'}`}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => setAuthMode('register')}
+                className={`app-button ${authMode === 'register' ? 'app-button-primary' : 'app-button-ghost'}`}
+              >
+                Register
+              </button>
+              <button
+                type="button"
+                onClick={() => setAuthMode('claim')}
+                className={`app-button ${authMode === 'claim' ? 'app-button-primary' : 'app-button-ghost'}`}
+              >
+                Claim Existing Account
+              </button>
+            </div>
+
+            {authMode === 'login' && (
+              <form onSubmit={handleLogin} className="space-y-4">
+                <input
+                  type="text"
+                  value={loginForm.username}
+                  onChange={(e) => setLoginForm((prev) => ({ ...prev, username: e.target.value }))}
                   className="app-input"
-                >
-                  <option value="">Select your name</option>
-                  {users.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.name}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Username"
+                  autoComplete="username"
+                  required
+                />
+                <input
+                  type="password"
+                  value={loginForm.password}
+                  onChange={(e) => setLoginForm((prev) => ({ ...prev, password: e.target.value }))}
+                  className="app-input"
+                  placeholder="Password"
+                  autoComplete="current-password"
+                  required
+                />
                 <button
-                  onClick={handleLogin}
-                  disabled={!selectedUser}
+                  type="submit"
+                  disabled={!loginForm.username.trim() || !loginForm.password.trim()}
                   className="app-button app-button-primary inline-flex w-full items-center justify-center gap-2"
                 >
                   <LogIn size={18} />
                   Continue to Dashboard
                 </button>
+              </form>
+            )}
 
-                <div className="pt-4">
-                  <p className="mb-3 text-sm font-semibold text-[var(--primary-strong)]">
-                    Need another account?
-                  </p>
-                  <form onSubmit={handleCreateUser} className="space-y-3">
-                    <input
-                      type="text"
-                      value={newUserName}
-                      onChange={(e) => setNewUserName(e.target.value)}
-                      className="app-input"
-                      placeholder="Enter a new user name"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!newUserName.trim()}
-                      className="app-button app-button-secondary inline-flex w-full items-center justify-center gap-2"
-                    >
-                      <UserPlus size={18} />
-                      Create Another User
-                    </button>
-                  </form>
-                </div>
-              </div>
-            ) : (
+            {authMode === 'register' && (
               <form onSubmit={handleCreateUser} className="space-y-4">
                 <input
                   type="text"
-                  value={newUserName}
-                  onChange={(e) => setNewUserName(e.target.value)}
+                  value={registerForm.name}
+                  onChange={(e) => setRegisterForm((prev) => ({ ...prev, name: e.target.value }))}
                   className="app-input"
-                  placeholder="Enter your name"
+                  placeholder="Full name"
+                  required
+                />
+                <input
+                  type="text"
+                  value={registerForm.username}
+                  onChange={(e) => setRegisterForm((prev) => ({ ...prev, username: e.target.value }))}
+                  className="app-input"
+                  placeholder="Username"
+                  autoComplete="username"
+                  required
+                />
+                <input
+                  type="password"
+                  value={registerForm.password}
+                  onChange={(e) => setRegisterForm((prev) => ({ ...prev, password: e.target.value }))}
+                  className="app-input"
+                  placeholder="Password"
+                  autoComplete="new-password"
                   required
                 />
                 <button
                   type="submit"
-                  disabled={!newUserName.trim()}
-                  className="app-button app-button-primary inline-flex w-full items-center justify-center gap-2"
+                  disabled={!registerForm.name.trim() || !registerForm.username.trim() || !registerForm.password.trim()}
+                  className="app-button app-button-secondary inline-flex w-full items-center justify-center gap-2"
                 >
                   <UserPlus size={18} />
-                  Create First User
+                  Register Account
+                </button>
+              </form>
+            )}
+
+            {authMode === 'claim' && (
+              <form onSubmit={handleClaimUser} className="space-y-4">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm">
+                  Use this once if your account already existed before usernames and passwords were added.
+                </div>
+                <input
+                  type="text"
+                  value={claimForm.name}
+                  onChange={(e) => setClaimForm((prev) => ({ ...prev, name: e.target.value }))}
+                  className="app-input"
+                  placeholder="Your existing full name"
+                  required
+                />
+                <input
+                  type="text"
+                  value={claimForm.username}
+                  onChange={(e) => setClaimForm((prev) => ({ ...prev, username: e.target.value }))}
+                  className="app-input"
+                  placeholder="New username"
+                  autoComplete="username"
+                  required
+                />
+                <input
+                  type="password"
+                  value={claimForm.password}
+                  onChange={(e) => setClaimForm((prev) => ({ ...prev, password: e.target.value }))}
+                  className="app-input"
+                  placeholder="New password"
+                  autoComplete="new-password"
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={!claimForm.name.trim() || !claimForm.username.trim() || !claimForm.password.trim()}
+                  className="app-button app-button-secondary inline-flex w-full items-center justify-center gap-2"
+                >
+                  <KeyRound size={18} />
+                  Claim Existing Account
                 </button>
               </form>
             )}
