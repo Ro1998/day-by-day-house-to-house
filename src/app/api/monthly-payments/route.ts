@@ -9,6 +9,8 @@ const serializePayment = (payment: Awaited<ReturnType<typeof prisma.monthlyPayme
   paid: payment.paid,
   amount: payment.amount,
   memberName: payment.memberName ?? payment.user.name,
+  paymentType: payment.paymentType ?? 'custom',
+  note: payment.note,
   reminderSent: payment.reminderSent,
   expenseId: payment.expenseId,
   user: payment.user.name,
@@ -37,6 +39,8 @@ export async function POST(request: Request) {
     const month = String(body.month)
     const amount = Number(body.amount)
     const memberName = String(body.memberName ?? '').trim()
+    const paymentType = String(body.paymentType ?? 'custom')
+    const note = body.note ? String(body.note).trim() : null
 
     if (!memberName) {
       return NextResponse.json({ error: 'Member name is required.' }, { status: 400 })
@@ -54,10 +58,22 @@ export async function POST(request: Request) {
         let expenseId = existingPayment.expenseId
 
         if (existingPayment.paid && body.paid) {
+          if (existingPayment.expenseId) {
+            await tx.expense.update({
+              where: { id: existingPayment.expenseId },
+              data: {
+                amount,
+                description: `Monthly food money paid by ${memberName} for ${month}${note ? ` (${note})` : ''}`,
+              },
+            })
+          }
+
           return tx.monthlyPayment.update({
             where: { id: existingPayment.id },
             data: {
               amount,
+              paymentType,
+              note,
               reminderSent: false,
             },
             include: { user: true },
@@ -68,13 +84,13 @@ export async function POST(request: Request) {
           const expense = await tx.expense.create({
             data: {
               date: `${month}-01`,
-              type: 'in',
-              category: 'food money',
-              amount,
-              description: `Monthly food money paid by ${memberName} for ${month}`,
-              userId: body.userId,
-            },
-          })
+            type: 'in',
+            category: 'food money',
+            amount,
+            description: `Monthly food money paid by ${memberName} for ${month}${note ? ` (${note})` : ''}`,
+            userId: body.userId,
+          },
+        })
           expenseId = expense.id
         }
 
@@ -83,6 +99,8 @@ export async function POST(request: Request) {
           data: {
             paid: Boolean(body.paid),
             amount,
+            paymentType,
+            note,
             reminderSent: !body.paid,
             expenseId,
             userId: body.userId,
@@ -100,7 +118,7 @@ export async function POST(request: Request) {
             type: 'in',
             category: 'food money',
             amount,
-            description: `Monthly food money paid by ${memberName} for ${month}`,
+            description: `Monthly food money paid by ${memberName} for ${month}${note ? ` (${note})` : ''}`,
             userId: body.userId,
           },
         })
@@ -113,6 +131,8 @@ export async function POST(request: Request) {
           paid: Boolean(body.paid),
           amount,
           memberName,
+          paymentType,
+          note,
           reminderSent: !body.paid,
           expenseId,
           userId: body.userId,

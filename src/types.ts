@@ -17,6 +17,8 @@ export interface MonthlyPayment {
   paid: boolean
   amount: number
   memberName: string
+  paymentType?: 'both-meals' | 'one-meal' | 'per-meal' | 'custom'
+  note?: string | null
   reminderSent?: boolean
   expenseId?: string | null
   user: string

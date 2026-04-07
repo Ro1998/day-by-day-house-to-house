@@ -5,6 +5,41 @@ import { format } from 'date-fns'
 import { useData } from '@/components/DataProvider'
 import { formatCurrency } from '@/lib/format'
 
+type PaymentType = 'both-meals' | 'one-meal' | 'per-meal' | 'custom'
+
+const PAYMENT_TYPE_OPTIONS: Array<{ value: PaymentType; label: string }> = [
+  { value: 'both-meals', label: 'Both meals' },
+  { value: 'one-meal', label: 'One meal' },
+  { value: 'per-meal', label: 'Per meal' },
+  { value: 'custom', label: 'Custom amount' },
+]
+
+const getSuggestedAmount = (paymentType: PaymentType, mealCount: number) => {
+  switch (paymentType) {
+    case 'both-meals':
+      return 2500
+    case 'one-meal':
+      return 1250
+    case 'per-meal':
+      return mealCount > 0 ? mealCount : 0
+    default:
+      return 0
+  }
+}
+
+const getPaymentTypeLabel = (paymentType?: string | null) => {
+  switch (paymentType) {
+    case 'both-meals':
+      return 'Both meals'
+    case 'one-meal':
+      return 'One meal'
+    case 'per-meal':
+      return 'Per meal'
+    default:
+      return 'Custom'
+  }
+}
+
 export function MonthlyFoodMoney() {
   const { monthlyPayments, addMonthlyPayment, currentUser, users } = useData()
   const canManageEntries = currentUser?.role === 'admin' || currentUser?.role === 'coordinator'
@@ -14,11 +49,20 @@ export function MonthlyFoodMoney() {
     () => users.filter((user) => user.approved).sort((a, b) => a.name.localeCompare(b.name)),
     [users],
   )
+  const knownNames = useMemo(
+    () => [...new Set([
+      ...approvedMembers.map((user) => user.name),
+      ...monthlyPayments.map((payment) => payment.memberName),
+    ])].filter(Boolean).sort((a, b) => a.localeCompare(b)),
+    [approvedMembers, monthlyPayments],
+  )
   const [form, setForm] = useState({
     month: currentMonth,
     memberName: '',
-    paid: false,
-    amount: '',
+    paymentType: 'both-meals' as PaymentType,
+    mealCount: '',
+    amount: '2500',
+    note: '',
   })
 
   const monthEntries = useMemo(
@@ -28,15 +72,18 @@ export function MonthlyFoodMoney() {
     [monthlyPayments, selectedMonth],
   )
 
-  const paymentByMember = useMemo(
-    () => new Map(monthEntries.map((payment) => [payment.memberName, payment])),
+  const monthlyList = useMemo(
+    () => monthEntries.slice().sort((a, b) => a.memberName.localeCompare(b.memberName)),
     [monthEntries],
   )
 
-  const membersNeedingReminder = approvedMembers.filter((member) => {
-    const entry = paymentByMember.get(member.name)
-    return !entry || !entry.paid
-  })
+  const syncAmountForType = (paymentType: PaymentType, mealCountValue: string) => {
+    if (paymentType === 'custom') return
+
+    const mealCount = Number(mealCountValue || '0')
+    const amount = getSuggestedAmount(paymentType, mealCount)
+    setForm((prev) => ({ ...prev, paymentType, mealCount: mealCountValue, amount: String(amount) }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,7 +92,9 @@ export function MonthlyFoodMoney() {
     await addMonthlyPayment({
       month: form.month,
       memberName: form.memberName,
-      paid: form.paid,
+      paymentType: form.paymentType,
+      note: form.note.trim() || null,
+      paid: false,
       amount: parseFloat(form.amount) || 0,
       user: currentUser.name,
     })
@@ -54,10 +103,32 @@ export function MonthlyFoodMoney() {
     setForm({
       month: currentMonth,
       memberName: '',
-      paid: false,
-      amount: '',
+      paymentType: 'both-meals',
+      mealCount: '',
+      amount: '2500',
+      note: '',
     })
   }
+
+  const markAsPaid = async (paymentId: string) => {
+    const payment = monthlyPayments.find((entry) => entry.id === paymentId)
+    if (!payment || !currentUser) return
+
+    await addMonthlyPayment({
+      month: payment.month,
+      memberName: payment.memberName,
+      paymentType: payment.paymentType ?? 'custom',
+      note: payment.note ?? null,
+      paid: true,
+      amount: payment.amount,
+      user: currentUser.name,
+    })
+  }
+
+  const paidCount = monthlyList.filter((payment) => payment.paid).length
+  const pendingCount = monthlyList.length - paidCount
+  const totalDue = monthlyList.reduce((sum, payment) => sum + payment.amount, 0)
+  const totalPaid = monthlyList.filter((payment) => payment.paid).reduce((sum, payment) => sum + payment.amount, 0)
 
   return (
     <div className="space-y-6">
@@ -70,7 +141,7 @@ export function MonthlyFoodMoney() {
         <div className="app-panel rounded-3xl p-6">
           <h2 className="mb-4 text-xl font-semibold">Add Monthly Food Money Status</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
               <input
                 type="month"
                 value={form.month}
@@ -78,22 +149,46 @@ export function MonthlyFoodMoney() {
                 className="app-input"
                 required
               />
-              <select
+              <input
+                list="monthly-member-names"
                 value={form.memberName}
                 onChange={(e) => setForm((prev) => ({ ...prev, memberName: e.target.value }))}
                 className="app-input"
+                placeholder="Enter any name"
                 required
+              />
+              <datalist id="monthly-member-names">
+                {knownNames.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+              <select
+                value={form.paymentType}
+                onChange={(e) => {
+                  const nextType = e.target.value as PaymentType
+                  syncAmountForType(nextType, form.mealCount)
+                }}
+                className="app-input"
               >
-                <option value="">Select person</option>
-                {approvedMembers.map((member) => (
-                  <option key={member.id} value={member.name}>
-                    {member.name}
+                {PAYMENT_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
                   </option>
                 ))}
               </select>
               <input
                 type="number"
-                placeholder="Amount"
+                placeholder="Per meal count"
+                value={form.mealCount}
+                onChange={(e) => syncAmountForType(form.paymentType, e.target.value)}
+                className="app-input"
+                min="0"
+                step="1"
+                disabled={form.paymentType !== 'per-meal'}
+              />
+              <input
+                type="number"
+                placeholder="Amount due"
                 value={form.amount}
                 onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))}
                 className="app-input"
@@ -101,21 +196,25 @@ export function MonthlyFoodMoney() {
                 step="0.01"
                 required
               />
-              <label className="flex items-center space-x-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3">
-                <input
-                  type="checkbox"
-                  checked={form.paid}
-                  onChange={(e) => setForm((prev) => ({ ...prev, paid: e.target.checked }))}
-                />
-                <span>Mark as paid and add cash in</span>
-              </label>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
+              <input
+                type="text"
+                placeholder="Note, for example lunch only, dinner only, or per meal details"
+                value={form.note}
+                onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))}
+                className="app-input"
+              />
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm">
+                Suggested due: <span className="font-semibold text-[var(--primary-strong)]">{formatCurrency(parseFloat(form.amount) || 0)}</span>
+              </div>
             </div>
             <button
               type="submit"
               disabled={!canManageEntries}
               className="app-button app-button-primary"
             >
-              Save Monthly Entry
+              Add To Monthly List
             </button>
           </form>
         </div>
@@ -134,20 +233,16 @@ export function MonthlyFoodMoney() {
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">
-            <p className="text-2xl font-bold text-[var(--primary-strong)]">{approvedMembers.length}</p>
-            <p className="app-muted text-sm">Total People</p>
+            <p className="text-2xl font-bold text-[var(--primary-strong)]">{monthlyList.length}</p>
+            <p className="app-muted text-sm">People In List</p>
           </div>
           <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">
-            <p className="text-2xl font-bold text-[var(--accent-strong)]">
-              {monthEntries.filter((payment) => payment.paid).length}
-            </p>
-            <p className="app-muted text-sm">Paid This Month</p>
+            <p className="text-2xl font-bold text-[var(--accent-strong)]">{paidCount}</p>
+            <p className="app-muted text-sm">Paid</p>
           </div>
           <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">
-            <p className="text-2xl font-bold text-[var(--primary)]">
-              {formatCurrency(monthEntries.filter((payment) => payment.paid).reduce((sum, payment) => sum + payment.amount, 0))}
-            </p>
-            <p className="app-muted text-sm">Cash In From Paid Entries</p>
+            <p className="text-2xl font-bold text-[var(--primary)]">{formatCurrency(totalDue)}</p>
+            <p className="app-muted text-sm">Total Due</p>
           </div>
         </div>
       </div>
@@ -155,39 +250,62 @@ export function MonthlyFoodMoney() {
       <div className="app-panel rounded-3xl p-6">
         <h2 className="mb-4 text-xl font-semibold">Reminder List</h2>
         <div className="flex flex-wrap gap-2">
-          {membersNeedingReminder.map((member) => (
+          {monthlyList.filter((payment) => !payment.paid).map((payment) => (
             <span
-              key={member.id}
+              key={payment.id}
               className="rounded-full bg-[var(--primary)]/15 px-3 py-2 text-sm text-[var(--primary-strong)]"
             >
-              {member.name} - payment pending
+              {payment.memberName} - {formatCurrency(payment.amount)} pending
             </span>
           ))}
-          {membersNeedingReminder.length === 0 && (
+          {monthlyList.filter((payment) => !payment.paid).length === 0 && (
             <p className="app-muted text-sm">Everyone has paid for {selectedMonth}.</p>
           )}
         </div>
       </div>
 
       <div className="app-panel rounded-3xl p-6">
-        <h2 className="mb-4 text-xl font-semibold">Monthly Payments</h2>
+        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">
+            <p className="text-2xl font-bold text-[var(--accent-strong)]">{formatCurrency(totalPaid)}</p>
+            <p className="app-muted text-sm">Cash In Posted</p>
+          </div>
+          <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">
+            <p className="text-2xl font-bold text-[var(--primary-strong)]">{pendingCount}</p>
+            <p className="app-muted text-sm">Pending</p>
+          </div>
+          <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">
+            <p className="text-2xl font-bold text-[var(--primary)]">{knownNames.length}</p>
+            <p className="app-muted text-sm">Known Names</p>
+          </div>
+          <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">
+            <p className="text-2xl font-bold text-[var(--accent-strong)]">{approvedMembers.length}</p>
+            <p className="app-muted text-sm">Approved Users</p>
+          </div>
+        </div>
+
+        <h2 className="mb-4 text-xl font-semibold">Monthly Food Money List</h2>
         <div className="overflow-x-auto">
           <table className="w-full table-auto">
             <thead>
               <tr className="border-b border-[var(--border)]">
                 <th className="p-2 text-left">Month</th>
                 <th className="p-2 text-left">Person</th>
+                <th className="p-2 text-left">Plan</th>
+                <th className="p-2 text-left">Note</th>
                 <th className="p-2 text-left">Status</th>
-                <th className="p-2 text-left">Reminder</th>
-                <th className="p-2 text-left">Amount</th>
+                <th className="p-2 text-left">Amount Due</th>
                 <th className="p-2 text-left">Recorded By</th>
+                <th className="p-2 text-left">Action</th>
               </tr>
             </thead>
             <tbody>
-              {monthEntries.map((payment) => (
+              {monthlyList.map((payment) => (
                 <tr key={payment.id} className="border-b border-[var(--border)]">
                   <td className="p-2">{payment.month}</td>
                   <td className="p-2 font-medium">{payment.memberName}</td>
+                  <td className="p-2">{getPaymentTypeLabel(payment.paymentType)}</td>
+                  <td className="p-2">{payment.note || '-'}</td>
                   <td className="p-2">
                     <span
                       className={`rounded-full px-2 py-1 text-sm ${
@@ -199,17 +317,29 @@ export function MonthlyFoodMoney() {
                       {payment.paid ? 'Paid' : 'Pending'}
                     </span>
                   </td>
-                  <td className="p-2">
-                    {payment.paid ? 'No reminder needed' : 'Reminder needed'}
-                  </td>
                   <td className="p-2">{formatCurrency(payment.amount)}</td>
                   <td className="p-2">{payment.user}</td>
+                  <td className="p-2">
+                    {canManageEntries && !payment.paid ? (
+                      <button
+                        type="button"
+                        onClick={() => markAsPaid(payment.id)}
+                        className="app-button app-button-primary px-4 py-2"
+                      >
+                        Mark Paid
+                      </button>
+                    ) : (
+                      <span className="app-muted text-sm">
+                        {payment.paid ? 'Cash in updated' : 'Pending'}
+                      </span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        {monthEntries.length === 0 && (
+        {monthlyList.length === 0 && (
           <p className="app-muted mt-4 text-sm">No entries saved for {selectedMonth} yet.</p>
         )}
       </div>

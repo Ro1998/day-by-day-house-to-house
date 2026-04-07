@@ -18,7 +18,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
-    { id: 'expenses', label: 'Expenses', icon: Receipt },
+    { id: 'expenses', label: 'Cash Flow', icon: Receipt },
     ...(canManageOperations ? [{ id: 'monthly', label: 'Monthly Food Money', icon: Wallet }] : []),
     ...(canManageOperations ? [{ id: 'menu', label: 'Menu Planner', icon: MenuSquare }] : []),
     ...(currentUser?.role === 'admin' ? [{ id: 'users', label: 'User Access', icon: Settings2 }] : []),
@@ -33,7 +33,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
               <div>
                 <BrandLogo />
                 <p className="app-muted text-sm">
-                  Shared expenses, monthly food money, and weekly menu planning.
+                  And day by day, continuing steadfastly with one accord in the temple and breaking bread from house to house, they partook of their food with exultation and simplicity of heart,
                 </p>
               </div>
             </div>

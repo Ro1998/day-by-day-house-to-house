@@ -49,7 +49,7 @@ export function Expenses() {
 
   const exportPDF = () => {
     const doc = new jsPDF()
-    doc.text('Expense Report', 20, 20)
+    doc.text('Cash Flow Report', 20, 20)
     let y = 40
     visibleExpenses.forEach(exp => {
       doc.text(`${exp.date} - ${exp.category} - INR ${exp.amount} - ${exp.description}`, 20, y)
@@ -83,7 +83,7 @@ export function Expenses() {
       )}
       {canManageEntries && (
       <div className="app-panel rounded-3xl p-6">
-        <h2 className="text-xl font-semibold mb-4">Add Expense</h2>
+        <h2 className="text-xl font-semibold mb-4">Add Cash Flow Entry</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <select
@@ -172,7 +172,7 @@ export function Expenses() {
 
       <div className="app-panel rounded-3xl p-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Expense List</h2>
+          <h2 className="text-xl font-semibold">Cash Flow Entries</h2>
           {notice?.includes('Deleted') && (
             <button
               onClick={undoDelete}

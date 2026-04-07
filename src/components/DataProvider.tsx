@@ -245,15 +245,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           type: 'in',
           category: 'food money',
           amount: newPayment.amount,
-          description: `Monthly food money paid by ${newPayment.memberName} for ${newPayment.month}`,
+          description: `Monthly food money paid by ${newPayment.memberName} for ${newPayment.month}${newPayment.note ? ` (${newPayment.note})` : ''}`,
           user: currentUser.name,
           userId: currentUser.id,
         }
-        setExpenses((prev) => (
-          prev.some((entry) => entry.id === cashInExpense.id)
-            ? prev
-            : [...prev, cashInExpense]
-        ))
+        setExpenses((prev) => {
+          const existingIndex = prev.findIndex((entry) => entry.id === cashInExpense.id)
+          if (existingIndex >= 0) {
+            return prev.map((entry) => entry.id === cashInExpense.id ? cashInExpense : entry)
+          }
+
+          return [...prev, cashInExpense]
+        })
       }
 
       await logActivity(

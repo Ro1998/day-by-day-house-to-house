@@ -39,6 +39,8 @@ model MonthlyPayment {
   paid        Boolean
   amount      Float
   memberName  String?
+  paymentType String?  @default("custom")
+  note        String?
   reminderSent Boolean @default(false)
   expenseId   String?  @unique
   userId      String
