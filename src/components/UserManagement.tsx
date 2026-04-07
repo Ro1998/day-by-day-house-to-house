@@ -141,7 +141,23 @@ export function UserManagement() {
                       placeholder="Phone number"
                     />
                   </td>
-                  <td className="p-2 capitalize">{user.role}</td>
+                  <td className="p-2">
+                    <select
+                      value={draft.role}
+                      onChange={(e) => {
+                        const role = e.target.value as UserRole
+                        setDrafts((prev) => ({
+                          ...prev,
+                          [user.id]: { ...draft, role },
+                        }))
+                      }}
+                      className="app-input min-w-32"
+                    >
+                      <option value="user">General User</option>
+                      <option value="coordinator">Coordinator (CO)</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </td>
                   <td className="p-2">Approved</td>
                   <td className="p-2">
                     <div className="flex flex-col gap-2">
@@ -176,10 +192,10 @@ export function UserManagement() {
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
-                        onClick={() => updateUserAccess({ id: user.id, role: user.role, approved: true, phone: draft.phone })}
+                        onClick={() => updateUserAccess({ id: user.id, role: draft.role, approved: true, phone: draft.phone })}
                         className="app-button app-button-ghost px-3 py-2"
                       >
-                        Save Phone
+                        Save Changes
                       </button>
                       {currentUser?.id !== user.id && (
                         <>

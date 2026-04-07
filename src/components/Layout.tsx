@@ -13,7 +13,7 @@ interface LayoutProps {
 
 export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   const { theme, toggleTheme } = useTheme()
-  const { currentUser, logout, loading, error, notice, users } = useData()
+  const { currentUser, logout, loading, error, notice, users, notifications } = useData()
   const canManageOperations = currentUser?.role === 'admin' || currentUser?.role === 'coordinator'
 
   const tabs = [
@@ -77,12 +77,17 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`app-button inline-flex items-center gap-2 ${
+                className={`app-button inline-flex items-center gap-2 relative ${
                   activeTab === tab.id ? 'app-button-primary' : 'app-button-ghost'
                 }`}
               >
                 <tab.icon size={17} />
                 {tab.label}
+                {tab.id === 'notifications' && notifications.length > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {notifications.length}
+                  </span>
+                )}
               </button>
             ))}
           </nav>

@@ -186,6 +186,34 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         const availabilitiesData = await readJson<Availability[]>(availabilitiesRes, 'Failed to load availability')
         const supplyReportsData = await readJson<SupplyReport[]>(supplyReportsRes, 'Failed to load supply reports')
 
+        // Check for low stock and add notifications
+        if (currentUser.role === 'admin') {
+          const lowStockItems = inventoryData.filter(item => item.quantity <= item.lowStockThreshold)
+          for (const item of lowStockItems) {
+            const existingNotification = notificationsData.find(n => n.title === `Low Stock: ${item.name}`)
+            if (!existingNotification) {
+              try {
+                const res = await fetch('/api/notifications', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', ...authHeaders() },
+                  body: JSON.stringify({
+                    title: `Low Stock: ${item.name}`,
+                    message: `${item.name} is running low. Current quantity: ${item.quantity} ${item.unit}`,
+                    category: 'general',
+                    userId: currentUser.id
+                  }),
+                })
+                if (res.ok) {
+                  const notification = await readJson<Notification>(res, 'Failed to create notification')
+                  notificationsData.push(notification)
+                }
+              } catch {
+                // Ignore errors for auto-generated notifications
+              }
+            }
+          }
+        }
+
         setExpenses(expensesData)
         setMonthlyPayments(paymentsData)
         setMenus(menusData)

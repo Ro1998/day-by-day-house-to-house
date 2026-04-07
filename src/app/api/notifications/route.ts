@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { apiError } from '@/lib/api-error'
 import { prisma } from '@/lib/prisma'
 import { requireApprovedUser } from '@/lib/auth'
+import { sendNotificationEmails } from '@/lib/email'
 
 const serializeNotification = (notification: Awaited<ReturnType<typeof prisma.notification.findFirstOrThrow>> & { createdBy: { name: string } }) => ({
   id: notification.id,
@@ -41,6 +42,21 @@ export async function POST(request: Request) {
       },
       include: { createdBy: true },
     })
+
+    // Send emails to all users with email addresses
+    const users = await prisma.user.findMany({
+      where: {
+        email: { not: null },
+        approved: true,
+      },
+      select: { email: true, name: true },
+    })
+    const usersWithEmail = users.filter(u => u.email) as Array<{ email: string; name: string }>
+    if (usersWithEmail.length > 0) {
+      // Send emails asynchronously, don't wait
+      sendNotificationEmails(usersWithEmail, notification.title, notification.message).catch(console.error)
+    }
+
     return NextResponse.json(serializeNotification(notification))
   } catch (error) {
     return apiError('notifications.POST', error, 'Failed to create notification')

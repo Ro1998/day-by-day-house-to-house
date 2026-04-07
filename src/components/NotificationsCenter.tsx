@@ -23,7 +23,7 @@ export function NotificationsCenter() {
             <input className="app-input" value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="Title" required />
             <textarea className="app-input min-h-[140px]" value={form.message} onChange={(e) => setForm((prev) => ({ ...prev, message: e.target.value }))} placeholder="Message for everyone" required />
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm">
-              Email delivery is not configured in this project yet, so notifications are currently shown inside the app only.
+              Notifications will be sent via email to all approved users with email addresses.
             </div>
             <button type="submit" className="app-button app-button-primary">Send To Everyone</button>
           </form>
