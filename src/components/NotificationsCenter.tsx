@@ -4,13 +4,19 @@ import { useState } from 'react'
 import { useData } from '@/components/DataProvider'
 
 export function NotificationsCenter() {
-  const { notifications, unreadNotifications, markNotificationAsRead, addNotification, currentUser } = useData()
+  const { notifications, unreadNotifications, markNotificationAsRead, addNotification, updateNotification, deleteNotification, currentUser } = useData()
   const [form, setForm] = useState({ title: '', message: '' })
+  const [editingId, setEditingId] = useState<string | null>(null)
   const canSend = currentUser?.role === 'admin'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    await addNotification({ title: form.title, message: form.message, category: 'general' })
+    if (editingId) {
+      await updateNotification(editingId, { title: form.title, message: form.message })
+      setEditingId(null)
+    } else {
+      await addNotification({ title: form.title, message: form.message, category: 'general' })
+    }
     setForm({ title: '', message: '' })
   }
 
@@ -18,14 +24,23 @@ export function NotificationsCenter() {
     <div className="space-y-6">
       {canSend && (
         <div className="app-panel rounded-3xl p-6">
-          <h2 className="mb-4 text-xl font-semibold">Send Notification</h2>
+          <h2 className="mb-4 text-xl font-semibold">{editingId ? 'Edit Notification' : 'Send Notification'}</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <input className="app-input" value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="Title" required />
             <textarea className="app-input min-h-[140px]" value={form.message} onChange={(e) => setForm((prev) => ({ ...prev, message: e.target.value }))} placeholder="Message for everyone" required />
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm">
               Notifications will be sent via email to all approved users with email addresses.
             </div>
-            <button type="submit" className="app-button app-button-primary">Send To Everyone</button>
+            <div className="flex gap-3">
+              <button type="submit" className="app-button app-button-primary">
+                {editingId ? 'Update Notification' : 'Send To Everyone'}
+              </button>
+              {editingId && (
+                <button type="button" onClick={() => { setEditingId(null); setForm({ title: '', message: '' }) }} className="app-button app-button-ghost">
+                  Cancel
+                </button>
+              )}
+            </div>
           </form>
         </div>
       )}
@@ -50,6 +65,32 @@ export function NotificationsCenter() {
               </div>
               <p className="mt-2 text-sm">{notification.message}</p>
               <p className="app-muted mt-2 text-xs">From {notification.createdBy}</p>
+              {canSend && (
+                <div className="mt-4 flex gap-3">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setEditingId(notification.id)
+                      setForm({ title: notification.title, message: notification.message })
+                      window.scrollTo({ top: 0, behavior: 'smooth' })
+                    }}
+                    className="app-button app-button-ghost px-3 py-1.5 text-xs"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if(confirm('Are you sure you want to delete this notification?')) {
+                        deleteNotification(notification.id)
+                      }
+                    }}
+                    className="app-button border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 px-3 py-1.5 text-xs"
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
             </div>
           )})}
           {notifications.length === 0 && <p className="app-muted text-sm">No notifications sent yet.</p>}

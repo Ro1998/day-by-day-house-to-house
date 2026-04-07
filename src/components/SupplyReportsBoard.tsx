@@ -13,7 +13,7 @@ export function SupplyReportsBoard() {
   const { supplyReports, addSupplyReport, updateSupplyReport, users, currentUser } = useData()
   const [form, setForm] = useState({
     title: '',
-    category: 'grocery' as 'grocery' | 'vegetable',
+    category: 'grocery' as 'grocery' | 'vegetable' | 'maintenance',
     itemName: '',
     message: '',
     status: 'missing' as 'missing' | 'urgent' | 'resolved',
@@ -60,9 +60,9 @@ export function SupplyReportsBoard() {
   return (
     <div className="space-y-6">
       <div className="app-panel rounded-3xl p-6">
-        <h2 className="mb-2 text-xl font-semibold">Missing or Going To Finish</h2>
+        <h2 className="mb-2 text-xl font-semibold">Missing Supplies & Maintenance</h2>
         <p className="app-muted text-sm">
-          Everyone can report what is missing or finishing. Coordinators and admins can reply and mark it resolved.
+          Report finishing supplies or items needing repair. Coordinators and admins can reply and mark it resolved.
         </p>
         <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
           <span className="rounded-full border border-sky-200 bg-sky-100 px-3 py-1 text-sky-800">Blue: Missing</span>
@@ -86,13 +86,14 @@ export function SupplyReportsBoard() {
       </div>
 
       <div className="app-panel rounded-3xl p-6">
-        <h3 className="mb-4 text-lg font-semibold">Report Something Missing</h3>
+        <h3 className="mb-4 text-lg font-semibold">Submit a Report</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <input className="app-input" value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="Short title" required />
-            <select className="app-input" value={form.category} onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value as 'grocery' | 'vegetable' }))}>
+            <select className="app-input" value={form.category} onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value as 'grocery' | 'vegetable' | 'maintenance' }))}>
               <option value="grocery">Grocery</option>
               <option value="vegetable">Vegetable</option>
+              <option value="maintenance">Meeting Hall Maintenance</option>
             </select>
             <input className="app-input" value={form.itemName} onChange={(e) => setForm((prev) => ({ ...prev, itemName: e.target.value }))} placeholder="Item name, optional" />
             <select className="app-input" value={form.status} onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as 'missing' | 'urgent' | 'resolved' }))}>

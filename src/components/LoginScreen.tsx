@@ -190,26 +190,18 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                       type="button"
                       onClick={() => setAuthMode('login')}
                       className={`relative z-10 rounded-full px-4 py-3 text-sm font-semibold transition-colors duration-300 ${
-                          switchMode === 'login'
-                            ? theme === 'light'
-                              ? 'text-[var(--surface)]'
-                              : 'text-[var(--text)]'
-                            : 'text-[var(--text)]'
-                        }`}
-                      >
-                        Sign In
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAuthMode('register')}
-                        className={`relative z-10 rounded-full px-4 py-3 text-sm font-semibold transition-colors duration-300 ${
-                          switchMode === 'register'
-                            ? theme === 'light'
-                              ? 'text-[var(--surface)]'
-                              : 'text-[var(--text)]'
-                            : 'text-[var(--text)]'
-                        }`}
-                      >
+                        switchMode === 'login' ? 'text-white dark:text-[#121812]' : 'text-[var(--text)]'
+                      }`}
+                    >
+                      Sign In
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAuthMode('register')}
+                      className={`relative z-10 rounded-full px-4 py-3 text-sm font-semibold transition-colors duration-300 ${
+                        switchMode === 'register' ? 'text-white dark:text-[#121812]' : 'text-[var(--text)]'
+                      }`}
+                    >
                         Register
                       </button>
                     </div>

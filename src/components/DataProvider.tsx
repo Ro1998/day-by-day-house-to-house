@@ -61,10 +61,12 @@ interface DataContextType {
   updateInventoryItem: (input: InventoryItem) => Promise<void>
   deleteInventoryItem: (id: string) => Promise<void>
   addNotification: (input: { title: string; message: string; category?: 'general' | 'menu' }) => Promise<void>
+  updateNotification: (id: string, input: { title: string; message: string }) => Promise<void>
+  deleteNotification: (id: string) => Promise<void>
   addMenuSuggestion: (input: { suggestion: string; preferredDay?: string; preferredMeal?: string }) => Promise<void>
   updateMenuSuggestionStatus: (id: string, status: 'pending' | 'reviewed') => Promise<void>
   addAvailability: (input: { week: string; day: string; meal: 'lunch' | 'dinner'; available: boolean; note?: string }) => Promise<void>
-  addSupplyReport: (input: { title: string; category: 'grocery' | 'vegetable'; itemName?: string; message: string; status?: 'missing' | 'urgent' | 'resolved' }) => Promise<void>
+  addSupplyReport: (input: { title: string; category: 'grocery' | 'vegetable' | 'maintenance'; itemName?: string; message: string; status?: 'missing' | 'urgent' | 'resolved' }) => Promise<void>
   updateSupplyReport: (input: { id: string; status?: 'missing' | 'urgent' | 'resolved'; response?: string }) => Promise<void>
   login: (input: { username: string; password: string }) => Promise<boolean>
   logout: () => void
@@ -655,6 +657,37 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const updateNotification = async (id: string, input: { title: string; message: string }) => {
+    if (!currentUser) return
+    try {
+      setError(null)
+      const res = await fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ id, ...input }),
+      })
+      const updated = await readJson<Notification>(res, 'Failed to update notification')
+      setNotifications((prev) => prev.map((n) => n.id === id ? updated : n))
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to update notification')
+    }
+  }
+
+  const deleteNotification = async (id: string) => {
+    if (!currentUser) return
+    try {
+      setError(null)
+      const res = await fetch(`/api/notifications?id=${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      })
+      await readJson<{ success: boolean }>(res, 'Failed to delete notification')
+      setNotifications((prev) => prev.filter((n) => n.id !== id))
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to delete notification')
+    }
+  }
+
   const markNotificationAsRead = (id: string) => {
     if (!currentUser) return
     setReadNotificationIds((prev) => {
@@ -713,7 +746,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const addSupplyReport = async (input: { title: string; category: 'grocery' | 'vegetable'; itemName?: string; message: string; status?: 'missing' | 'urgent' | 'resolved' }) => {
+  const addSupplyReport = async (input: { title: string; category: 'grocery' | 'vegetable' | 'maintenance'; itemName?: string; message: string; status?: 'missing' | 'urgent' | 'resolved' }) => {
     if (!currentUser) return
     try {
       setError(null)
@@ -740,6 +773,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       })
       const report = await readJson<SupplyReport>(res, 'Failed to update supply report')
       setSupplyReports((prev) => prev.map((entry) => entry.id === report.id ? report : entry))
+
+      if (input.status === 'resolved' && (report as any).createdBy) {
+        await addNotification({
+          title: `Resolved: ${report.title}`,
+          message: `@[${(report as any).createdBy}] Your report has been resolved. ${report.response ? `Note: ${report.response}` : ''}`,
+          category: 'general'
+        })
+      }
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Failed to update supply report')
     }
@@ -820,6 +861,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       updateInventoryItem,
       deleteInventoryItem,
       addNotification,
+      updateNotification,
+      deleteNotification,
       addMenuSuggestion,
       updateMenuSuggestionStatus,
       addAvailability,
