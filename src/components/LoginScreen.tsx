@@ -208,11 +208,22 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                               ? 'text-[var(--surface)]'
                               : 'text-[var(--text)]'
                             : 'text-[var(--text)]'
-                        ? 'translate-x-0 opacity-100'
-                        : 'pointer-events-none absolute inset-0 -translate-x-8 opacity-0'
-                    }`}
-                  >
-                    {!showForgotPassword ? (
+                        }`}
+                      >
+                        Register
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <div
+                      className={`transition-all duration-300 ease-out ${
+                        switchMode !== 'register'
+                          ? 'translate-x-0 opacity-100'
+                          : 'pointer-events-none absolute inset-0 -translate-x-8 opacity-0'
+                      }`}
+                    >
+                      {!showForgotPassword ? (
                       <form onSubmit={handleLogin} className="space-y-4">
                         <input
                           type="text"
