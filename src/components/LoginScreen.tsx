@@ -66,10 +66,10 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
               </div>
               <button
                 onClick={toggleTheme}
-                className="app-button app-button-ghost inline-flex h-12 w-12 items-center justify-center p-0"
+                className="app-button app-button-ghost inline-flex h-14 w-14 items-center justify-center p-0"
                 aria-label="Toggle theme"
               >
-                {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+                {theme === 'light' ? <Moon size={28} /> : <Sun size={28} />}
               </button>
             </div>
 
