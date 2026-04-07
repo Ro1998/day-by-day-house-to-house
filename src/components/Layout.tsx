@@ -70,9 +70,9 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
 
   return (
     <div className="app-shell">
-      <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-xl">
+      <header className={`sticky top-0 z-50 border-b border-[var(--border)] ${isMobileMenuOpen ? 'bg-[var(--surface)]' : 'bg-[var(--surface)]/95 backdrop-blur-xl'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-start justify-between py-4 md:items-center md:py-6">
+          <div className="relative z-50 flex items-start justify-between py-4 md:items-center md:py-6">
             <div className="flex-1 pr-4">
               <BrandLogo />
               <p className="app-muted mt-3 hidden text-sm sm:block max-w-2xl">
@@ -100,7 +100,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
               </button>
 
               {currentUser && (
-                <div className="relative">
+                <div className="relative z-[60]">
                   <button
                     onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                     className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-[var(--primary)]/20 font-bold text-[var(--primary-strong)] transition-transform hover:scale-105"
@@ -110,7 +110,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
                   </button>
 
                   {isProfileMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2 shadow-xl">
+                    <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2 shadow-2xl z-[60]">
                       <div className="px-3 py-2 border-b border-[var(--border)] mb-2">
                         <div className="text-sm font-semibold truncate">{currentUser.name}</div>
                         <div className="text-xs capitalize text-[var(--text-soft)]">{currentUser.role}</div>
@@ -144,20 +144,20 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
               isMobileMenuOpen 
                 ? 'fixed inset-0 z-40 flex flex-col overflow-y-auto bg-[var(--surface)] px-6 pb-6 pt-36' 
                 : 'hidden'
-            } gap-2 md:static md:z-auto md:flex md:flex-row md:flex-wrap md:overflow-visible md:bg-transparent md:p-0 md:pb-4`}
+            } gap-1.5 md:static md:z-auto md:flex md:flex-row md:flex-wrap md:overflow-visible md:bg-transparent md:p-0 md:pb-4`}
           >
             {tabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => { setActiveTab(tab.id); setIsMobileMenuOpen(false); }}
-                className={`app-button relative inline-flex w-full items-center justify-start gap-3 md:w-auto md:justify-center ${
+                className={`app-button relative inline-flex w-full items-center justify-start gap-2 md:w-auto md:justify-center px-3 py-2 text-sm md:px-3 md:py-1.5 ${
                   activeTab === tab.id ? 'app-button-primary' : 'app-button-ghost'
                 }`}
               >
-                <tab.icon size={17} />
+                <tab.icon size={16} />
                 {tab.label}
                 {tab.id === 'notifications' && unreadNotifications.length > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm">
                     {unreadNotifications.length}
                   </span>
                 )}
