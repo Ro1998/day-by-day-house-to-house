@@ -35,6 +35,9 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
                 <p className="app-muted text-sm">
                   And day by day, continuing steadfastly with one accord in the temple and breaking bread from house to house, they partook of their food with exultation and simplicity of heart,
                 </p>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
+                  - Acts 2:46
+                </p>
               </div>
             </div>
 
