@@ -190,7 +190,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                       type="button"
                       onClick={() => setAuthMode('login')}
                       className={`relative z-10 rounded-full px-4 py-3 text-sm font-semibold transition-colors duration-300 ${
-                        switchMode === 'login' ? 'text-[var(--primary-strong)] dark:text-[#1f3a22]' : 'text-[var(--text)]'
+                        switchMode === 'login' ? 'text-[#1f3a22]' : 'text-[var(--text)]'
                       }`}
                     >
                       Sign In
@@ -199,7 +199,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                       type="button"
                       onClick={() => setAuthMode('register')}
                       className={`relative z-10 rounded-full px-4 py-3 text-sm font-semibold transition-colors duration-300 ${
-                        switchMode === 'register' ? 'text-[var(--primary-strong)] dark:text-[#1f3a22]' : 'text-[var(--text)]'
+                        switchMode === 'register' ? 'text-[#1f3a22]' : 'text-[var(--text)]'
                       }`}
                     >
                       Register
