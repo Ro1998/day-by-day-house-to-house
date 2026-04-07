@@ -7,6 +7,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearSca
 import { formatCurrency } from '@/lib/format'
 import { format, startOfWeek } from 'date-fns'
 import { SupplyReportsBoard } from '@/components/SupplyReportsBoard'
+import { X } from 'lucide-react'
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement)
 
@@ -96,6 +97,28 @@ export function Dashboard() {
   if (currentUser?.role === 'user') {
     return (
       <div className="space-y-6">
+        {unreadNotifications.length > 0 && (
+          <div className="space-y-3">
+            {unreadNotifications.map((notification) => (
+              <div key={notification.id} className="app-panel relative rounded-3xl p-6 border-l-4 border-l-[var(--primary)]">
+                <button
+                  onClick={() => markNotificationAsRead(notification.id)}
+                  className="absolute right-4 top-4 p-2 text-[var(--text-soft)] hover:text-[var(--text)] transition-colors"
+                  title="Hide Notification"
+                >
+                  <X size={20} />
+                </button>
+                <div className="mb-2 flex items-center gap-3 pr-8">
+                  <h3 className="text-lg font-semibold">{notification.title}</h3>
+                  <span className="app-muted text-xs">{new Date(notification.createdAt).toLocaleString()}</span>
+                </div>
+                <p className="text-sm">{notification.message}</p>
+                <p className="app-muted mt-2 text-xs">From {notification.createdBy}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
           <div className="app-panel rounded-3xl p-6">
             <h3 className="mb-2 text-lg font-semibold">This Month&apos;s Expenses</h3>
@@ -246,6 +269,28 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {unreadNotifications.length > 0 && (
+        <div className="space-y-3">
+          {unreadNotifications.map((notification) => (
+            <div key={notification.id} className="app-panel relative rounded-3xl p-6 border-l-4 border-l-[var(--primary)]">
+              <button
+                onClick={() => markNotificationAsRead(notification.id)}
+                className="absolute right-4 top-4 p-2 text-[var(--text-soft)] hover:text-[var(--text)] transition-colors"
+                title="Hide Notification"
+              >
+                <X size={20} />
+              </button>
+              <div className="mb-2 flex items-center gap-3 pr-8">
+                <h3 className="text-lg font-semibold">{notification.title}</h3>
+                <span className="app-muted text-xs">{new Date(notification.createdAt).toLocaleString()}</span>
+              </div>
+              <p className="text-sm">{notification.message}</p>
+              <p className="app-muted mt-2 text-xs">From {notification.createdBy}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-6 md:grid-cols-5">
         <div className="app-panel rounded-3xl p-6">
           <h3 className="text-lg font-semibold mb-2">Balance</h3>

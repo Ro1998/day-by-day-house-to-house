@@ -1,8 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { useTheme } from './ThemeProvider'
 import { useData } from './DataProvider'
-import { Bell, Boxes, Home, LogOut, MenuSquare, Moon, Receipt, Settings2, Sun, Wallet } from 'lucide-react'
+import { Bell, Boxes, Home, LogOut, MenuSquare, Moon, Receipt, Settings2, Sun, Wallet, Menu as MenuIcon, X } from 'lucide-react'
 import { BrandLogo } from './BrandLogo'
 
 interface LayoutProps {
@@ -14,6 +15,7 @@ interface LayoutProps {
 export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   const { theme, toggleTheme } = useTheme()
   const { currentUser, logout, loading, error, notice, users, unreadNotifications } = useData()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const canManageOperations = currentUser?.role === 'admin' || currentUser?.role === 'coordinator'
 
   const tabs = [
@@ -28,7 +30,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
 
   return (
     <div className="app-shell">
-      <header className="border-b border-[var(--border)] bg-[var(--surface)] backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-5 py-6 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center space-x-4">
@@ -70,13 +72,19 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
                   Logout
                 </button>
               )}
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="md:hidden app-button app-button-ghost inline-flex items-center justify-center p-3"
+              >
+                {isMobileMenuOpen ? <X size={20} /> : <MenuIcon size={20} />}
+              </button>
             </div>
           </div>
-          <nav className="flex flex-wrap gap-2 pb-4">
+          <nav className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex flex-col md:flex-row flex-wrap gap-2 pb-4`}>
             {tabs.map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => { setActiveTab(tab.id); setIsMobileMenuOpen(false); }}
                 className={`app-button inline-flex items-center gap-2 relative ${
                   activeTab === tab.id ? 'app-button-primary' : 'app-button-ghost'
                 }`}
