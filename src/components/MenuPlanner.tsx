@@ -14,7 +14,7 @@ const parseNames = (value: string) =>
     .filter(Boolean)
 
 export function MenuPlanner() {
-  const { menus, updateMenu, currentUser } = useData()
+  const { menus, updateMenu, currentUser, addNotification } = useData()
   const getWeekKey = (date: Date) => format(startOfWeek(date, { weekStartsOn: 2 }), 'yyyy-MM-dd')
   const parseWeekKey = (week: string) => new Date(`${week}T12:00:00`)
   const [selectedWeek, setSelectedWeek] = useState(() => getWeekKey(new Date()))
@@ -106,6 +106,18 @@ export function MenuPlanner() {
     }
   }
 
+  const sendWeeklyMenu = async () => {
+    if (!menu) return
+    const lines = menu.items.map((item) => (
+      `${item.day}: Lunch - ${item.lunch || 'TBD'} (${item.lunchCooks.join(', ') || 'TBD'}), Dinner - ${item.dinner || 'TBD'} (${item.dinnerCooks.join(', ') || 'TBD'})`
+    ))
+    await addNotification({
+      title: `Weekly Menu for ${menu.week}`,
+      message: lines.join('\n'),
+      category: 'menu',
+    })
+  }
+
   if (!menu) return <div>Loading...</div>
 
   return (
@@ -144,6 +156,15 @@ export function MenuPlanner() {
             >
               <FileImage size={16} />
               <span>Export PNG</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => void sendWeeklyMenu()}
+              disabled={!canManageMenu}
+              className="app-button app-button-ghost"
+              title="Send this weekly menu as a notification to everyone in the app."
+            >
+              Send Menu
             </button>
           </div>
         </div>

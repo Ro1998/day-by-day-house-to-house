@@ -1,15 +1,33 @@
 'use client'
 
+import { useState } from 'react'
 import { useData } from '@/components/DataProvider'
 import { Pie, Bar } from 'react-chartjs-2'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js'
 import { formatCurrency } from '@/lib/format'
 import { format, startOfWeek } from 'date-fns'
+import { SupplyReportsBoard } from '@/components/SupplyReportsBoard'
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement)
 
 export function Dashboard() {
-  const { expenses, balance, budget, activities, currentUser, monthlyPayments, menus } = useData()
+  const {
+    expenses,
+    balance,
+    budget,
+    activities,
+    currentUser,
+    monthlyPayments,
+    menus,
+    notifications,
+    menuSuggestions,
+    availabilities,
+    addMenuSuggestion,
+    addAvailability,
+    updateMenuSuggestionStatus,
+  } = useData()
+  const [suggestionForm, setSuggestionForm] = useState({ suggestion: '', preferredDay: '', preferredMeal: '' })
+  const [availabilityForm, setAvailabilityForm] = useState({ day: 'Tuesday', meal: 'lunch' as 'lunch' | 'dinner', available: true, note: '' })
 
   const cashIn = expenses.filter(e => e.type === 'in').reduce((sum, e) => sum + e.amount, 0)
   const cashOut = expenses.filter(e => e.type === 'out').reduce((sum, e) => sum + e.amount, 0)
@@ -49,9 +67,29 @@ export function Dashboard() {
       .map((payment) => payment.memberName),
   )].sort((a, b) => a.localeCompare(b))
   const currentWeekMenu = menus.find((menu) => menu.week === currentWeek)
+  const currentWeekAvailabilities = availabilities.filter((entry) => entry.week === currentWeek)
+  const pendingSuggestions = menuSuggestions.filter((suggestion) => suggestion.status === 'pending')
   const cookingPeople = [...new Set(
     currentWeekMenu?.items.flatMap((item) => [...item.lunchCooks, ...item.dinnerCooks]) ?? [],
   )].sort((a, b) => a.localeCompare(b))
+
+  const handleSuggestionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await addMenuSuggestion(suggestionForm)
+    setSuggestionForm({ suggestion: '', preferredDay: '', preferredMeal: '' })
+  }
+
+  const handleAvailabilitySubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await addAvailability({
+      week: currentWeek,
+      day: availabilityForm.day,
+      meal: availabilityForm.meal,
+      available: availabilityForm.available,
+      note: availabilityForm.note,
+    })
+    setAvailabilityForm({ day: 'Tuesday', meal: 'lunch', available: true, note: '' })
+  }
 
   if (currentUser?.role === 'user') {
     return (
@@ -117,6 +155,80 @@ export function Dashboard() {
             )}
           </div>
         </div>
+
+        <div className="app-panel rounded-3xl p-6">
+          <h3 className="mb-4 text-lg font-semibold">This Week&apos;s Menu</h3>
+          <div className="space-y-3">
+            {currentWeekMenu?.items.map((item) => (
+              <div key={item.day} className="rounded-2xl bg-[var(--surface-soft)] p-4">
+                <div className="font-semibold">{item.day}</div>
+                <div className="app-muted text-sm">Lunch: {item.lunch || 'Not set'} | Dinner: {item.dinner || 'Not set'}</div>
+                <div className="app-muted text-sm">Cooking: {[...item.lunchCooks, ...item.dinnerCooks].join(', ') || 'Not assigned'}</div>
+              </div>
+            ))}
+            {!currentWeekMenu && <p className="app-muted text-sm">No menu published for this week yet.</p>}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="app-panel rounded-3xl p-6">
+            <h3 className="mb-4 text-lg font-semibold">Suggest a Menu Item</h3>
+            <form onSubmit={handleSuggestionSubmit} className="space-y-4">
+              <input className="app-input" value={suggestionForm.suggestion} onChange={(e) => setSuggestionForm((prev) => ({ ...prev, suggestion: e.target.value }))} placeholder="What would you like to cook?" required />
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <select className="app-input" value={suggestionForm.preferredDay} onChange={(e) => setSuggestionForm((prev) => ({ ...prev, preferredDay: e.target.value }))}>
+                  <option value="">Preferred day</option>
+                  {['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday'].map((day) => <option key={day} value={day}>{day}</option>)}
+                </select>
+                <select className="app-input" value={suggestionForm.preferredMeal} onChange={(e) => setSuggestionForm((prev) => ({ ...prev, preferredMeal: e.target.value }))}>
+                  <option value="">Preferred meal</option>
+                  <option value="lunch">Lunch</option>
+                  <option value="dinner">Dinner</option>
+                </select>
+              </div>
+              <button type="submit" className="app-button app-button-primary">Send Suggestion</button>
+            </form>
+          </div>
+
+          <div className="app-panel rounded-3xl p-6">
+            <h3 className="mb-4 text-lg font-semibold">Share Your Availability</h3>
+            <form onSubmit={handleAvailabilitySubmit} className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <select className="app-input" value={availabilityForm.day} onChange={(e) => setAvailabilityForm((prev) => ({ ...prev, day: e.target.value }))}>
+                  {['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday'].map((day) => <option key={day} value={day}>{day}</option>)}
+                </select>
+                <select className="app-input" value={availabilityForm.meal} onChange={(e) => setAvailabilityForm((prev) => ({ ...prev, meal: e.target.value as 'lunch' | 'dinner' }))}>
+                  <option value="lunch">Lunch</option>
+                  <option value="dinner">Dinner</option>
+                </select>
+                <select className="app-input" value={availabilityForm.available ? 'yes' : 'no'} onChange={(e) => setAvailabilityForm((prev) => ({ ...prev, available: e.target.value === 'yes' }))}>
+                  <option value="yes">Available to cook</option>
+                  <option value="no">Not available</option>
+                </select>
+              </div>
+              <input className="app-input" value={availabilityForm.note} onChange={(e) => setAvailabilityForm((prev) => ({ ...prev, note: e.target.value }))} placeholder="Optional note for admin/coordinator" />
+              <button type="submit" className="app-button app-button-secondary">Send Availability</button>
+            </form>
+          </div>
+        </div>
+
+        <div className="app-panel rounded-3xl p-6">
+          <h3 className="mb-4 text-lg font-semibold">Notifications</h3>
+          <div className="space-y-3">
+            {notifications.slice(0, 5).map((notification) => (
+              <div key={notification.id} className="rounded-2xl bg-[var(--surface-soft)] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="font-semibold">{notification.title}</div>
+                  <span className="app-muted text-xs">{new Date(notification.createdAt).toLocaleString()}</span>
+                </div>
+                <div className="app-muted mt-2 text-sm">{notification.message}</div>
+              </div>
+            ))}
+            {notifications.length === 0 && <div className="app-muted text-sm">No notifications yet.</div>}
+          </div>
+        </div>
+
+        <SupplyReportsBoard />
       </div>
     )
   }
@@ -198,6 +310,65 @@ export function Dashboard() {
           ))}
         </div>
       </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="app-panel rounded-3xl p-6">
+          <h3 className="mb-4 text-lg font-semibold">Pending Menu Suggestions</h3>
+          <div className="space-y-3">
+            {pendingSuggestions.map((suggestion) => (
+              <div key={suggestion.id} className="rounded-2xl bg-[var(--surface-soft)] p-4">
+                <div className="font-semibold">{suggestion.suggestion}</div>
+                <div className="app-muted text-sm">
+                  From {suggestion.user}
+                  {suggestion.preferredDay ? ` | ${suggestion.preferredDay}` : ''}
+                  {suggestion.preferredMeal ? ` | ${suggestion.preferredMeal}` : ''}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => updateMenuSuggestionStatus(suggestion.id, 'reviewed')}
+                  className="app-button app-button-ghost mt-3 px-3 py-2"
+                >
+                  Mark Reviewed
+                </button>
+              </div>
+            ))}
+            {pendingSuggestions.length === 0 && <p className="app-muted text-sm">No pending menu suggestions.</p>}
+          </div>
+        </div>
+        <div className="app-panel rounded-3xl p-6">
+          <h3 className="mb-4 text-lg font-semibold">Cooking Availability This Week</h3>
+          <div className="space-y-3">
+            {currentWeekAvailabilities.map((entry) => (
+              <div key={entry.id} className="rounded-2xl bg-[var(--surface-soft)] p-4">
+                <div className="font-semibold">{entry.user}</div>
+                <div className="app-muted text-sm">
+                  {entry.day} | {entry.meal} | {entry.available ? 'Available' : 'Not available'}
+                </div>
+                {entry.note && <div className="app-muted mt-1 text-sm">{entry.note}</div>}
+              </div>
+            ))}
+            {currentWeekAvailabilities.length === 0 && <p className="app-muted text-sm">No availability submissions for this week.</p>}
+          </div>
+        </div>
+      </div>
+
+      <div className="app-panel rounded-3xl p-6">
+        <h3 className="mb-4 text-lg font-semibold">Recent Notifications</h3>
+        <div className="space-y-3">
+          {notifications.slice(0, 5).map((notification) => (
+            <div key={notification.id} className="rounded-2xl bg-[var(--surface-soft)] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="font-semibold">{notification.title}</div>
+                <span className="app-muted text-xs">{new Date(notification.createdAt).toLocaleString()}</span>
+              </div>
+              <div className="app-muted mt-2 text-sm">{notification.message}</div>
+            </div>
+          ))}
+          {notifications.length === 0 && <p className="app-muted text-sm">No notifications sent yet.</p>}
+        </div>
+      </div>
+
+      <SupplyReportsBoard />
     </div>
   )
 }

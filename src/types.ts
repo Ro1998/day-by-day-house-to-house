@@ -48,9 +48,72 @@ export interface User {
   id: string
   name: string
   username?: string | null
+  email?: string | null
+  phone?: string | null
   passwordResetTokenExpiresAt?: string | null
   role: UserRole
   approved: boolean
+}
+
+export interface InventoryItem {
+  id: string
+  name: string
+  category: 'grocery' | 'vegetable'
+  quantity: number
+  unit: string
+  lowStockThreshold: number
+  lastPurchasedAt?: string | null
+  lastPrice?: number | null
+  note?: string | null
+  user: string
+  userId?: string
+}
+
+export interface Notification {
+  id: string
+  title: string
+  message: string
+  category: 'general' | 'menu'
+  createdBy: string
+  createdById?: string
+  createdAt: string
+}
+
+export interface MenuSuggestion {
+  id: string
+  suggestion: string
+  preferredDay?: string | null
+  preferredMeal?: string | null
+  status: 'pending' | 'reviewed'
+  user: string
+  userId?: string
+  createdAt: string
+}
+
+export interface Availability {
+  id: string
+  week: string
+  day: string
+  meal: 'lunch' | 'dinner'
+  available: boolean
+  note?: string | null
+  user: string
+  userId?: string
+  createdAt: string
+}
+
+export interface SupplyReport {
+  id: string
+  title: string
+  category: 'grocery' | 'vegetable'
+  itemName?: string | null
+  message: string
+  status: 'missing' | 'urgent' | 'resolved'
+  response?: string | null
+  createdBy: string
+  createdById?: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Activity {

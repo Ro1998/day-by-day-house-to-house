@@ -5,9 +5,11 @@ import { useData } from '@/components/DataProvider'
 import { Layout } from '@/components/Layout'
 import { Dashboard } from '@/components/Dashboard'
 import { Expenses } from '@/components/Expenses'
+import { InventoryManager } from '@/components/InventoryManager'
 import { LoginScreen } from '@/components/LoginScreen'
 import { MonthlyFoodMoney } from '@/components/MonthlyFoodMoney'
 import { MenuPlanner } from '@/components/MenuPlanner'
+import { NotificationsCenter } from '@/components/NotificationsCenter'
 import { UserManagement } from '@/components/UserManagement'
 
 export default function Home() {
@@ -20,6 +22,10 @@ export default function Home() {
         return <Dashboard />
       case 'expenses':
         return <Expenses />
+      case 'notifications':
+        return <NotificationsCenter />
+      case 'inventory':
+        return currentUser?.role === 'admin' || currentUser?.role === 'coordinator' ? <InventoryManager /> : <Dashboard />
       case 'monthly':
         return <MonthlyFoodMoney />
       case 'menu':

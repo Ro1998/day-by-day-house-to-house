@@ -2,7 +2,7 @@
 
 import { useTheme } from './ThemeProvider'
 import { useData } from './DataProvider'
-import { Home, LogOut, MenuSquare, Moon, Receipt, Settings2, Sun, Wallet } from 'lucide-react'
+import { Bell, Boxes, Home, LogOut, MenuSquare, Moon, Receipt, Settings2, Sun, Wallet } from 'lucide-react'
 import { BrandLogo } from './BrandLogo'
 
 interface LayoutProps {
@@ -19,6 +19,8 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'expenses', label: 'Cash Flow', icon: Receipt },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    ...(canManageOperations ? [{ id: 'inventory', label: 'Supplies', icon: Boxes }] : []),
     ...(canManageOperations ? [{ id: 'monthly', label: 'Monthly Food Money', icon: Wallet }] : []),
     ...(canManageOperations ? [{ id: 'menu', label: 'Menu Planner', icon: MenuSquare }] : []),
     ...(currentUser?.role === 'admin' ? [{ id: 'users', label: 'User Access', icon: Settings2 }] : []),

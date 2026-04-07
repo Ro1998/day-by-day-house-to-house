@@ -14,6 +14,8 @@ model User {
   id                       String @id @default(cuid())
   name                     String @unique
   username                 String? @unique
+  email                    String? @unique
+  phone                    String?
   passwordHash             String?
   securityAnswers          String?
   passwordResetTokenHash   String?
@@ -24,6 +26,11 @@ model User {
   monthlyPayments MonthlyPayment[]
   activities Activity[]
   menus Menu[]
+  inventoryItems InventoryItem[]
+  notifications Notification[] @relation("NotificationCreator")
+  menuSuggestions MenuSuggestion[]
+  availabilities Availability[]
+  supplyReports SupplyReport[] @relation("SupplyReportCreator")
 }
 
 model Expense {
@@ -80,4 +87,66 @@ model Activity {
   user      User     @relation(fields: [userId], references: [id])
   action    String
   timestamp DateTime @default(now())
+}
+
+model InventoryItem {
+  id              String   @id @default(cuid())
+  name            String
+  category        String
+  quantity        Float
+  unit            String
+  lowStockThreshold Float @default(0)
+  lastPurchasedAt String?
+  lastPrice       Float?
+  note            String?
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  createdAt       DateTime @default(now())
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  title       String
+  message     String
+  category    String   @default("general")
+  createdById String
+  createdBy   User     @relation("NotificationCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model MenuSuggestion {
+  id            String   @id @default(cuid())
+  suggestion    String
+  preferredDay  String?
+  preferredMeal String?
+  status        String   @default("pending")
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  createdAt     DateTime @default(now())
+}
+
+model Availability {
+  id        String   @id @default(cuid())
+  week      String
+  day       String
+  meal      String
+  available Boolean  @default(true)
+  note      String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model SupplyReport {
+  id          String   @id @default(cuid())
+  title       String
+  category    String
+  itemName    String?
+  message     String
+  status      String   @default("missing")
+  response    String?
+  createdById String
+  createdBy   User     @relation("SupplyReportCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

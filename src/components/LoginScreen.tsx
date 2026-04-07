@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { LogIn, Moon, RotateCcw, ShieldCheck, Sparkles, Sun, UserPlus } from 'lucide-react'
+import { Eye, EyeOff, LogIn, Moon, RotateCcw, ShieldCheck, Sparkles, Sun, UserPlus } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import { useData } from '@/components/DataProvider'
 import { useTheme } from '@/components/ThemeProvider'
@@ -29,6 +29,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
   const [registerForm, setRegisterForm] = useState({
     name: '',
     username: '',
+    email: '',
     password: '',
     securityAnswers: {} as Record<string, string>,
   })
@@ -38,6 +39,12 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
     securityAnswers: {} as Record<string, string>,
   })
   const [linkResetPassword, setLinkResetPassword] = useState('')
+  const [showPasswords, setShowPasswords] = useState({
+    login: false,
+    register: false,
+    forgot: false,
+    linkReset: false,
+  })
   const showForgotPassword = authMode === 'forgot'
   const switchMode = showForgotPassword ? 'login' : authMode
 
@@ -60,7 +67,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
     e.preventDefault()
     const user = await createUser(registerForm)
     if (!user) return
-    setRegisterForm({ name: '', username: '', password: '', securityAnswers: {} })
+    setRegisterForm({ name: '', username: '', email: '', password: '', securityAnswers: {} })
     onContinue()
   }
 
@@ -219,15 +226,24 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                           autoComplete="username"
                           required
                         />
-                        <input
-                          type="password"
-                          value={loginForm.password}
-                          onChange={(e) => setLoginForm((prev) => ({ ...prev, password: e.target.value }))}
-                          className="app-input"
-                          placeholder="Password"
-                          autoComplete="current-password"
-                          required
-                        />
+                        <div className="relative">
+                          <input
+                            type={showPasswords.login ? 'text' : 'password'}
+                            value={loginForm.password}
+                            onChange={(e) => setLoginForm((prev) => ({ ...prev, password: e.target.value }))}
+                            className="app-input pr-12"
+                            placeholder="Password"
+                            autoComplete="current-password"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPasswords((prev) => ({ ...prev, login: !prev.login }))}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-soft)]"
+                          >
+                            {showPasswords.login ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
                         <button
                           type="submit"
                           disabled={!loginForm.username.trim() || !loginForm.password.trim()}
@@ -245,7 +261,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                         </button>
                       </form>
                     ) : (
-                      <form onSubmit={handleForgotPassword} className="space-y-4">
+                    <form onSubmit={handleForgotPassword} className="space-y-4">
                         <div className="flex items-center justify-between gap-3">
                           <div>
                             <h3 className="text-lg font-semibold">Forgot Password</h3>
@@ -270,15 +286,24 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                           autoComplete="username"
                           required
                         />
-                        <input
-                          type="password"
-                          value={forgotForm.newPassword}
-                          onChange={(e) => setForgotForm((prev) => ({ ...prev, newPassword: e.target.value }))}
-                          className="app-input"
-                          placeholder="New password"
-                          autoComplete="new-password"
-                          required
-                        />
+                        <div className="relative">
+                          <input
+                            type={showPasswords.forgot ? 'text' : 'password'}
+                            value={forgotForm.newPassword}
+                            onChange={(e) => setForgotForm((prev) => ({ ...prev, newPassword: e.target.value }))}
+                            className="app-input pr-12"
+                            placeholder="New password"
+                            autoComplete="new-password"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPasswords((prev) => ({ ...prev, forgot: !prev.forgot }))}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-soft)]"
+                          >
+                            {showPasswords.forgot ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
                         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
                           <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--primary-strong)]">
                             <RotateCcw size={16} />
@@ -349,14 +374,32 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                         required
                       />
                       <input
-                        type="password"
-                        value={registerForm.password}
-                        onChange={(e) => setRegisterForm((prev) => ({ ...prev, password: e.target.value }))}
+                        type="email"
+                        value={registerForm.email}
+                        onChange={(e) => setRegisterForm((prev) => ({ ...prev, email: e.target.value }))}
                         className="app-input"
-                        placeholder="Password"
-                        autoComplete="new-password"
+                        placeholder="Email address"
+                        autoComplete="email"
                         required
                       />
+                      <div className="relative">
+                        <input
+                          type={showPasswords.register ? 'text' : 'password'}
+                          value={registerForm.password}
+                          onChange={(e) => setRegisterForm((prev) => ({ ...prev, password: e.target.value }))}
+                          className="app-input pr-12"
+                          placeholder="Password"
+                          autoComplete="new-password"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPasswords((prev) => ({ ...prev, register: !prev.register }))}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-soft)]"
+                        >
+                          {showPasswords.register ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
                       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
                         <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--primary-strong)]">
                           <ShieldCheck size={16} />
@@ -394,6 +437,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                         disabled={
                           !registerForm.name.trim() ||
                           !registerForm.username.trim() ||
+                          !registerForm.email.trim() ||
                           !registerForm.password.trim() ||
                           registerAnsweredCount < 3
                         }
@@ -413,15 +457,24 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm">
                   This password reset link was created by an admin. Enter your new password to finish resetting your account.
                 </div>
-                <input
-                  type="password"
-                  value={linkResetPassword}
-                  onChange={(e) => setLinkResetPassword(e.target.value)}
-                  className="app-input"
-                  placeholder="New password"
-                  autoComplete="new-password"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type={showPasswords.linkReset ? 'text' : 'password'}
+                    value={linkResetPassword}
+                    onChange={(e) => setLinkResetPassword(e.target.value)}
+                    className="app-input pr-12"
+                    placeholder="New password"
+                    autoComplete="new-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords((prev) => ({ ...prev, linkReset: !prev.linkReset }))}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-soft)]"
+                  >
+                    {showPasswords.linkReset ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
                 <button
                   type="submit"
                   disabled={!linkResetPassword.trim()}

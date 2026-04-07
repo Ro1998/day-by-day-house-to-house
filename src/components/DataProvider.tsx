@@ -1,7 +1,20 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { Activity, ApiError, Expense, Menu, MonthlyPayment, User, UserRole } from '@/types'
+import {
+  Activity,
+  ApiError,
+  Availability,
+  Expense,
+  InventoryItem,
+  Menu,
+  MenuSuggestion,
+  MonthlyPayment,
+  Notification,
+  SupplyReport,
+  User,
+  UserRole,
+} from '@/types'
 
 interface DataContextType {
   expenses: Expense[]
@@ -9,6 +22,11 @@ interface DataContextType {
   menus: Menu[]
   users: User[]
   activities: Activity[]
+  inventoryItems: InventoryItem[]
+  notifications: Notification[]
+  menuSuggestions: MenuSuggestion[]
+  availabilities: Availability[]
+  supplyReports: SupplyReport[]
   currentUser: User | null
   balance: number
   budget: number
@@ -23,6 +41,8 @@ interface DataContextType {
   createUser: (input: {
     name: string
     username: string
+    email: string
+    phone?: string
     password: string
     securityAnswers: Record<string, string>
   }) => Promise<User | null>
@@ -33,8 +53,17 @@ interface DataContextType {
   }) => Promise<boolean>
   createAdminResetLink: (userId: string) => Promise<{ resetLink: string; expiresAt: string } | null>
   resetPasswordWithToken: (input: { token: string; newPassword: string }) => Promise<boolean>
-  updateUserAccess: (input: { id: string; role: UserRole; approved: boolean }) => Promise<void>
+  updateUserAccess: (input: { id: string; role: UserRole; approved: boolean; phone?: string }) => Promise<void>
   deleteUser: (id: string) => Promise<void>
+  addInventoryItem: (input: Omit<InventoryItem, 'id' | 'user' | 'userId'>) => Promise<void>
+  updateInventoryItem: (input: InventoryItem) => Promise<void>
+  deleteInventoryItem: (id: string) => Promise<void>
+  addNotification: (input: { title: string; message: string; category?: 'general' | 'menu' }) => Promise<void>
+  addMenuSuggestion: (input: { suggestion: string; preferredDay?: string; preferredMeal?: string }) => Promise<void>
+  updateMenuSuggestionStatus: (id: string, status: 'pending' | 'reviewed') => Promise<void>
+  addAvailability: (input: { week: string; day: string; meal: 'lunch' | 'dinner'; available: boolean; note?: string }) => Promise<void>
+  addSupplyReport: (input: { title: string; category: 'grocery' | 'vegetable'; itemName?: string; message: string; status?: 'missing' | 'urgent' | 'resolved' }) => Promise<void>
+  updateSupplyReport: (input: { id: string; status?: 'missing' | 'urgent' | 'resolved'; response?: string }) => Promise<void>
   login: (input: { username: string; password: string }) => Promise<boolean>
   logout: () => void
   logActivity: (action: string) => Promise<void>
@@ -54,6 +83,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [menus, setMenus] = useState<Menu[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [activities, setActivities] = useState<Activity[]>([])
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [menuSuggestions, setMenuSuggestions] = useState<MenuSuggestion[]>([])
+  const [availabilities, setAvailabilities] = useState<Availability[]>([])
+  const [supplyReports, setSupplyReports] = useState<SupplyReport[]>([])
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [budget] = useState(1000)
   const [loading, setLoading] = useState(true)
@@ -99,6 +133,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setMonthlyPayments([])
           setMenus([])
           setActivities([])
+          setInventoryItems([])
+          setNotifications([])
+          setMenuSuggestions([])
+          setAvailabilities([])
+          setSupplyReports([])
           return
         }
 
@@ -125,22 +164,37 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setUsers([])
         }
 
-        const [expensesRes, paymentsRes, menusRes, activitiesRes] = await Promise.all([
+        const [expensesRes, paymentsRes, menusRes, activitiesRes, inventoryRes, notificationsRes, suggestionsRes, availabilitiesRes, supplyReportsRes] = await Promise.all([
           fetch('/api/expenses', { headers: authHeaders() }),
           fetch('/api/monthly-payments', { headers: authHeaders() }),
           fetch('/api/menus', { headers: authHeaders() }),
           fetch('/api/activities', { headers: authHeaders() }),
+          fetch('/api/inventory', { headers: authHeaders() }),
+          fetch('/api/notifications', { headers: authHeaders() }),
+          fetch('/api/menu-suggestions', { headers: authHeaders() }),
+          fetch('/api/availability', { headers: authHeaders() }),
+          fetch('/api/supply-reports', { headers: authHeaders() }),
         ])
 
         const expensesData = await readJson<Expense[]>(expensesRes, 'Failed to load expenses')
         const paymentsData = await readJson<MonthlyPayment[]>(paymentsRes, 'Failed to load monthly payments')
         const menusData = await readJson<Menu[]>(menusRes, 'Failed to load menus')
         const activitiesData = await readJson<Activity[]>(activitiesRes, 'Failed to load activities')
+        const inventoryData = await readJson<InventoryItem[]>(inventoryRes, 'Failed to load inventory')
+        const notificationsData = await readJson<Notification[]>(notificationsRes, 'Failed to load notifications')
+        const suggestionsData = await readJson<MenuSuggestion[]>(suggestionsRes, 'Failed to load menu suggestions')
+        const availabilitiesData = await readJson<Availability[]>(availabilitiesRes, 'Failed to load availability')
+        const supplyReportsData = await readJson<SupplyReport[]>(supplyReportsRes, 'Failed to load supply reports')
 
         setExpenses(expensesData)
         setMonthlyPayments(paymentsData)
         setMenus(menusData)
         setActivities(activitiesData)
+        setInventoryItems(inventoryData)
+        setNotifications(notificationsData)
+        setMenuSuggestions(suggestionsData)
+        setAvailabilities(availabilitiesData)
+        setSupplyReports(supplyReportsData)
       } catch (loadError) {
         const message = loadError instanceof Error ? loadError.message : 'Failed to load application data'
         setError(message)
@@ -333,13 +387,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const createUser = async (input: {
     name: string
     username: string
+    email: string
+    phone?: string
     password: string
     securityAnswers: Record<string, string>
   }) => {
     const trimmedName = input.name.trim()
     const trimmedUsername = input.username.trim().toLowerCase()
-    if (!trimmedName || !trimmedUsername || !input.password.trim()) {
-      setError('Please fill in name, username, and password before creating a user.')
+    const trimmedEmail = input.email.trim().toLowerCase()
+    const trimmedPhone = input.phone?.trim() || ''
+    if (!trimmedName || !trimmedUsername || !trimmedEmail || !input.password.trim()) {
+      setError('Please fill in name, username, email, and password before creating a user.')
       return null
     }
 
@@ -352,6 +410,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({
           name: trimmedName,
           username: trimmedUsername,
+          email: trimmedEmail,
+          phone: trimmedPhone || undefined,
           password: input.password,
           securityAnswers: input.securityAnswers,
         }),
@@ -447,7 +507,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const updateUserAccess = async (input: { id: string; role: UserRole; approved: boolean }) => {
+  const updateUserAccess = async (input: { id: string; role: UserRole; approved: boolean; phone?: string }) => {
     if (!currentUser) return
 
     try {
@@ -489,6 +549,149 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Failed to delete user')
+    }
+  }
+
+  const addInventoryItem = async (input: Omit<InventoryItem, 'id' | 'user' | 'userId'>) => {
+    if (!currentUser) return
+    try {
+      setError(null)
+      const res = await fetch('/api/inventory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ ...input, userId: currentUser.id }),
+      })
+      const item = await readJson<InventoryItem>(res, 'Failed to add inventory item')
+      setInventoryItems((prev) => [...prev, item].sort((a, b) => a.name.localeCompare(b.name)))
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to add inventory item')
+    }
+  }
+
+  const updateInventoryItem = async (input: InventoryItem) => {
+    if (!currentUser) return
+    try {
+      setError(null)
+      const res = await fetch('/api/inventory', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(input),
+      })
+      const item = await readJson<InventoryItem>(res, 'Failed to update inventory item')
+      setInventoryItems((prev) => prev.map((entry) => entry.id === item.id ? item : entry))
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to update inventory item')
+    }
+  }
+
+  const deleteInventoryItem = async (id: string) => {
+    if (!currentUser) return
+    try {
+      setError(null)
+      const res = await fetch(`/api/inventory?id=${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      })
+      await readJson<{ success: boolean }>(res, 'Failed to delete inventory item')
+      setInventoryItems((prev) => prev.filter((entry) => entry.id !== id))
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to delete inventory item')
+    }
+  }
+
+  const addNotification = async (input: { title: string; message: string; category?: 'general' | 'menu' }) => {
+    if (!currentUser) return
+    try {
+      setError(null)
+      const res = await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ ...input, userId: currentUser.id }),
+      })
+      const notification = await readJson<Notification>(res, 'Failed to create notification')
+      setNotifications((prev) => [notification, ...prev])
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to create notification')
+    }
+  }
+
+  const addMenuSuggestion = async (input: { suggestion: string; preferredDay?: string; preferredMeal?: string }) => {
+    if (!currentUser) return
+    try {
+      setError(null)
+      const res = await fetch('/api/menu-suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ ...input, userId: currentUser.id }),
+      })
+      const suggestion = await readJson<MenuSuggestion>(res, 'Failed to create menu suggestion')
+      setMenuSuggestions((prev) => [suggestion, ...prev])
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to create menu suggestion')
+    }
+  }
+
+  const updateMenuSuggestionStatus = async (id: string, status: 'pending' | 'reviewed') => {
+    if (!currentUser) return
+    try {
+      setError(null)
+      const res = await fetch('/api/menu-suggestions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ id, status }),
+      })
+      const suggestion = await readJson<MenuSuggestion>(res, 'Failed to update menu suggestion')
+      setMenuSuggestions((prev) => prev.map((entry) => entry.id === suggestion.id ? suggestion : entry))
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to update menu suggestion')
+    }
+  }
+
+  const addAvailability = async (input: { week: string; day: string; meal: 'lunch' | 'dinner'; available: boolean; note?: string }) => {
+    if (!currentUser) return
+    try {
+      setError(null)
+      const res = await fetch('/api/availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ ...input, userId: currentUser.id }),
+      })
+      const availability = await readJson<Availability>(res, 'Failed to add availability')
+      setAvailabilities((prev) => [availability, ...prev])
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to add availability')
+    }
+  }
+
+  const addSupplyReport = async (input: { title: string; category: 'grocery' | 'vegetable'; itemName?: string; message: string; status?: 'missing' | 'urgent' | 'resolved' }) => {
+    if (!currentUser) return
+    try {
+      setError(null)
+      const res = await fetch('/api/supply-reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ ...input, userId: currentUser.id }),
+      })
+      const report = await readJson<SupplyReport>(res, 'Failed to create supply report')
+      setSupplyReports((prev) => [report, ...prev])
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to create supply report')
+    }
+  }
+
+  const updateSupplyReport = async (input: { id: string; status?: 'missing' | 'urgent' | 'resolved'; response?: string }) => {
+    if (!currentUser) return
+    try {
+      setError(null)
+      const res = await fetch('/api/supply-reports', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(input),
+      })
+      const report = await readJson<SupplyReport>(res, 'Failed to update supply report')
+      setSupplyReports((prev) => prev.map((entry) => entry.id === report.id ? report : entry))
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to update supply report')
     }
   }
 
@@ -537,6 +740,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       menus,
       users,
       activities,
+      inventoryItems,
+      notifications,
+      menuSuggestions,
+      availabilities,
+      supplyReports,
       currentUser,
       balance,
       budget,
@@ -554,6 +762,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       resetPasswordWithToken,
       updateUserAccess,
       deleteUser,
+      addInventoryItem,
+      updateInventoryItem,
+      deleteInventoryItem,
+      addNotification,
+      addMenuSuggestion,
+      updateMenuSuggestionStatus,
+      addAvailability,
+      addSupplyReport,
+      updateSupplyReport,
       login,
       logout,
       logActivity,

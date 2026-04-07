@@ -6,12 +6,12 @@ import type { UserRole } from '@/types'
 
 export function UserManagement() {
   const { users, updateUserAccess, createAdminResetLink, deleteUser, currentUser } = useData()
-  const [drafts, setDrafts] = useState<Record<string, { role: UserRole; approved: boolean }>>({})
+  const [drafts, setDrafts] = useState<Record<string, { role: UserRole; approved: boolean; phone?: string }>>({})
   const [resetLinks, setResetLinks] = useState<Record<string, { resetLink: string; expiresAt: string }>>({})
   const [pendingDeleteUser, setPendingDeleteUser] = useState<{ id: string; name: string } | null>(null)
 
-  const getDraft = (id: string, role: UserRole, approved: boolean) =>
-    drafts[id] ?? { role, approved }
+  const getDraft = (id: string, role: UserRole, approved: boolean, phone?: string | null) =>
+    drafts[id] ?? { role, approved, phone: phone ?? '' }
 
   const pendingUsers = users.filter((user) => !user.approved)
   const approvedUsers = users.filter((user) => user.approved)
@@ -59,7 +59,7 @@ export function UserManagement() {
         ) : (
           <div className="space-y-4">
             {pendingUsers.map((user) => {
-              const draft = getDraft(user.id, user.role, user.approved)
+              const draft = getDraft(user.id, user.role, user.approved, user.phone)
 
               return (
                 <div key={user.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
@@ -85,15 +85,15 @@ export function UserManagement() {
                         <option value="admin">Admin</option>
                       </select>
                       <button
-                        onClick={() => updateUserAccess({ id: user.id, role: draft.role, approved: true })}
-                        className="app-button app-button-primary"
+                        onClick={() => updateUserAccess({ id: user.id, role: draft.role, approved: true, phone: draft.phone })}
+                        className="app-button app-button-primary inline-flex items-center gap-2 px-4 py-2 shadow-sm"
                       >
                         Approve User
                       </button>
                       <button
                         type="button"
                         onClick={() => setPendingDeleteUser({ id: user.id, name: user.name })}
-                        className="app-button bg-red-50 px-4 py-2 text-red-700 hover:bg-red-100 hover:text-red-800"
+                        className="app-button inline-flex items-center gap-2 border border-red-200 bg-red-50 px-4 py-2 font-semibold text-red-700 hover:bg-red-100 hover:text-red-800"
                       >
                         Delete User
                       </button>
@@ -114,6 +114,7 @@ export function UserManagement() {
               <tr className="border-b border-[var(--border)]">
                 <th className="p-2 text-left">Name</th>
                 <th className="p-2 text-left">Username</th>
+                <th className="p-2 text-left">Phone</th>
                 <th className="p-2 text-left">Role</th>
                 <th className="p-2 text-left">Status</th>
                 <th className="p-2 text-left">Password Reset</th>
@@ -123,8 +124,23 @@ export function UserManagement() {
             <tbody>
               {approvedUsers.map((user) => (
                 <tr key={user.id} className="border-b border-[var(--border)]">
+                  {(() => {
+                    const draft = getDraft(user.id, user.role, user.approved, user.phone)
+                    return (
+                      <>
                   <td className="p-2">{user.name}</td>
                   <td className="p-2">{user.username || 'Not set yet'}</td>
+                  <td className="p-2">
+                    <input
+                      value={draft.phone ?? ''}
+                      onChange={(e) => setDrafts((prev) => ({
+                        ...prev,
+                        [user.id]: { ...draft, phone: e.target.value },
+                      }))}
+                      className="app-input min-w-36"
+                      placeholder="Phone number"
+                    />
+                  </td>
                   <td className="p-2 capitalize">{user.role}</td>
                   <td className="p-2">Approved</td>
                   <td className="p-2">
@@ -158,29 +174,39 @@ export function UserManagement() {
                   </td>
                   <td className="p-2">
                     <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => updateUserAccess({ id: user.id, role: user.role, approved: true, phone: draft.phone })}
+                        className="app-button app-button-ghost px-3 py-2"
+                      >
+                        Save Phone
+                      </button>
                       {currentUser?.id !== user.id && (
                         <>
                           <button
                             type="button"
-                            onClick={() => updateUserAccess({ id: user.id, role: user.role, approved: false })}
-                            className="app-button app-button-ghost px-3 py-2"
+                            onClick={() => updateUserAccess({ id: user.id, role: user.role, approved: false, phone: draft.phone })}
+                            className="app-button inline-flex items-center gap-2 border border-amber-200 bg-amber-50 px-3 py-2 font-semibold text-amber-800 hover:bg-amber-100"
                           >
                             Disapprove
                           </button>
                           <button
                             type="button"
                             onClick={() => setPendingDeleteUser({ id: user.id, name: user.name })}
-                            className="app-button bg-red-50 px-3 py-2 text-red-700 hover:bg-red-100 hover:text-red-800"
+                            className="app-button inline-flex items-center gap-2 border border-red-200 bg-red-50 px-3 py-2 font-semibold text-red-700 hover:bg-red-100 hover:text-red-800"
                           >
                             Delete
                           </button>
                         </>
                       )}
                       {currentUser?.id === user.id && (
-                        <span className="app-muted text-sm">Current admin</span>
+                        <span className="app-muted self-center text-sm">Current admin</span>
                       )}
                     </div>
                   </td>
+                      </>
+                    )
+                  })()}
                 </tr>
               ))}
             </tbody>
