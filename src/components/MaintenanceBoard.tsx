@@ -9,11 +9,11 @@ const STATUS_STYLES = {
   resolved: 'bg-emerald-100 text-emerald-800 border-emerald-200',
 } as const
 
-export function SupplyReportsBoard() {
+export function MaintenanceBoard() {
   const { supplyReports, addSupplyReport, updateSupplyReport, users, currentUser } = useData()
   const [form, setForm] = useState({
     title: '',
-    category: 'grocery' as 'grocery' | 'vegetable',
+    category: 'maintenance' as const,
     itemName: '',
     message: '',
     status: 'missing' as 'missing' | 'urgent' | 'resolved',
@@ -38,7 +38,7 @@ export function SupplyReportsBoard() {
   const visibleReports = useMemo(() => {
     const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
     return supplyReports.filter((report) => {
-      if (report.category === 'maintenance') return false
+      if (report.category !== 'maintenance') return false
       if (report.status === 'resolved') {
         const dateString = (report as any).updatedAt || (report as any).createdAt
         if (dateString) {
@@ -55,18 +55,18 @@ export function SupplyReportsBoard() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     await addSupplyReport(form)
-    setForm({ title: '', category: 'grocery', itemName: '', message: '', status: 'missing' })
+    setForm({ title: '', category: 'maintenance', itemName: '', message: '', status: 'missing' })
   }
 
   return (
     <div className="space-y-6">
       <div className="app-panel rounded-3xl p-6">
-        <h2 className="mb-2 text-xl font-semibold">Missing Supplies</h2>
+        <h2 className="mb-2 text-xl font-semibold">Meeting Hall Maintenance</h2>
         <p className="app-muted text-sm">
-          Report finishing supplies. Coordinators and admins can reply and mark it resolved.
+          Report items needing repair or maintenance. Coordinators and admins can reply and mark it resolved.
         </p>
         <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
-          <span className="rounded-full border border-sky-200 bg-sky-100 px-3 py-1 text-sky-800">Blue: Missing</span>
+          <span className="rounded-full border border-sky-200 bg-sky-100 px-3 py-1 text-sky-800">Blue: Reported</span>
           <span className="rounded-full border border-red-200 bg-red-100 px-3 py-1 text-red-800">Red: Urgent</span>
           <span className="rounded-full border border-emerald-200 bg-emerald-100 px-3 py-1 text-emerald-800">Green: Resolved</span>
         </div>
@@ -87,21 +87,17 @@ export function SupplyReportsBoard() {
       </div>
 
       <div className="app-panel rounded-3xl p-6">
-        <h3 className="mb-4 text-lg font-semibold">Submit a Supply Report</h3>
+        <h3 className="mb-4 text-lg font-semibold">Submit a Report</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <input className="app-input" value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="Short title" required />
-            <select className="app-input" value={form.category} onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value as 'grocery' | 'vegetable' }))}>
-              <option value="grocery">Grocery</option>
-              <option value="vegetable">Vegetable</option>
-            </select>
-            <input className="app-input" value={form.itemName} onChange={(e) => setForm((prev) => ({ ...prev, itemName: e.target.value }))} placeholder="Item name, optional" />
+            <input className="app-input" value={form.itemName} onChange={(e) => setForm((prev) => ({ ...prev, itemName: e.target.value }))} placeholder="Location or Area, optional" />
             <select className="app-input" value={form.status} onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as 'missing' | 'urgent' | 'resolved' }))}>
-              <option value="missing">Missing</option>
+              <option value="missing">Reported</option>
               <option value="urgent">Urgent</option>
             </select>
           </div>
-          <textarea className="app-input min-h-[120px]" value={form.message} onChange={(e) => setForm((prev) => ({ ...prev, message: e.target.value }))} placeholder="What is missing or going to finish?" required />
+          <textarea className="app-input min-h-[120px]" value={form.message} onChange={(e) => setForm((prev) => ({ ...prev, message: e.target.value }))} placeholder="What needs to be fixed?" required />
           <button type="submit" className="app-button app-button-primary">Post Report</button>
         </form>
       </div>
@@ -116,11 +112,11 @@ export function SupplyReportsBoard() {
                   <div className="flex items-center gap-3">
                     <h3 className="text-lg font-semibold">{report.title}</h3>
                     <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${STATUS_STYLES[report.status]}`}>
-                      {report.status}
+                      {report.status === 'missing' ? 'reported' : report.status}
                     </span>
                   </div>
                   <p className="app-muted mt-1 text-sm">
-                    {report.category} {report.itemName ? `| ${report.itemName}` : ''} | Reported by {report.createdBy}
+                    {report.itemName ? `Area: ${report.itemName} | ` : ''}Reported by {report.createdBy}
                   </p>
                   <p className="mt-3 text-sm">{report.message}</p>
                   {report.response && (
@@ -141,7 +137,7 @@ export function SupplyReportsBoard() {
                         [report.id]: { ...draft, status: e.target.value as 'missing' | 'urgent' | 'resolved' },
                       }))}
                     >
-                      <option value="missing">Missing</option>
+                      <option value="missing">Reported</option>
                       <option value="urgent">Urgent</option>
                       <option value="resolved">Resolved</option>
                     </select>
@@ -169,7 +165,7 @@ export function SupplyReportsBoard() {
         })}
         {visibleReports.length === 0 && (
           <div className="app-panel rounded-3xl p-6">
-            <p className="app-muted text-sm">No supply reports have been posted yet.</p>
+            <p className="app-muted text-sm">No maintenance reports have been posted yet.</p>
           </div>
         )}
       </div>

@@ -62,3 +62,49 @@ export async function POST(request: Request) {
     return apiError('notifications.POST', error, 'Failed to create notification')
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const auth = await requireApprovedUser(request, ['admin', 'coordinator'])
+    if (auth.error) return auth.error
+    const body = await request.json()
+    
+    if (!body.id) {
+      return NextResponse.json({ error: 'Missing notification ID' }, { status: 400 })
+    }
+
+    const notification = await prisma.notification.update({
+      where: { id: String(body.id) },
+      data: {
+        title: String(body.title).trim(),
+        message: String(body.message).trim(),
+      },
+      include: { createdBy: true },
+    })
+
+    return NextResponse.json(serializeNotification(notification))
+  } catch (error) {
+    return apiError('notifications.PATCH', error, 'Failed to update notification')
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const auth = await requireApprovedUser(request, ['admin', 'coordinator'])
+    if (auth.error) return auth.error
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json({ error: 'Missing notification ID' }, { status: 400 })
+    }
+
+    await prisma.notification.delete({
+      where: { id: String(id) },
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return apiError('notifications.DELETE', error, 'Failed to delete notification')
+  }
+}

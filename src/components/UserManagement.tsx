@@ -86,14 +86,14 @@ export function UserManagement() {
                       </select>
                       <button
                         onClick={() => updateUserAccess({ id: user.id, role: draft.role, approved: true, phone: draft.phone })}
-                        className="app-button app-button-primary inline-flex items-center gap-2 px-4 py-2 shadow-sm"
+                    className="app-button app-button-primary flex-1 justify-center px-4 py-1.5 text-sm shadow-sm sm:flex-none"
                       >
                         Approve User
                       </button>
                       <button
                         type="button"
                         onClick={() => setPendingDeleteUser({ id: user.id, name: user.name })}
-                        className="app-button inline-flex items-center gap-2 border border-red-200 bg-red-50 px-4 py-2 font-semibold text-red-700 hover:bg-red-100 hover:text-red-800"
+                    className="app-button flex-1 justify-center border border-red-200 bg-red-50 px-4 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-100 hover:text-red-800 sm:flex-none"
                       >
                         Delete User
                       </button>
@@ -189,27 +189,27 @@ export function UserManagement() {
                     </div>
                   </td>
                   <td className="p-2">
-                    <div className="flex flex-wrap gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                       <button
                         type="button"
                         onClick={() => updateUserAccess({ id: user.id, role: draft.role, approved: true, phone: draft.phone })}
-                        className="app-button app-button-ghost px-3 py-2"
+                    className="app-button app-button-ghost flex-1 justify-center px-3 py-1.5 text-sm sm:flex-none"
                       >
-                        Save Changes
+                    Save
                       </button>
                       {currentUser?.id !== user.id && (
                         <>
                           <button
                             type="button"
                             onClick={() => updateUserAccess({ id: user.id, role: user.role, approved: false, phone: draft.phone })}
-                            className="app-button inline-flex items-center gap-2 border border-amber-200 bg-amber-50 px-3 py-2 font-semibold text-amber-800 hover:bg-amber-100"
+                        className="app-button flex-1 justify-center border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-800 hover:bg-amber-100 sm:flex-none"
                           >
                             Disapprove
                           </button>
                           <button
                             type="button"
                             onClick={() => setPendingDeleteUser({ id: user.id, name: user.name })}
-                            className="app-button inline-flex items-center gap-2 border border-red-200 bg-red-50 px-3 py-2 font-semibold text-red-700 hover:bg-red-100 hover:text-red-800"
+                        className="app-button flex-1 justify-center border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-100 hover:text-red-800 sm:flex-none"
                           >
                             Delete
                           </button>
