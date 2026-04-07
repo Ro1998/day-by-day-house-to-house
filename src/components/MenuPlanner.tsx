@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useData } from '@/components/DataProvider'
 import { Menu, MenuItem } from '@/types'
-import { Download } from 'lucide-react'
+import { FileImage } from 'lucide-react'
 import html2canvas from 'html2canvas'
 import { addWeeks, format, startOfWeek } from 'date-fns'
 
@@ -133,14 +133,16 @@ export function MenuPlanner() {
               onClick={saveMenu}
               disabled={!canManageMenu}
               className="app-button app-button-primary"
+              title="Save this week's menu right away."
             >
               Save Now
             </button>
             <button
               onClick={exportPNG}
               className="app-button app-button-secondary flex items-center space-x-1"
+              title="Download the visible weekly menu as a PNG image."
             >
-              <Download size={16} />
+              <FileImage size={16} />
               <span>Export PNG</span>
             </button>
           </div>
@@ -151,6 +153,7 @@ export function MenuPlanner() {
             type="button"
             onClick={() => setSelectedWeek(getWeekKey(addWeeks(parseWeekKey(selectedWeek), -1)))}
             className="app-button app-button-ghost"
+            title="Open the menu saved for the previous week."
           >
             Previous Week
           </button>
@@ -158,6 +161,7 @@ export function MenuPlanner() {
             type="button"
             onClick={() => setSelectedWeek(getWeekKey(addWeeks(parseWeekKey(selectedWeek), 1)))}
             className="app-button app-button-ghost"
+            title="Open the menu saved for the next week."
           >
             Next Week
           </button>
@@ -166,6 +170,7 @@ export function MenuPlanner() {
             value={selectedWeek}
             onChange={(e) => setSelectedWeek(getWeekKey(parseWeekKey(e.target.value)))}
             className="app-input"
+            title="Pick any date in a week to review or edit that week's menu."
           />
           <div className="text-sm font-medium text-[var(--primary-strong)]">
             {saveState === 'saving'
@@ -187,6 +192,7 @@ export function MenuPlanner() {
             className="app-input"
             placeholder="Enter purchaser names separated by commas"
             disabled={!canManageMenu}
+            title="List the people responsible for buying vegetables this week."
           />
         </div>
 
@@ -215,6 +221,7 @@ export function MenuPlanner() {
                       className="app-input"
                       placeholder="Lunch menu"
                       disabled={!canManageMenu}
+                      title={`Enter the lunch menu for ${item.day}.`}
                     />
                   </td>
                   <td className="border border-[var(--border)] p-2">
@@ -225,6 +232,7 @@ export function MenuPlanner() {
                       className="app-input"
                       placeholder="Enter cooking team names"
                       disabled={!canManageMenu}
+                      title={`Enter the lunch cooking team names for ${item.day}.`}
                     />
                   </td>
                   <td className="border border-[var(--border)] p-2">
@@ -235,6 +243,7 @@ export function MenuPlanner() {
                       className="app-input"
                       placeholder="Dinner menu"
                       disabled={!canManageMenu}
+                      title={`Enter the dinner menu for ${item.day}.`}
                     />
                   </td>
                   <td className="border border-[var(--border)] p-2">
@@ -245,6 +254,7 @@ export function MenuPlanner() {
                       className="app-input"
                       placeholder="Enter dinner cooking team names"
                       disabled={!canManageMenu}
+                      title={`Enter the dinner cooking team names for ${item.day}.`}
                     />
                   </td>
                 </tr>
@@ -265,6 +275,7 @@ export function MenuPlanner() {
               className={`app-button ${
                 savedMenu.week === selectedWeek ? 'app-button-primary' : 'app-button-ghost'
               }`}
+              title={`Open the saved menu for the week starting ${savedMenu.week}.`}
             >
               {savedMenu.week}
             </button>

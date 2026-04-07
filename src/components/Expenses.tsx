@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { useData } from '@/components/DataProvider'
-import { Trash2, Undo, Download } from 'lucide-react'
+import { FileImage, FileSpreadsheet, FileText, Trash2, Undo } from 'lucide-react'
 import jsPDF from 'jspdf'
 import * as XLSX from 'xlsx'
+import html2canvas from 'html2canvas'
 import { formatCurrency, getCurrentMonthKey } from '@/lib/format'
 
 export function Expenses() {
@@ -65,7 +66,25 @@ export function Expenses() {
     XLSX.writeFile(wb, 'expenses.xlsx')
   }
 
+  const exportPNG = async () => {
+    const element = document.getElementById('cash-flow-table')
+    if (!element) return
+
+    const canvas = await html2canvas(element)
+    const link = document.createElement('a')
+    link.download = 'cash-flow.png'
+    link.href = canvas.toDataURL()
+    link.click()
+  }
+
   const categories = ['grocery', 'vegetables', 'gas', 'others', 'food money', 'offering', 'separate meal']
+
+  const handleDelete = async (id: string, description: string) => {
+    const confirmed = window.confirm(`Do you really want to delete "${description}"?`)
+    if (!confirmed) return
+
+    await deleteExpense(id)
+  }
 
   return (
     <div className="space-y-6">
@@ -90,6 +109,7 @@ export function Expenses() {
               value={form.type}
               onChange={(e) => setForm(prev => ({ ...prev, type: e.target.value as 'in' | 'out' }))}
               className="app-input"
+              title="Choose whether this entry adds money to the balance or records money spent."
             >
               <option value="in">Cash In</option>
               <option value="out">Cash Out</option>
@@ -98,6 +118,7 @@ export function Expenses() {
               value={form.category}
               onChange={(e) => setForm(prev => ({ ...prev, category: e.target.value }))}
               className="app-input"
+              title="Pick the category this cash flow entry belongs to."
             >
               <option value="">Select Category</option>
               {categories.map(cat => (
@@ -110,6 +131,7 @@ export function Expenses() {
               value={form.amount}
               onChange={(e) => setForm(prev => ({ ...prev, amount: e.target.value }))}
               className="app-input"
+              title="Enter the amount for this cash in or cash out entry."
               required
             />
             <input
@@ -118,6 +140,7 @@ export function Expenses() {
               value={form.description}
               onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
               className="app-input"
+              title="Add a short note so the entry is easy to identify later."
               required
             />
           </div>
@@ -125,6 +148,7 @@ export function Expenses() {
             type="submit"
             disabled={!canManageEntries}
             className="app-button app-button-primary"
+            title="Save this new cash flow entry to the list."
           >
             Add Expense
           </button>
@@ -141,6 +165,7 @@ export function Expenses() {
             value={filter.dateFrom}
             onChange={(e) => setFilter(prev => ({ ...prev, dateFrom: e.target.value }))}
             className="app-input"
+            title="Show entries from this date onward."
           />
           <input
             type="date"
@@ -148,23 +173,46 @@ export function Expenses() {
             value={filter.dateTo}
             onChange={(e) => setFilter(prev => ({ ...prev, dateTo: e.target.value }))}
             className="app-input"
+            title="Show entries up to this date."
           />
           <select
             value={filter.category}
             onChange={(e) => setFilter(prev => ({ ...prev, category: e.target.value }))}
             className="app-input"
+            title="Filter the list to one category only."
           >
             <option value="">All Categories</option>
             {categories.map(cat => (
               <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
-          <div className="flex space-x-2">
-            <button onClick={exportPDF} className="app-button app-button-ghost px-3 py-2">
-              <Download size={16} />
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={exportPDF}
+              className="app-button app-button-ghost inline-flex items-center gap-2 px-3 py-2"
+              title="Download the currently filtered cash flow entries as a PDF file."
+            >
+              <FileText size={16} />
+              <span>PDF</span>
             </button>
-            <button onClick={exportXLS} className="app-button app-button-secondary px-3 py-2">
-              <Download size={16} />
+            <button
+              type="button"
+              onClick={exportXLS}
+              className="app-button app-button-secondary inline-flex items-center gap-2 px-3 py-2"
+              title="Download the currently filtered cash flow entries as an Excel file."
+            >
+              <FileSpreadsheet size={16} />
+              <span>Excel</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => void exportPNG()}
+              className="app-button app-button-ghost inline-flex items-center gap-2 px-3 py-2"
+              title="Download the current cash flow table as a PNG image."
+            >
+              <FileImage size={16} />
+              <span>PNG</span>
             </button>
           </div>
         </div>
@@ -177,13 +225,14 @@ export function Expenses() {
             <button
               onClick={undoDelete}
               className="app-button app-button-secondary flex items-center space-x-1 px-3 py-2"
+              title="Restore the most recently deleted entry."
             >
               <Undo size={16} />
               <span>Undo</span>
             </button>
           )}
         </div>
-        <div className="overflow-x-auto">
+        <div id="cash-flow-table" className="overflow-x-auto">
           <table className="w-full table-auto">
             <thead>
               <tr className="border-b border-[var(--border)]">
@@ -208,8 +257,10 @@ export function Expenses() {
                   <td className="p-2">
                     {canManageEntries && (
                       <button
-                        onClick={() => deleteExpense(exp.id)}
-                        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[var(--primary)] hover:text-[var(--primary-strong)]"
+                        type="button"
+                        onClick={() => void handleDelete(exp.id, exp.description)}
+                        className="inline-flex items-center gap-1 rounded-full bg-red-50 px-3 py-1.5 text-red-700 transition-colors hover:bg-red-100 hover:text-red-800"
+                        title="Delete this entry from the cash flow list after confirmation."
                       >
                         <Trash2 size={16} />
                         Delete
