@@ -16,8 +16,12 @@ export interface MonthlyPayment {
   month: string
   paid: boolean
   amount: number
+  memberName: string
+  reminderSent?: boolean
+  expenseId?: string | null
   user: string
   userId?: string
+  createdAt?: string
 }
 
 export interface MenuItem {
@@ -35,6 +39,7 @@ export interface Menu {
   purchasers: string[]
   userId?: string
   user?: string
+  createdAt?: string
 }
 
 export interface User {

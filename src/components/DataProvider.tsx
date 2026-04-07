@@ -227,8 +227,38 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ ...payment, userId: currentUser.id }),
       })
       const newPayment = await readJson<MonthlyPayment>(res, 'Failed to create monthly payment')
-      setMonthlyPayments((prev) => [...prev, newPayment])
-      await logActivity(`Added monthly payment for ${payment.month}`)
+      setMonthlyPayments((prev) => {
+        const existingIndex = prev.findIndex((entry) => entry.id === newPayment.id)
+        const next = existingIndex >= 0
+          ? prev.map((entry) => entry.id === newPayment.id ? newPayment : entry)
+          : [...prev, newPayment]
+
+        return next.sort((a, b) => (
+          `${b.month}-${b.memberName}`.localeCompare(`${a.month}-${a.memberName}`)
+        ))
+      })
+
+      if (newPayment.paid) {
+        const cashInExpense: Expense = {
+          id: newPayment.expenseId ?? `payment-${newPayment.id}`,
+          date: `${newPayment.month}-01`,
+          type: 'in',
+          category: 'food money',
+          amount: newPayment.amount,
+          description: `Monthly food money paid by ${newPayment.memberName} for ${newPayment.month}`,
+          user: currentUser.name,
+          userId: currentUser.id,
+        }
+        setExpenses((prev) => (
+          prev.some((entry) => entry.id === cashInExpense.id)
+            ? prev
+            : [...prev, cashInExpense]
+        ))
+      }
+
+      await logActivity(
+        `${newPayment.paid ? 'Marked paid' : 'Added reminder'} for ${newPayment.memberName} (${newPayment.month})`,
+      )
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Failed to create monthly payment')
     }

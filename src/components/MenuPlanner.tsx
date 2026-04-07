@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useData } from '@/components/DataProvider'
 import { Menu, MenuItem } from '@/types'
 import { Download } from 'lucide-react'
 import html2canvas from 'html2canvas'
-import { format, startOfWeek } from 'date-fns'
+import { addWeeks, format, startOfWeek } from 'date-fns'
 
 const parseNames = (value: string) =>
   value
@@ -15,31 +15,63 @@ const parseNames = (value: string) =>
 
 export function MenuPlanner() {
   const { menus, updateMenu, currentUser } = useData()
+  const getWeekKey = (date: Date) => format(startOfWeek(date, { weekStartsOn: 2 }), 'yyyy-MM-dd')
+  const parseWeekKey = (week: string) => new Date(`${week}T12:00:00`)
+  const [selectedWeek, setSelectedWeek] = useState(() => getWeekKey(new Date()))
   const [menu, setMenu] = useState<Menu | null>(null)
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const canManageMenu = currentUser?.role === 'admin' || currentUser?.role === 'coordinator'
+  const lastSavedSnapshot = useRef('')
+
+  const buildDefaultMenu = (week: string): Menu => {
+    const days = ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday']
+    const items: MenuItem[] = days.map((day) => ({
+      day,
+      lunch: '',
+      dinner: '',
+      lunchCooks: [],
+      dinnerCooks: [],
+    }))
+
+    return {
+      week,
+      items,
+      purchasers: [],
+    }
+  }
 
   useEffect(() => {
-    const tuesday = startOfWeek(new Date(), { weekStartsOn: 2 }) // Tuesday
-    const weekStr = format(tuesday, 'yyyy-MM-dd')
-    const existing = menus.find(m => m.week === weekStr)
-    if (existing) {
-      setMenu(existing)
-    } else {
-      const days = ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday']
-      const items: MenuItem[] = days.map(day => ({
-        day,
-        lunch: '',
-        dinner: '',
-        lunchCooks: [],
-        dinnerCooks: [],
-      }))
-      setMenu({
-        week: weekStr,
-        items,
-        purchasers: [],
-      })
-    }
-  }, [menus])
+    const existing = menus.find((entry) => entry.week === selectedWeek)
+    const nextMenu = existing ? { ...existing } : buildDefaultMenu(selectedWeek)
+    setMenu(nextMenu)
+    lastSavedSnapshot.current = JSON.stringify(nextMenu)
+    setSaveState(existing ? 'saved' : 'idle')
+  }, [menus, selectedWeek])
+
+  useEffect(() => {
+    if (!menu || !canManageMenu) return
+
+    const snapshot = JSON.stringify(menu)
+    if (snapshot === lastSavedSnapshot.current) return
+
+    const timeout = window.setTimeout(async () => {
+      try {
+        setSaveState('saving')
+        await updateMenu(menu)
+        lastSavedSnapshot.current = snapshot
+        setSaveState('saved')
+      } catch {
+        setSaveState('error')
+      }
+    }, 900)
+
+    return () => window.clearTimeout(timeout)
+  }, [menu, canManageMenu, updateMenu])
+
+  const savedWeeks = useMemo(
+    () => [...menus].sort((a, b) => b.week.localeCompare(a.week)),
+    [menus],
+  )
 
   const updateMenuItem = (index: number, field: keyof MenuItem, value: any) => {
     if (!menu) return
@@ -49,7 +81,18 @@ export function MenuPlanner() {
   }
 
   const saveMenu = () => {
-    if (menu) updateMenu(menu)
+    if (!menu) return
+
+    void (async () => {
+      try {
+        setSaveState('saving')
+        await updateMenu(menu)
+        lastSavedSnapshot.current = JSON.stringify(menu)
+        setSaveState('saved')
+      } catch {
+        setSaveState('error')
+      }
+    })()
   }
 
   const exportPNG = async () => {
@@ -79,14 +122,19 @@ export function MenuPlanner() {
       )}
       <div className="app-panel rounded-3xl p-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Weekly Menu Planner</h2>
+          <div>
+            <h2 className="text-xl font-semibold">Weekly Menu Planner</h2>
+            <p className="app-muted mt-1 text-sm">
+              Auto-saves by week so you can review older menus any time.
+            </p>
+          </div>
           <div className="flex space-x-2">
             <button
               onClick={saveMenu}
               disabled={!canManageMenu}
               className="app-button app-button-primary"
             >
-              Save Menu
+              Save Now
             </button>
             <button
               onClick={exportPNG}
@@ -95,6 +143,38 @@ export function MenuPlanner() {
               <Download size={16} />
               <span>Export PNG</span>
             </button>
+          </div>
+        </div>
+
+        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-[auto_auto_minmax(0,1fr)_auto] md:items-center">
+          <button
+            type="button"
+            onClick={() => setSelectedWeek(getWeekKey(addWeeks(parseWeekKey(selectedWeek), -1)))}
+            className="app-button app-button-ghost"
+          >
+            Previous Week
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedWeek(getWeekKey(addWeeks(parseWeekKey(selectedWeek), 1)))}
+            className="app-button app-button-ghost"
+          >
+            Next Week
+          </button>
+          <input
+            type="date"
+            value={selectedWeek}
+            onChange={(e) => setSelectedWeek(getWeekKey(parseWeekKey(e.target.value)))}
+            className="app-input"
+          />
+          <div className="text-sm font-medium text-[var(--primary-strong)]">
+            {saveState === 'saving'
+              ? 'Saving changes...'
+              : saveState === 'saved'
+                ? 'All changes saved'
+                : saveState === 'error'
+                  ? 'Save failed, try Save Now'
+                  : 'Ready to edit'}
           </div>
         </div>
 
@@ -116,9 +196,9 @@ export function MenuPlanner() {
               <tr className="bg-[var(--surface-soft)]">
                 <th className="border border-[var(--border)] p-2">Day</th>
                 <th className="border border-[var(--border)] p-2">Lunch</th>
-                <th className="border border-[var(--border)] p-2">Lunch Cooks (2)</th>
+                <th className="border border-[var(--border)] p-2">Cooking Team</th>
                 <th className="border border-[var(--border)] p-2">Dinner</th>
-                <th className="border border-[var(--border)] p-2">Dinner Cooks (2)</th>
+                <th className="border border-[var(--border)] p-2">Dinner Cooking Team</th>
               </tr>
             </thead>
             <tbody>
@@ -143,7 +223,7 @@ export function MenuPlanner() {
                       value={item.lunchCooks.join(', ')}
                       onChange={(e) => updateMenuItem(index, 'lunchCooks', parseNames(e.target.value))}
                       className="app-input"
-                      placeholder="Enter lunch cook names"
+                      placeholder="Enter cooking team names"
                       disabled={!canManageMenu}
                     />
                   </td>
@@ -163,7 +243,7 @@ export function MenuPlanner() {
                       value={item.dinnerCooks.join(', ')}
                       onChange={(e) => updateMenuItem(index, 'dinnerCooks', parseNames(e.target.value))}
                       className="app-input"
-                      placeholder="Enter dinner cook names"
+                      placeholder="Enter dinner cooking team names"
                       disabled={!canManageMenu}
                     />
                   </td>
@@ -171,6 +251,27 @@ export function MenuPlanner() {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="app-panel rounded-3xl p-6">
+        <h3 className="mb-4 text-lg font-semibold">Saved Weeks</h3>
+        <div className="flex flex-wrap gap-2">
+          {savedWeeks.map((savedMenu) => (
+            <button
+              key={savedMenu.week}
+              type="button"
+              onClick={() => setSelectedWeek(savedMenu.week)}
+              className={`app-button ${
+                savedMenu.week === selectedWeek ? 'app-button-primary' : 'app-button-ghost'
+              }`}
+            >
+              {savedMenu.week}
+            </button>
+          ))}
+          {savedWeeks.length === 0 && (
+            <p className="app-muted text-sm">No weekly menus have been saved yet.</p>
+          )}
         </div>
       </div>
     </div>

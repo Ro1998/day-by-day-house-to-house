@@ -3,6 +3,7 @@
 import { useTheme } from './ThemeProvider'
 import { useData } from './DataProvider'
 import { Home, LogOut, MenuSquare, Moon, Receipt, Settings2, Sun, Wallet } from 'lucide-react'
+import { BrandLogo } from './BrandLogo'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -29,13 +30,8 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-5 py-6 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center space-x-4">
-              <div className="rounded-2xl bg-[var(--accent)] px-3 py-2 text-sm font-black uppercase tracking-[0.2em] text-[#263b6a]">
-                DDHH
-              </div>
               <div>
-                <h1 className="text-2xl font-black tracking-tight">
-                  Day by Day, House to House
-                </h1>
+                <BrandLogo />
                 <p className="app-muted text-sm">
                   Shared expenses, monthly food money, and weekly menu planning.
                 </p>

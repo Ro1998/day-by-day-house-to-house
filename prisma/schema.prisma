@@ -34,13 +34,16 @@ model Expense {
 }
 
 model MonthlyPayment {
-  id        String   @id @default(cuid())
-  month     String
-  paid      Boolean
-  amount    Float
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  month       String
+  paid        Boolean
+  amount      Float
+  memberName  String?
+  reminderSent Boolean @default(false)
+  expenseId   String?  @unique
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
 }
 
 model Menu {
