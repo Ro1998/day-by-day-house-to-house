@@ -13,7 +13,7 @@ interface LayoutProps {
 
 export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   const { theme, toggleTheme } = useTheme()
-  const { currentUser, logout, loading, error, notice, users, notifications } = useData()
+  const { currentUser, logout, loading, error, notice, users, unreadNotifications } = useData()
   const canManageOperations = currentUser?.role === 'admin' || currentUser?.role === 'coordinator'
 
   const tabs = [
@@ -83,9 +83,9 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
               >
                 <tab.icon size={17} />
                 {tab.label}
-                {tab.id === 'notifications' && notifications.length > 0 && (
+                {tab.id === 'notifications' && unreadNotifications.length > 0 && (
                   <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {notifications.length}
+                    {unreadNotifications.length}
                   </span>
                 )}
               </button>

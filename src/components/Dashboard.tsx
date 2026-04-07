@@ -20,6 +20,8 @@ export function Dashboard() {
     monthlyPayments,
     menus,
     notifications,
+    unreadNotifications,
+    markNotificationAsRead,
     menuSuggestions,
     availabilities,
     addMenuSuggestion,
@@ -215,15 +217,24 @@ export function Dashboard() {
         <div className="app-panel rounded-3xl p-6">
           <h3 className="mb-4 text-lg font-semibold">Notifications</h3>
           <div className="space-y-3">
-            {notifications.slice(0, 5).map((notification) => (
-              <div key={notification.id} className="rounded-2xl bg-[var(--surface-soft)] p-4">
+            {notifications.slice(0, 5).map((notification) => {
+              const isUnread = unreadNotifications.some(n => n.id === notification.id)
+              return (
+              <div 
+                key={notification.id} 
+                className={`rounded-2xl ${isUnread ? 'bg-[var(--primary)]/10 cursor-pointer' : 'bg-[var(--surface-soft)]'} p-4`}
+                onClick={() => isUnread && markNotificationAsRead(notification.id)}
+              >
                 <div className="flex items-center justify-between gap-3">
-                  <div className="font-semibold">{notification.title}</div>
+                  <div className="font-semibold">
+                    {notification.title}
+                    {isUnread && <span className="ml-2 inline-block h-2 w-2 rounded-full bg-[var(--primary-strong)]"></span>}
+                  </div>
                   <span className="app-muted text-xs">{new Date(notification.createdAt).toLocaleString()}</span>
                 </div>
                 <div className="app-muted mt-2 text-sm">{notification.message}</div>
               </div>
-            ))}
+            )})}
             {notifications.length === 0 && <div className="app-muted text-sm">No notifications yet.</div>}
           </div>
         </div>
@@ -355,15 +366,24 @@ export function Dashboard() {
       <div className="app-panel rounded-3xl p-6">
         <h3 className="mb-4 text-lg font-semibold">Recent Notifications</h3>
         <div className="space-y-3">
-          {notifications.slice(0, 5).map((notification) => (
-            <div key={notification.id} className="rounded-2xl bg-[var(--surface-soft)] p-4">
+          {notifications.slice(0, 5).map((notification) => {
+            const isUnread = unreadNotifications.some(n => n.id === notification.id)
+            return (
+            <div 
+              key={notification.id} 
+              className={`rounded-2xl ${isUnread ? 'bg-[var(--primary)]/10 cursor-pointer' : 'bg-[var(--surface-soft)]'} p-4`}
+              onClick={() => isUnread && markNotificationAsRead(notification.id)}
+            >
               <div className="flex items-center justify-between gap-3">
-                <div className="font-semibold">{notification.title}</div>
+                <div className="font-semibold">
+                  {notification.title}
+                  {isUnread && <span className="ml-2 inline-block h-2 w-2 rounded-full bg-[var(--primary-strong)]"></span>}
+                </div>
                 <span className="app-muted text-xs">{new Date(notification.createdAt).toLocaleString()}</span>
               </div>
               <div className="app-muted mt-2 text-sm">{notification.message}</div>
             </div>
-          ))}
+          )})}
           {notifications.length === 0 && <p className="app-muted text-sm">No notifications sent yet.</p>}
         </div>
       </div>

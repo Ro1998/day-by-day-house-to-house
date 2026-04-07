@@ -35,6 +35,22 @@ export function SupplyReportsBoard() {
   }, [users])
   const canRespond = currentUser?.role === 'admin' || currentUser?.role === 'coordinator'
 
+  const visibleReports = useMemo(() => {
+    const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+    return supplyReports.filter((report) => {
+      if (report.status === 'resolved') {
+        const dateString = (report as any).updatedAt || (report as any).createdAt
+        if (dateString) {
+          const date = new Date(dateString).getTime()
+          if (!isNaN(date) && date < oneWeekAgo) {
+            return false
+          }
+        }
+      }
+      return true
+    })
+  }, [supplyReports])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     await addSupplyReport(form)
@@ -90,7 +106,7 @@ export function SupplyReportsBoard() {
       </div>
 
       <div className="space-y-4">
-        {supplyReports.map((report) => {
+        {visibleReports.map((report) => {
           const draft = responses[report.id] ?? { status: report.status, response: report.response ?? '' }
           return (
             <div key={report.id} className="app-panel rounded-3xl p-6">
@@ -150,7 +166,7 @@ export function SupplyReportsBoard() {
             </div>
           )
         })}
-        {supplyReports.length === 0 && (
+        {visibleReports.length === 0 && (
           <div className="app-panel rounded-3xl p-6">
             <p className="app-muted text-sm">No supply reports have been posted yet.</p>
           </div>

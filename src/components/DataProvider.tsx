@@ -24,6 +24,8 @@ interface DataContextType {
   activities: Activity[]
   inventoryItems: InventoryItem[]
   notifications: Notification[]
+  unreadNotifications: Notification[]
+  markNotificationAsRead: (id: string) => void
   menuSuggestions: MenuSuggestion[]
   availabilities: Availability[]
   supplyReports: SupplyReport[]
@@ -85,6 +87,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [activities, setActivities] = useState<Activity[]>([])
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
+  const [readNotificationIds, setReadNotificationIds] = useState<Set<string>>(new Set())
   const [menuSuggestions, setMenuSuggestions] = useState<MenuSuggestion[]>([])
   const [availabilities, setAvailabilities] = useState<Availability[]>([])
   const [supplyReports, setSupplyReports] = useState<SupplyReport[]>([])
@@ -234,6 +237,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     loadData()
   }, [currentUser?.id])
+
+  useEffect(() => {
+    if (currentUser) {
+      const stored = localStorage.getItem(`read_notifications_${currentUser.id}`)
+      if (stored) {
+        setReadNotificationIds(new Set(JSON.parse(stored)))
+      } else setReadNotificationIds(new Set())
+    }
+  }, [currentUser])
 
   useEffect(() => {
     if (!currentUser || typeof window === 'undefined') return
@@ -643,6 +655,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const markNotificationAsRead = (id: string) => {
+    if (!currentUser) return
+    setReadNotificationIds((prev) => {
+      const next = new Set(prev)
+      next.add(id)
+      localStorage.setItem(`read_notifications_${currentUser.id}`, JSON.stringify(Array.from(next)))
+      return next
+    })
+  }
+
   const addMenuSuggestion = async (input: { suggestion: string; preferredDay?: string; preferredMeal?: string }) => {
     if (!currentUser) return
     try {
@@ -761,6 +783,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const unreadNotifications = notifications.filter(n => !readNotificationIds.has(n.id))
+
   return (
     <DataContext.Provider value={{
       expenses,
@@ -770,6 +794,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       activities,
       inventoryItems,
       notifications,
+      unreadNotifications,
+      markNotificationAsRead,
       menuSuggestions,
       availabilities,
       supplyReports,

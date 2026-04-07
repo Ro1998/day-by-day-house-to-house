@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useData } from '@/components/DataProvider'
 
 export function NotificationsCenter() {
-  const { notifications, addNotification, currentUser } = useData()
+  const { notifications, unreadNotifications, markNotificationAsRead, addNotification, currentUser } = useData()
   const [form, setForm] = useState({ title: '', message: '' })
   const canSend = currentUser?.role === 'admin'
 
@@ -33,16 +33,25 @@ export function NotificationsCenter() {
       <div className="app-panel rounded-3xl p-6">
         <h2 className="mb-4 text-xl font-semibold">All Notifications</h2>
         <div className="space-y-3">
-          {notifications.map((notification) => (
-            <div key={notification.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+          {notifications.map((notification) => {
+            const isUnread = unreadNotifications.some(n => n.id === notification.id)
+            return (
+            <div 
+              key={notification.id} 
+              className={`rounded-2xl border ${isUnread ? 'border-[var(--primary)] bg-[var(--primary)]/5 cursor-pointer' : 'border-[var(--border)] bg-[var(--surface-soft)]'} p-4`}
+              onClick={() => isUnread && markNotificationAsRead(notification.id)}
+            >
               <div className="flex items-center justify-between gap-3">
-                <h3 className="text-base font-semibold">{notification.title}</h3>
+                <h3 className="text-base font-semibold">
+                  {notification.title}
+                  {isUnread && <span className="ml-2 inline-block h-2 w-2 rounded-full bg-[var(--primary-strong)]"></span>}
+                </h3>
                 <span className="app-muted text-xs">{new Date(notification.createdAt).toLocaleString()}</span>
               </div>
               <p className="mt-2 text-sm">{notification.message}</p>
               <p className="app-muted mt-2 text-xs">From {notification.createdBy}</p>
             </div>
-          ))}
+          )})}
           {notifications.length === 0 && <p className="app-muted text-sm">No notifications sent yet.</p>}
         </div>
       </div>
