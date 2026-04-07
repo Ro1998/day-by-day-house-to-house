@@ -38,6 +38,8 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
     securityAnswers: {} as Record<string, string>,
   })
   const [linkResetPassword, setLinkResetPassword] = useState('')
+  const showForgotPassword = authMode === 'forgot'
+  const switchMode = showForgotPassword ? 'login' : authMode
 
   const registerAnsweredCount = SECURITY_QUESTIONS.filter(
     ({ id }) => registerForm.securityAnswers[id]?.trim(),
@@ -169,206 +171,241 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
             )}
 
             {!resetToken && (
-              <div className="mb-5 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setAuthMode('login')}
-                  className={`app-button ${authMode === 'login' ? 'app-button-primary' : 'app-button-ghost'}`}
-                >
-                  Sign In
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAuthMode('register')}
-                  className={`app-button ${authMode === 'register' ? 'app-button-primary' : 'app-button-ghost'}`}
-                >
-                  Register
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAuthMode('forgot')}
-                  className={`app-button ${authMode === 'forgot' ? 'app-button-primary' : 'app-button-ghost'}`}
-                >
-                  Forgot Password
-                </button>
-              </div>
-            )}
-
-            {!resetToken && authMode === 'login' && (
-              <form onSubmit={handleLogin} className="space-y-4">
-                <input
-                  type="text"
-                  value={loginForm.username}
-                  onChange={(e) => setLoginForm((prev) => ({ ...prev, username: e.target.value }))}
-                  className="app-input"
-                  placeholder="Username"
-                  autoComplete="username"
-                  required
-                />
-                <input
-                  type="password"
-                  value={loginForm.password}
-                  onChange={(e) => setLoginForm((prev) => ({ ...prev, password: e.target.value }))}
-                  className="app-input"
-                  placeholder="Password"
-                  autoComplete="current-password"
-                  required
-                />
-                <button
-                  type="submit"
-                  disabled={!loginForm.username.trim() || !loginForm.password.trim()}
-                  className="app-button app-button-primary inline-flex w-full items-center justify-center gap-2"
-                >
-                  <LogIn size={18} />
-                  Continue to Dashboard
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAuthMode('forgot')}
-                  className="text-sm font-semibold text-[var(--accent-strong)] underline underline-offset-4"
-                >
-                  Forgot password?
-                </button>
-              </form>
-            )}
-
-            {!resetToken && authMode === 'register' && (
-              <form onSubmit={handleCreateUser} className="space-y-4">
-                <input
-                  type="text"
-                  value={registerForm.name}
-                  onChange={(e) => setRegisterForm((prev) => ({ ...prev, name: e.target.value }))}
-                  className="app-input"
-                  placeholder="Full name"
-                  required
-                />
-                <input
-                  type="text"
-                  value={registerForm.username}
-                  onChange={(e) => setRegisterForm((prev) => ({ ...prev, username: e.target.value }))}
-                  className="app-input"
-                  placeholder="Username"
-                  autoComplete="username"
-                  required
-                />
-                <input
-                  type="password"
-                  value={registerForm.password}
-                  onChange={(e) => setRegisterForm((prev) => ({ ...prev, password: e.target.value }))}
-                  className="app-input"
-                  placeholder="Password"
-                  autoComplete="new-password"
-                  required
-                />
-                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-                  <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--primary-strong)]">
-                    <ShieldCheck size={16} />
-                    Security Questions
+              <>
+                <div className="mb-6 rounded-full bg-[var(--surface-soft)] p-1">
+                  <div className="relative grid grid-cols-2">
+                    <div
+                      className={`absolute inset-y-0 w-1/2 rounded-full bg-[var(--primary-strong)] shadow-md transition-transform duration-300 ease-out ${
+                        switchMode === 'register' ? 'translate-x-full' : 'translate-x-0'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setAuthMode('login')}
+                      className={`relative z-10 rounded-full px-4 py-3 text-sm font-semibold transition-colors duration-300 ${
+                        switchMode === 'login' ? 'text-[#eefabd]' : 'text-[var(--text)]'
+                      }`}
+                    >
+                      Sign In
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAuthMode('register')}
+                      className={`relative z-10 rounded-full px-4 py-3 text-sm font-semibold transition-colors duration-300 ${
+                        switchMode === 'register' ? 'text-[#eefabd]' : 'text-[var(--text)]'
+                      }`}
+                    >
+                      Register
+                    </button>
                   </div>
-                  <p className="app-muted mb-4 text-sm">
-                    Answer any 3 or more. You will use these to reset your password if needed.
-                  </p>
-                  <div className="space-y-3">
-                    {SECURITY_QUESTIONS.map(({ id, question }) => (
-                      <div key={id}>
-                        <label className="mb-1 block text-sm font-medium">{question}</label>
+                </div>
+
+                <div className="relative overflow-hidden">
+                  <div
+                    className={`transition-all duration-300 ease-out ${
+                      switchMode === 'login'
+                        ? 'translate-x-0 opacity-100'
+                        : 'pointer-events-none absolute inset-0 -translate-x-8 opacity-0'
+                    }`}
+                  >
+                    {!showForgotPassword ? (
+                      <form onSubmit={handleLogin} className="space-y-4">
                         <input
                           type="text"
-                          value={registerForm.securityAnswers[id] ?? ''}
-                          onChange={(e) => setRegisterForm((prev) => ({
-                            ...prev,
-                            securityAnswers: {
-                              ...prev.securityAnswers,
-                              [id]: e.target.value,
-                            },
-                          }))}
+                          value={loginForm.username}
+                          onChange={(e) => setLoginForm((prev) => ({ ...prev, username: e.target.value }))}
                           className="app-input"
-                          placeholder="Your answer"
+                          placeholder="Username"
+                          autoComplete="username"
+                          required
                         />
-                      </div>
-                    ))}
-                  </div>
-                  <p className="app-muted mt-3 text-xs">
-                    Answered: {registerAnsweredCount} of 5
-                  </p>
-                </div>
-                <button
-                  type="submit"
-                  disabled={
-                    !registerForm.name.trim() ||
-                    !registerForm.username.trim() ||
-                    !registerForm.password.trim() ||
-                    registerAnsweredCount < 3
-                  }
-                  className="app-button app-button-secondary inline-flex w-full items-center justify-center gap-2"
-                >
-                  <UserPlus size={18} />
-                  Register Account
-                </button>
-              </form>
-            )}
-
-            {!resetToken && authMode === 'forgot' && (
-              <form onSubmit={handleForgotPassword} className="space-y-4">
-                <input
-                  type="text"
-                  value={forgotForm.username}
-                  onChange={(e) => setForgotForm((prev) => ({ ...prev, username: e.target.value }))}
-                  className="app-input"
-                  placeholder="Username"
-                  autoComplete="username"
-                  required
-                />
-                <input
-                  type="password"
-                  value={forgotForm.newPassword}
-                  onChange={(e) => setForgotForm((prev) => ({ ...prev, newPassword: e.target.value }))}
-                  className="app-input"
-                  placeholder="New password"
-                  autoComplete="new-password"
-                  required
-                />
-                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-                  <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--primary-strong)]">
-                    <RotateCcw size={16} />
-                    Security Question Check
-                  </div>
-                  <p className="app-muted mb-4 text-sm">
-                    Answer at least 3 correctly to reset your password. If you cannot, ask an admin for a reset link.
-                  </p>
-                  <div className="space-y-3">
-                    {SECURITY_QUESTIONS.map(({ id, question }) => (
-                      <div key={id}>
-                        <label className="mb-1 block text-sm font-medium">{question}</label>
+                        <input
+                          type="password"
+                          value={loginForm.password}
+                          onChange={(e) => setLoginForm((prev) => ({ ...prev, password: e.target.value }))}
+                          className="app-input"
+                          placeholder="Password"
+                          autoComplete="current-password"
+                          required
+                        />
+                        <button
+                          type="submit"
+                          disabled={!loginForm.username.trim() || !loginForm.password.trim()}
+                          className="app-button app-button-primary inline-flex w-full items-center justify-center gap-2"
+                        >
+                          <LogIn size={18} />
+                          Continue to Dashboard
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAuthMode('forgot')}
+                          className="text-sm font-semibold text-[var(--accent-strong)] underline underline-offset-4"
+                        >
+                          Forgot password?
+                        </button>
+                      </form>
+                    ) : (
+                      <form onSubmit={handleForgotPassword} className="space-y-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <h3 className="text-lg font-semibold">Forgot Password</h3>
+                            <p className="app-muted text-sm">
+                              Answer 3 security questions correctly to set a new password.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setAuthMode('login')}
+                            className="text-sm font-semibold text-[var(--accent-strong)] underline underline-offset-4"
+                          >
+                            Back to sign in
+                          </button>
+                        </div>
                         <input
                           type="text"
-                          value={forgotForm.securityAnswers[id] ?? ''}
-                          onChange={(e) => setForgotForm((prev) => ({
-                            ...prev,
-                            securityAnswers: {
-                              ...prev.securityAnswers,
-                              [id]: e.target.value,
-                            },
-                          }))}
+                          value={forgotForm.username}
+                          onChange={(e) => setForgotForm((prev) => ({ ...prev, username: e.target.value }))}
                           className="app-input"
-                          placeholder="Your answer"
+                          placeholder="Username"
+                          autoComplete="username"
+                          required
                         />
-                      </div>
-                    ))}
+                        <input
+                          type="password"
+                          value={forgotForm.newPassword}
+                          onChange={(e) => setForgotForm((prev) => ({ ...prev, newPassword: e.target.value }))}
+                          className="app-input"
+                          placeholder="New password"
+                          autoComplete="new-password"
+                          required
+                        />
+                        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                          <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--primary-strong)]">
+                            <RotateCcw size={16} />
+                            Security Question Check
+                          </div>
+                          <p className="app-muted mb-4 text-sm">
+                            If you cannot answer these, ask an admin for a reset link.
+                          </p>
+                          <div className="space-y-3">
+                            {SECURITY_QUESTIONS.map(({ id, question }) => (
+                              <div key={id}>
+                                <label className="mb-1 block text-sm font-medium">{question}</label>
+                                <input
+                                  type="text"
+                                  value={forgotForm.securityAnswers[id] ?? ''}
+                                  onChange={(e) => setForgotForm((prev) => ({
+                                    ...prev,
+                                    securityAnswers: {
+                                      ...prev.securityAnswers,
+                                      [id]: e.target.value,
+                                    },
+                                  }))}
+                                  className="app-input"
+                                  placeholder="Your answer"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                          <p className="app-muted mt-3 text-xs">
+                            Answered: {forgotAnsweredCount} of 5
+                          </p>
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={!forgotForm.username.trim() || !forgotForm.newPassword.trim() || forgotAnsweredCount < 3}
+                          className="app-button app-button-secondary inline-flex w-full items-center justify-center gap-2"
+                        >
+                          <RotateCcw size={18} />
+                          Reset Password
+                        </button>
+                      </form>
+                    )}
                   </div>
-                  <p className="app-muted mt-3 text-xs">
-                    Answered: {forgotAnsweredCount} of 5
-                  </p>
+
+                  <div
+                    className={`transition-all duration-300 ease-out ${
+                      switchMode === 'register'
+                        ? 'translate-x-0 opacity-100'
+                        : 'pointer-events-none absolute inset-0 translate-x-8 opacity-0'
+                    }`}
+                  >
+                    <form onSubmit={handleCreateUser} className="space-y-4">
+                      <input
+                        type="text"
+                        value={registerForm.name}
+                        onChange={(e) => setRegisterForm((prev) => ({ ...prev, name: e.target.value }))}
+                        className="app-input"
+                        placeholder="Full name"
+                        required
+                      />
+                      <input
+                        type="text"
+                        value={registerForm.username}
+                        onChange={(e) => setRegisterForm((prev) => ({ ...prev, username: e.target.value }))}
+                        className="app-input"
+                        placeholder="Username"
+                        autoComplete="username"
+                        required
+                      />
+                      <input
+                        type="password"
+                        value={registerForm.password}
+                        onChange={(e) => setRegisterForm((prev) => ({ ...prev, password: e.target.value }))}
+                        className="app-input"
+                        placeholder="Password"
+                        autoComplete="new-password"
+                        required
+                      />
+                      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                        <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--primary-strong)]">
+                          <ShieldCheck size={16} />
+                          Security Questions
+                        </div>
+                        <p className="app-muted mb-4 text-sm">
+                          Answer any 3 or more. You will use these to reset your password if needed.
+                        </p>
+                        <div className="space-y-3">
+                          {SECURITY_QUESTIONS.map(({ id, question }) => (
+                            <div key={id}>
+                              <label className="mb-1 block text-sm font-medium">{question}</label>
+                              <input
+                                type="text"
+                                value={registerForm.securityAnswers[id] ?? ''}
+                                onChange={(e) => setRegisterForm((prev) => ({
+                                  ...prev,
+                                  securityAnswers: {
+                                    ...prev.securityAnswers,
+                                    [id]: e.target.value,
+                                  },
+                                }))}
+                                className="app-input"
+                                placeholder="Your answer"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <p className="app-muted mt-3 text-xs">
+                          Answered: {registerAnsweredCount} of 5
+                        </p>
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={
+                          !registerForm.name.trim() ||
+                          !registerForm.username.trim() ||
+                          !registerForm.password.trim() ||
+                          registerAnsweredCount < 3
+                        }
+                        className="app-button app-button-secondary inline-flex w-full items-center justify-center gap-2"
+                      >
+                        <UserPlus size={18} />
+                        Register Account
+                      </button>
+                    </form>
+                  </div>
                 </div>
-                <button
-                  type="submit"
-                  disabled={!forgotForm.username.trim() || !forgotForm.newPassword.trim() || forgotAnsweredCount < 3}
-                  className="app-button app-button-secondary inline-flex w-full items-center justify-center gap-2"
-                >
-                  <RotateCcw size={18} />
-                  Reset Password
-                </button>
-              </form>
+              </>
             )}
 
             {resetToken && (

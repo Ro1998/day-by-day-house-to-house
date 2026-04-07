@@ -185,80 +185,78 @@ export function Expenses() {
       )}
 
       <div className="app-panel rounded-3xl p-6">
-        <h2 className="text-xl font-semibold mb-4">Filters & Export</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-          <input
-            type="date"
-            placeholder="From Date"
-            value={filter.dateFrom}
-            onChange={(e) => setFilter(prev => ({ ...prev, dateFrom: e.target.value }))}
-            className="app-input"
-            title="Show entries from this date onward."
-          />
-          <input
-            type="date"
-            placeholder="To Date"
-            value={filter.dateTo}
-            onChange={(e) => setFilter(prev => ({ ...prev, dateTo: e.target.value }))}
-            className="app-input"
-            title="Show entries up to this date."
-          />
-          <select
-            value={filter.category}
-            onChange={(e) => setFilter(prev => ({ ...prev, category: e.target.value }))}
-            className="app-input"
-            title="Filter the list to one category only."
-          >
-            <option value="">All Categories</option>
-            {categories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={exportPDF}
-              className="app-button app-button-ghost inline-flex items-center gap-2 px-3 py-2"
-              title="Download the currently filtered cash flow entries as a PDF file."
-            >
-              <FileText size={16} />
-              <span>PDF</span>
-            </button>
-            <button
-              type="button"
-              onClick={exportXLS}
-              className="app-button app-button-secondary inline-flex items-center gap-2 px-3 py-2"
-              title="Download the currently filtered cash flow entries as an Excel file."
-            >
-              <FileSpreadsheet size={16} />
-              <span>Excel</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => void exportPNG()}
-              className="app-button app-button-ghost inline-flex items-center gap-2 px-3 py-2"
-              title="Download the current cash flow table as a PNG image."
-            >
-              <FileImage size={16} />
-              <span>PNG</span>
-            </button>
+        <div className="mb-4 flex flex-col gap-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Cash Flow Entries</h2>
+            {notice?.includes('Deleted') && (
+              <button
+                onClick={undoDelete}
+                className="app-button app-button-secondary flex items-center space-x-1 px-3 py-2"
+                title="Restore the most recently deleted entry."
+              >
+                <Undo size={16} />
+                <span>Undo</span>
+              </button>
+            )}
           </div>
-        </div>
-      </div>
-
-      <div className="app-panel rounded-3xl p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Cash Flow Entries</h2>
-          {notice?.includes('Deleted') && (
-            <button
-              onClick={undoDelete}
-              className="app-button app-button-secondary flex items-center space-x-1 px-3 py-2"
-              title="Restore the most recently deleted entry."
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_1fr_1fr_auto]">
+            <input
+              type="date"
+              placeholder="From Date"
+              value={filter.dateFrom}
+              onChange={(e) => setFilter(prev => ({ ...prev, dateFrom: e.target.value }))}
+              className="app-input"
+              title="Show entries from this date onward."
+            />
+            <input
+              type="date"
+              placeholder="To Date"
+              value={filter.dateTo}
+              onChange={(e) => setFilter(prev => ({ ...prev, dateTo: e.target.value }))}
+              className="app-input"
+              title="Show entries up to this date."
+            />
+            <select
+              value={filter.category}
+              onChange={(e) => setFilter(prev => ({ ...prev, category: e.target.value }))}
+              className="app-input"
+              title="Filter the list to one category only."
             >
-              <Undo size={16} />
-              <span>Undo</span>
-            </button>
-          )}
+              <option value="">All Categories</option>
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={exportPDF}
+                className="app-button app-button-ghost inline-flex items-center gap-2 px-3 py-2"
+                title="Download the currently filtered cash flow entries as a PDF file."
+              >
+                <FileText size={16} />
+                <span>PDF</span>
+              </button>
+              <button
+                type="button"
+                onClick={exportXLS}
+                className="app-button app-button-secondary inline-flex items-center gap-2 px-3 py-2"
+                title="Download the currently filtered cash flow entries as an Excel file."
+              >
+                <FileSpreadsheet size={16} />
+                <span>Excel</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => void exportPNG()}
+                className="app-button app-button-ghost inline-flex items-center gap-2 px-3 py-2"
+                title="Download the current cash flow table as a PNG image."
+              >
+                <FileImage size={16} />
+                <span>PNG</span>
+              </button>
+            </div>
+          </div>
         </div>
         <div id="cash-flow-table" className="overflow-x-auto">
           <table className="w-full table-auto">

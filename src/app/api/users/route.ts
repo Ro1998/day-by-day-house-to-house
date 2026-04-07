@@ -84,3 +84,44 @@ export async function PATCH(request: Request) {
     return apiError('users.PATCH', error, 'Failed to update user')
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const auth = await requireApprovedUser(request, ['admin'])
+    if (auth.error) return auth.error
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json({ error: 'User ID is required.' }, { status: 400 })
+    }
+
+    if (auth.user.id === id) {
+      return NextResponse.json({ error: 'You cannot delete your own admin account.' }, { status: 400 })
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const menus = await tx.menu.findMany({
+        where: { userId: id },
+        select: { id: true },
+      })
+
+      if (menus.length > 0) {
+        await tx.menuItem.deleteMany({
+          where: { menuId: { in: menus.map((menu) => menu.id) } },
+        })
+      }
+
+      await tx.menu.deleteMany({ where: { userId: id } })
+      await tx.activity.deleteMany({ where: { userId: id } })
+      await tx.monthlyPayment.deleteMany({ where: { userId: id } })
+      await tx.expense.deleteMany({ where: { userId: id } })
+      await tx.user.delete({ where: { id } })
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return apiError('users.DELETE', error, 'Failed to delete user')
+  }
+}

@@ -34,6 +34,7 @@ interface DataContextType {
   createAdminResetLink: (userId: string) => Promise<{ resetLink: string; expiresAt: string } | null>
   resetPasswordWithToken: (input: { token: string; newPassword: string }) => Promise<boolean>
   updateUserAccess: (input: { id: string; role: UserRole; approved: boolean }) => Promise<void>
+  deleteUser: (id: string) => Promise<void>
   login: (input: { username: string; password: string }) => Promise<boolean>
   logout: () => void
   logActivity: (action: string) => Promise<void>
@@ -470,6 +471,27 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const deleteUser = async (id: string) => {
+    if (!currentUser) return
+
+    try {
+      setError(null)
+      setNotice(null)
+      const res = await fetch(`/api/users?id=${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      })
+      await readJson<{ success: boolean }>(res, 'Failed to delete user')
+      const removedUser = users.find((entry) => entry.id === id)
+      setUsers((prev) => prev.filter((entry) => entry.id !== id))
+      if (removedUser) {
+        setNotice(`Deleted user ${removedUser.name}.`)
+      }
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to delete user')
+    }
+  }
+
   const login = async (input: { username: string; password: string }) => {
     try {
       setError(null)
@@ -531,6 +553,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       createAdminResetLink,
       resetPasswordWithToken,
       updateUserAccess,
+      deleteUser,
       login,
       logout,
       logActivity,

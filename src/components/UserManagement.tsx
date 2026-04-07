@@ -5,9 +5,10 @@ import { useData } from '@/components/DataProvider'
 import type { UserRole } from '@/types'
 
 export function UserManagement() {
-  const { users, updateUserAccess, createAdminResetLink } = useData()
+  const { users, updateUserAccess, createAdminResetLink, deleteUser, currentUser } = useData()
   const [drafts, setDrafts] = useState<Record<string, { role: UserRole; approved: boolean }>>({})
   const [resetLinks, setResetLinks] = useState<Record<string, { resetLink: string; expiresAt: string }>>({})
+  const [pendingDeleteUser, setPendingDeleteUser] = useState<{ id: string; name: string } | null>(null)
 
   const getDraft = (id: string, role: UserRole, approved: boolean) =>
     drafts[id] ?? { role, approved }
@@ -17,6 +18,36 @@ export function UserManagement() {
 
   return (
     <div className="space-y-6">
+      {pendingDeleteUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(18,24,18,0.42)] px-4">
+          <div className="app-panel w-full max-w-md rounded-3xl p-6">
+            <h3 className="mb-2 text-xl font-semibold text-red-700">Delete User?</h3>
+            <p className="app-muted mb-6 text-sm">
+              This will delete <span className="font-semibold text-[var(--text)]">{pendingDeleteUser.name}</span> and remove that user's related activity, menus, monthly entries, and cash flow records.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setPendingDeleteUser(null)}
+                className="app-button app-button-ghost"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await deleteUser(pendingDeleteUser.id)
+                  setPendingDeleteUser(null)
+                }}
+                className="app-button bg-red-600 text-white hover:bg-red-700"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="app-panel rounded-3xl p-6">
         <h2 className="mb-2 text-xl font-semibold">Pending Access Requests</h2>
         <p className="app-muted mb-6 text-sm">
@@ -59,6 +90,13 @@ export function UserManagement() {
                       >
                         Approve User
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setPendingDeleteUser({ id: user.id, name: user.name })}
+                        className="app-button bg-red-50 px-4 py-2 text-red-700 hover:bg-red-100 hover:text-red-800"
+                      >
+                        Delete User
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -79,6 +117,7 @@ export function UserManagement() {
                 <th className="p-2 text-left">Role</th>
                 <th className="p-2 text-left">Status</th>
                 <th className="p-2 text-left">Password Reset</th>
+                <th className="p-2 text-left">Access</th>
               </tr>
             </thead>
             <tbody>
@@ -114,6 +153,31 @@ export function UserManagement() {
                             Expires: {new Date(resetLinks[user.id].expiresAt).toLocaleString()}
                           </div>
                         </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="p-2">
+                    <div className="flex flex-wrap gap-2">
+                      {currentUser?.id !== user.id && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => updateUserAccess({ id: user.id, role: user.role, approved: false })}
+                            className="app-button app-button-ghost px-3 py-2"
+                          >
+                            Disapprove
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPendingDeleteUser({ id: user.id, name: user.name })}
+                            className="app-button bg-red-50 px-3 py-2 text-red-700 hover:bg-red-100 hover:text-red-800"
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
+                      {currentUser?.id === user.id && (
+                        <span className="app-muted text-sm">Current admin</span>
                       )}
                     </div>
                   </td>
