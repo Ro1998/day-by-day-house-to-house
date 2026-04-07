@@ -190,27 +190,24 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                       type="button"
                       onClick={() => setAuthMode('login')}
                       className={`relative z-10 rounded-full px-4 py-3 text-sm font-semibold transition-colors duration-300 ${
-                        switchMode === 'login' ? 'text-[#1f3a22]' : 'text-[var(--text)]'
-                      }`}
-                    >
-                      Sign In
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAuthMode('register')}
-                      className={`relative z-10 rounded-full px-4 py-3 text-sm font-semibold transition-colors duration-300 ${
-                        switchMode === 'register' ? 'text-[#1f3a22]' : 'text-[var(--text)]'
-                      }`}
-                    >
-                      Register
-                    </button>
-                  </div>
-                </div>
-
-                <div className="relative overflow-hidden">
-                  <div
-                    className={`transition-all duration-300 ease-out ${
-                      switchMode === 'login'
+                          switchMode === 'login'
+                            ? theme === 'light'
+                              ? 'text-[var(--surface)]'
+                              : 'text-[var(--text)]'
+                            : 'text-[var(--text)]'
+                        }`}
+                      >
+                        Sign In
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAuthMode('register')}
+                        className={`relative z-10 rounded-full px-4 py-3 text-sm font-semibold transition-colors duration-300 ${
+                          switchMode === 'register'
+                            ? theme === 'light'
+                              ? 'text-[var(--surface)]'
+                              : 'text-[var(--text)]'
+                            : 'text-[var(--text)]'
                         ? 'translate-x-0 opacity-100'
                         : 'pointer-events-none absolute inset-0 -translate-x-8 opacity-0'
                     }`}
