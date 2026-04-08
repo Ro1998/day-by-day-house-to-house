@@ -29,8 +29,8 @@ export default function Home() {
         return currentUser?.role === 'admin' || currentUser?.role === 'coordinator' ? <InventoryManager /> : <Dashboard />
       case 'monthly':
         return <MonthlyFoodMoney />
-              case 'maintenance':
-                return <MaintenanceBoard />
+      case 'maintenance':
+        return <MaintenanceBoard />
       case 'menu':
         return <MenuPlanner />
       case 'users':

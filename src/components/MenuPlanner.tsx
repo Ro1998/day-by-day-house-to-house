@@ -67,7 +67,7 @@ export function MenuPlanner() {
   const lastSavedSnapshot = useRef('')
 
   const buildDefaultMenu = (week: string): Menu => {
-    const days = ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday']
+    const days = ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', "Lord's Day", 'Monday']
     const items: MenuItem[] = days.map((day) => ({
       day,
       lunch: '',

@@ -24,7 +24,17 @@ export async function GET(request: Request) {
     if (auth.error) return auth.error
 
     const payments = await prisma.monthlyPayment.findMany({ include: { user: true } })
-    return NextResponse.json(payments.map(serializePayment))
+    const serialized = payments.map(serializePayment)
+
+    if (auth.user.role !== 'admin') {
+      return NextResponse.json(serialized.map(p => ({
+        ...p,
+        memberName: 'Hidden',
+        user: 'Hidden',
+        note: null
+      })))
+    }
+    return NextResponse.json(serialized)
   } catch (error) {
     return apiError('monthly-payments.GET', error, 'Failed to fetch payments')
   }
@@ -32,7 +42,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const auth = await requireApprovedUser(request, ['admin', 'coordinator'])
+    const auth = await requireApprovedUser(request, ['admin'])
     if (auth.error) return auth.error
 
     const body = await request.json()
@@ -144,5 +154,56 @@ export async function POST(request: Request) {
     return NextResponse.json(serializePayment(payment))
   } catch (error) {
     return apiError('monthly-payments.POST', error, 'Failed to create payment')
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const auth = await requireApprovedUser(request, ['admin'])
+    if (auth.error) return auth.error
+
+    const body = await request.json()
+    if (!body.id) {
+      return NextResponse.json({ error: 'Missing payment ID' }, { status: 400 })
+    }
+
+    const payment = await prisma.monthlyPayment.update({
+      where: { id: String(body.id) },
+      data: {
+        month: body.month,
+        memberName: body.memberName,
+        paymentType: body.paymentType,
+        amount: Number(body.amount),
+        note: body.note,
+        paid: body.paid,
+      },
+      include: { user: true }
+    })
+
+    return NextResponse.json(serializePayment(payment))
+  } catch (error) {
+    return apiError('monthly-payments.PATCH', error, 'Failed to update payment')
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const auth = await requireApprovedUser(request, ['admin'])
+    if (auth.error) return auth.error
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json({ error: 'Missing payment ID' }, { status: 400 })
+    }
+
+    await prisma.monthlyPayment.delete({
+      where: { id: String(id) },
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return apiError('monthly-payments.DELETE', error, 'Failed to delete payment')
   }
 }

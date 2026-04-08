@@ -44,7 +44,7 @@ const getPaymentTypeLabel = (paymentType?: string | null) => {
 
 export function MonthlyFoodMoney() {
   const { monthlyPayments, addMonthlyPayment, updateMonthlyPayment, deleteMonthlyPayment, currentUser, users } = useData()
-  const canManageEntries = currentUser?.role === 'admin' || currentUser?.role === 'coordinator'
+  const canManageEntries = currentUser?.role === 'admin'
   const currentMonth = format(new Date(), 'yyyy-MM')
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
   const approvedMembers = useMemo(

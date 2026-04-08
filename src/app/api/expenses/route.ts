@@ -23,13 +23,11 @@ export async function GET(request: Request) {
     const expenses = await prisma.expense.findMany({ include: { user: true } })
     const serializedExpenses = expenses.map(serializeExpense)
 
-    if (auth.user.role !== 'user') {
+    if (auth.user.role === 'admin') {
       return NextResponse.json(serializedExpenses)
     }
 
-    const currentMonth = new Date().toISOString().slice(0, 7)
     const restrictedExpenses = serializedExpenses
-      .filter((expense) => expense.date.startsWith(currentMonth))
       .map((expense) => (
         expense.type === 'in'
           ? {

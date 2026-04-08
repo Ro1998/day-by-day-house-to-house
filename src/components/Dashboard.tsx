@@ -31,7 +31,10 @@ export function Dashboard() {
     supplyReports,
   } = useData()
   const [suggestionForm, setSuggestionForm] = useState({ suggestion: '', preferredDay: '', preferredMeal: '' })
-  const [availabilityForm, setAvailabilityForm] = useState({ day: 'Tuesday', meal: 'lunch' as 'lunch' | 'dinner', available: true, note: '' })
+  const [availabilityForm, setAvailabilityForm] = useState({ days: ["Lord's Day"], meals: ['lunch'] as ('lunch' | 'dinner')[], available: true, note: '' })
+
+  const toggleDay = (day: string) => setAvailabilityForm(prev => prev.days.includes(day) ? { ...prev, days: prev.days.filter(d => d !== day) } : { ...prev, days: [...prev.days, day] })
+  const toggleMeal = (meal: 'lunch' | 'dinner') => setAvailabilityForm(prev => prev.meals.includes(meal) ? { ...prev, meals: prev.meals.filter(m => m !== meal) } : { ...prev, meals: [...prev.meals, meal] })
 
   const cashIn = expenses.filter(e => e.type === 'in').reduce((sum, e) => sum + e.amount, 0)
   const cashOut = expenses.filter(e => e.type === 'out').reduce((sum, e) => sum + e.amount, 0)
@@ -64,12 +67,13 @@ export function Dashboard() {
   const monthExpenses = expenses.filter((expense) => expense.date.startsWith(currentMonth))
   const monthIncome = monthExpenses.filter((expense) => expense.type === 'in').reduce((sum, expense) => sum + expense.amount, 0)
   const monthSpend = monthExpenses.filter((expense) => expense.type === 'out').reduce((sum, expense) => sum + expense.amount, 0)
-  const generalActivities = activities.filter((activity) => !/income|cash in/i.test(activity.action)).slice(0, 5)
+  const generalActivities = activities.filter((activity) => !/income|cash in|paid/i.test(activity.action)).slice(0, 5)
   const eatingPeople = [...new Set(
     monthlyPayments
       .filter((payment) => payment.month === currentMonth && payment.paid)
       .map((payment) => payment.memberName),
-  )].sort((a, b) => a.localeCompare(b))
+  )].filter(n => n !== 'Hidden').sort((a, b) => a.localeCompare(b))
+  const eatingPeopleCount = monthlyPayments.filter((payment) => payment.month === currentMonth && payment.paid).length
   const currentWeekMenu = menus.find((menu) => menu.week === currentWeek)
   const currentWeekAvailabilities = availabilities.filter((entry) => entry.week === currentWeek)
   const pendingSuggestions = menuSuggestions.filter((suggestion) => suggestion.status === 'pending')
@@ -86,14 +90,22 @@ export function Dashboard() {
 
   const handleAvailabilitySubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    await addAvailability({
-      week: currentWeek,
-      day: availabilityForm.day,
-      meal: availabilityForm.meal,
-      available: availabilityForm.available,
-      note: availabilityForm.note,
-    })
-    setAvailabilityForm({ day: 'Tuesday', meal: 'lunch', available: true, note: '' })
+    if (availabilityForm.days.length === 0 || availabilityForm.meals.length === 0) {
+      alert('Please select at least one day and one meal.')
+      return
+    }
+    for (const day of availabilityForm.days) {
+      for (const meal of availabilityForm.meals) {
+        await addAvailability({
+          week: currentWeek,
+          day,
+          meal,
+          available: availabilityForm.available,
+          note: availabilityForm.note,
+        })
+      }
+    }
+    setAvailabilityForm({ days: ["Lord's Day"], meals: ['lunch'], available: true, note: '' })
   }
 
   if (currentUser?.role === 'user') {
@@ -149,15 +161,7 @@ export function Dashboard() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="app-panel rounded-3xl p-6">
             <h3 className="mb-4 text-lg font-semibold">Eating This Month</h3>
-            <p className="app-muted mb-3 text-sm">{eatingPeople.length} people marked as paid</p>
-            <div className="flex flex-wrap gap-2">
-              {eatingPeople.map((name) => (
-                <span key={name} className="rounded-full bg-[var(--accent)]/15 px-3 py-2 text-sm text-[var(--accent-strong)]">
-                  {name}
-                </span>
-              ))}
-              {eatingPeople.length === 0 && <span className="app-muted text-sm">No paid members yet this month.</span>}
-            </div>
+            <p className="app-muted mb-3 text-sm">{eatingPeopleCount} people marked as paid</p>
           </div>
           <div className="app-panel rounded-3xl p-6">
             <h3 className="mb-4 text-lg font-semibold">Cooking Team This Week</h3>
@@ -209,7 +213,7 @@ export function Dashboard() {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <select className="app-input" value={suggestionForm.preferredDay} onChange={(e) => setSuggestionForm((prev) => ({ ...prev, preferredDay: e.target.value }))}>
                   <option value="">Preferred day</option>
-                  {['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday'].map((day) => <option key={day} value={day}>{day}</option>)}
+                  {['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', "Lord's Day", 'Monday'].map((day) => <option key={day} value={day}>{day}</option>)}
                 </select>
                 <select className="app-input" value={suggestionForm.preferredMeal} onChange={(e) => setSuggestionForm((prev) => ({ ...prev, preferredMeal: e.target.value }))}>
                   <option value="">Preferred meal</option>
@@ -224,20 +228,43 @@ export function Dashboard() {
           <div className="app-panel rounded-3xl p-6">
             <h3 className="mb-4 text-lg font-semibold">Share Your Availability</h3>
             <form onSubmit={handleAvailabilitySubmit} className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <select className="app-input" value={availabilityForm.day} onChange={(e) => setAvailabilityForm((prev) => ({ ...prev, day: e.target.value }))}>
-                  {['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday'].map((day) => <option key={day} value={day}>{day}</option>)}
-                </select>
-                <select className="app-input" value={availabilityForm.meal} onChange={(e) => setAvailabilityForm((prev) => ({ ...prev, meal: e.target.value as 'lunch' | 'dinner' }))}>
-                  <option value="lunch">Lunch</option>
-                  <option value="dinner">Dinner</option>
-                </select>
+              <div className="mb-3">
+                <label className="block text-sm font-medium mb-2">Days</label>
+                <div className="flex flex-wrap gap-2">
+                  {['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', "Lord's Day", 'Monday'].map(day => (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => toggleDay(day)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${availabilityForm.days.includes(day) ? 'bg-[var(--primary)] text-[var(--primary-strong)] border-[var(--primary)]' : 'bg-[var(--surface-soft)] text-[var(--text)] border-[var(--border)]'}`}
+                    >
+                      {day}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mb-3">
+                <label className="block text-sm font-medium mb-2">Meals</label>
+                <div className="flex gap-2">
+                  {(['lunch', 'dinner'] as const).map(meal => (
+                    <button
+                      key={meal}
+                      type="button"
+                      onClick={() => toggleMeal(meal)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border capitalize ${availabilityForm.meals.includes(meal) ? 'bg-[var(--primary)] text-[var(--primary-strong)] border-[var(--primary)]' : 'bg-[var(--surface-soft)] text-[var(--text)] border-[var(--border)]'}`}
+                    >
+                      {meal}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mb-3 grid grid-cols-1 gap-4 md:grid-cols-2">
                 <select className="app-input" value={availabilityForm.available ? 'yes' : 'no'} onChange={(e) => setAvailabilityForm((prev) => ({ ...prev, available: e.target.value === 'yes' }))}>
                   <option value="yes">Available to cook</option>
                   <option value="no">Not available</option>
                 </select>
+                <input className="app-input" value={availabilityForm.note} onChange={(e) => setAvailabilityForm((prev) => ({ ...prev, note: e.target.value }))} placeholder="Optional note" />
               </div>
-              <input className="app-input" value={availabilityForm.note} onChange={(e) => setAvailabilityForm((prev) => ({ ...prev, note: e.target.value }))} placeholder="Optional note for admin/coordinator" />
               <button type="submit" className="app-button app-button-secondary">Send Availability</button>
             </form>
           </div>
@@ -342,7 +369,7 @@ export function Dashboard() {
         </div>
         <div className="app-panel rounded-3xl p-6">
           <h3 className="text-lg font-semibold mb-2">Eating This Month</h3>
-          <p className="text-2xl font-bold text-[var(--accent-strong)]">{eatingPeople.length}</p>
+          <p className="text-2xl font-bold text-[var(--accent-strong)]">{eatingPeopleCount}</p>
         </div>
         <div className="app-panel rounded-3xl p-6">
           <h3 className="text-lg font-semibold mb-2">Cooking This Week</h3>
@@ -363,14 +390,18 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="app-panel rounded-3xl p-6">
-          <h3 className="mb-4 text-lg font-semibold">People Eating This Month</h3>
+          <h3 className="mb-4 text-lg font-semibold">Eating This Month</h3>
           <div className="flex flex-wrap gap-2">
-            {eatingPeople.map((name) => (
-              <span key={name} className="rounded-full bg-[var(--accent)]/15 px-3 py-2 text-sm text-[var(--accent-strong)]">
-                {name}
-              </span>
-            ))}
-            {eatingPeople.length === 0 && (
+            {currentUser?.role === 'admin' ? (
+              eatingPeople.map((name) => (
+                <span key={name} className="rounded-full bg-[var(--accent)]/15 px-3 py-2 text-sm text-[var(--accent-strong)]">
+                  {name}
+                </span>
+              ))
+            ) : (
+              <p className="app-muted text-sm">Details hidden. {eatingPeopleCount} people paid.</p>
+            )}
+            {eatingPeopleCount === 0 && (
               <p className="app-muted text-sm">No one has been marked paid for {currentMonth} yet.</p>
             )}
           </div>
@@ -393,7 +424,9 @@ export function Dashboard() {
       <div className="app-panel rounded-3xl p-6">
         <h3 className="text-lg font-semibold mb-4">Recent Activities</h3>
         <div className="space-y-2">
-          {activities.slice(-5).reverse().map(activity => (
+          {activities
+            .filter((a) => currentUser?.role === 'admin' || !/income|cash in|paid/i.test(a.action))
+            .slice(-5).reverse().map(activity => (
             <div key={activity.id} className="app-muted text-sm">
               <span className="font-medium">{activity.user}</span> {activity.action} at {new Date(activity.timestamp).toLocaleString()}
             </div>
