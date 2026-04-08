@@ -3,13 +3,18 @@
 import { useState, useEffect } from 'react'
 import { useTheme } from './ThemeProvider'
 import { useData } from './DataProvider'
-import { BadgeCheck, Bell, Boxes, Home, MenuSquare, Moon, Receipt, Settings2, Sun, Wallet, Menu as MenuIcon, X, Wrench, RefreshCw } from 'lucide-react'
+import { BadgeCheck, Bell, Boxes, Download, Home, MenuSquare, Moon, Receipt, Settings2, Share, Smartphone, Sun, Wallet, Menu as MenuIcon, X, Wrench, RefreshCw } from 'lucide-react'
 import { BrandLogo } from './BrandLogo'
 
 interface LayoutProps {
   children: React.ReactNode
   activeTab: string
   setActiveTab: (tab: string) => void
+}
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>
 }
 
 export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
@@ -20,8 +25,9 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
   const [editProfileForm, setEditProfileForm] = useState({ name: '', phone: '' })
   const canManageOperations = currentUser?.role === 'admin' || currentUser?.role === 'coordinator'
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
+  const [installPromptMode, setInstallPromptMode] = useState<'native' | 'ios' | null>(null)
 
   useEffect(() => {
     if (isMobileMenuOpen) {
@@ -39,11 +45,24 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   }, [currentUser])
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault()
-      setDeferredPrompt(e)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+    const isIOS = /iPhone|iPad|iPod/i.test(window.navigator.userAgent)
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(window.navigator.userAgent)
+    const installDismissed = window.localStorage.getItem('install_prompt_dismissed') === 'true'
+
+    if (!isStandalone && !installDismissed && isIOS && isMobile) {
+      setInstallPromptMode('ios')
       setShowInstallPrompt(true)
     }
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      if (installDismissed || !isMobile || isStandalone) return
+      e.preventDefault()
+      setDeferredPrompt(e as BeforeInstallPromptEvent)
+      setInstallPromptMode('native')
+      setShowInstallPrompt(true)
+    }
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
   }, [])
@@ -76,10 +95,23 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
       const { outcome } = await deferredPrompt.userChoice
       if (outcome === 'accepted') {
         setShowInstallPrompt(false)
+        window.localStorage.setItem('install_prompt_dismissed', 'true')
       }
       setDeferredPrompt(null)
     }
   }
+
+  const dismissInstallPrompt = () => {
+    setShowInstallPrompt(false)
+    window.localStorage.setItem('install_prompt_dismissed', 'true')
+  }
+
+  const syncLabel = loading || isSyncing ? 'Syncing' : 'Synced'
+  const syncTitle = loading || isSyncing
+    ? 'Syncing data...'
+    : lastSyncTime
+      ? `Last synced: ${lastSyncTime.toLocaleTimeString()}`
+      : 'Synced and ready'
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
@@ -95,11 +127,34 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   return (
     <div className="app-shell">
       {showInstallPrompt && (
-        <div className="bg-[var(--primary)] text-[var(--primary-strong)] px-4 py-3 flex justify-between items-center text-sm font-medium z-[100] relative">
-          <span>Install Shared House Hub for quick access!</span>
-          <div className="flex gap-3 items-center">
-            <button onClick={handleInstallClick} className="bg-[var(--surface)] px-3 py-1.5 rounded-full shadow-sm text-[var(--text)] font-bold">Install</button>
-            <button onClick={() => setShowInstallPrompt(false)} className="opacity-70 hover:opacity-100"><X size={18}/></button>
+        <div className="sticky top-0 z-[100] border-b border-[var(--border)] bg-[var(--primary)] px-4 py-3 text-sm text-[#eefabd] shadow-lg">
+          <div className="mx-auto flex max-w-7xl items-start justify-between gap-3">
+            <div className="flex items-start gap-3 pr-2">
+              {installPromptMode === 'ios' ? <Smartphone size={18} className="mt-0.5 shrink-0" /> : <Download size={18} className="mt-0.5 shrink-0" />}
+              <div>
+                <p className="font-semibold">
+                  Install Shared House Hub on your phone
+                </p>
+                <p className="mt-1 text-xs text-[#eefabd]/90">
+                  {installPromptMode === 'ios'
+                    ? 'Tap Share, then choose Add to Home Screen to open it like an app.'
+                    : 'Install it for faster access and an app-like full-screen experience.'}
+                </p>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              {installPromptMode === 'ios' ? (
+                <div className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold">
+                  <Share size={14} />
+                  Add to Home Screen
+                </div>
+              ) : (
+                <button onClick={handleInstallClick} className="rounded-full bg-[var(--surface)] px-3 py-1.5 font-bold text-[var(--text)] shadow-sm">
+                  Install
+                </button>
+              )}
+              <button onClick={dismissInstallPrompt} className="opacity-80 transition hover:opacity-100" aria-label="Dismiss install prompt"><X size={18} /></button>
+            </div>
           </div>
         </div>
       )}
@@ -109,18 +164,6 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
             <div className="flex-1 pr-4 min-w-0">
               <div className="flex items-center gap-2">
                 <BrandLogo />
-                {currentUser && (
-                  <div className="flex items-center gap-2 text-xs text-[var(--text-soft)]" title={isSyncing ? "Syncing data..." : (lastSyncTime ? `Last synced: ${lastSyncTime.toLocaleTimeString()}` : 'Ready')}>
-                    {isSyncing ? (
-                      <RefreshCw size={14} className="animate-spin" />
-                    ) : (
-                      <BadgeCheck size={14} />
-                    )}
-                    <span className="hidden md:inline">
-                      {isSyncing ? 'Syncing...' : 'Synced'}
-                    </span>
-                  </div>
-                )}
               </div>
               <p className="app-muted mt-3 hidden text-sm sm:block max-w-2xl">
                 And <span className="font-bold text-[var(--primary-strong)]">day by day</span>, continuing steadfastly with one accord in the temple and breaking bread <span className="font-bold text-[var(--primary-strong)]">from house to house, they partook of their food with exultation and simplicity of heart</span>
@@ -131,6 +174,22 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
             </div>
 
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+              <div
+                className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold ${
+                  loading || isSyncing
+                    ? 'border-[var(--primary)]/30 bg-[var(--primary)]/12 text-[var(--primary-strong)]'
+                    : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                }`}
+                title={syncTitle}
+              >
+                {loading || isSyncing ? (
+                  <RefreshCw size={14} className="animate-spin" />
+                ) : (
+                  <BadgeCheck size={14} />
+                )}
+                <span className="hidden sm:inline">{syncLabel}</span>
+              </div>
+
               <button
                 onClick={toggleTheme}
                 className="app-button app-button-ghost inline-flex items-center justify-center p-2 sm:p-3"

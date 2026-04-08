@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/ThemeProvider'
@@ -10,12 +10,19 @@ export const metadata: Metadata = {
   title: 'Day by Day, House to House',
   description: 'Meal Planner Website',
   manifest: '/manifest.json',
-  themeColor: '#6984A9',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: 'Shared House Hub',
   },
+  icons: {
+    icon: '/icon.svg',
+    apple: '/apple-touch-icon.svg',
+  },
+}
+
+export const viewport: Viewport = {
+  themeColor: '#346739',
 }
 
 export default function RootLayout({
@@ -26,7 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="apple-touch-icon" href="/icon-192x192.png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
       </head>
       <body className={inter.className}>
         <ThemeProvider>
