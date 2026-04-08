@@ -38,6 +38,7 @@
 
 html {
   background: var(--bg);
+  scroll-behavior: smooth;
 }
 
 body {
@@ -48,6 +49,10 @@ body {
     radial-gradient(circle at top right, rgba(87, 132, 92, 0.2), transparent 28%),
     linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 88%, white) 100%);
   transition: background-color 200ms ease, color 200ms ease;
+}
+
+body * {
+  -webkit-tap-highlight-color: transparent;
 }
 
 a {
@@ -77,6 +82,7 @@ textarea {
   background: var(--surface-strong);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
+  animation: panel-rise 480ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .app-input {
@@ -103,11 +109,18 @@ textarea {
   border-radius: 9999px;
   padding: 0.8rem 1.25rem;
   font-weight: 600;
-  transition: transform 150ms ease, opacity 150ms ease, background-color 150ms ease;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), opacity 150ms ease, background-color 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  transform: translateY(0) scale(1);
+  box-shadow: 0 8px 20px rgba(18, 24, 18, 0.06);
 }
 
 .app-button:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px) scale(1.01);
+}
+
+.app-button:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 2px 8px rgba(18, 24, 18, 0.12) inset;
 }
 
 .app-button:disabled {
@@ -138,4 +151,37 @@ textarea {
 
 .app-muted {
   color: var(--text-soft);
+}
+
+.app-shell main > * {
+  animation: content-fade-up 520ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: both;
+}
+
+.app-shell main > *:nth-child(2) { animation-delay: 60ms; }
+.app-shell main > *:nth-child(3) { animation-delay: 110ms; }
+.app-shell main > *:nth-child(4) { animation-delay: 160ms; }
+.app-shell main > *:nth-child(5) { animation-delay: 210ms; }
+.app-shell main > *:nth-child(6) { animation-delay: 260ms; }
+
+@keyframes panel-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes content-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

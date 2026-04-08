@@ -24,10 +24,10 @@ export function BrandLogo() {
         </g>
       </svg>
       <div className="min-w-0">
-        <div className="text-[0.52rem] font-black uppercase tracking-[0.16em] text-[#263b6a] sm:text-sm sm:tracking-[0.28em]">
+        <div className="text-[0.52rem] font-black uppercase tracking-[0.16em] text-[#263b6a] drop-shadow-[0_1px_0_rgba(255,255,255,0.18)] dark:text-[#eefabd] sm:text-sm sm:tracking-[0.28em]">
           Day By Day And
         </div>
-        <div className="text-[0.5rem] font-semibold uppercase tracking-[0.2em] text-[#6984a9] sm:text-xs sm:tracking-[0.42em]">
+        <div className="text-[0.5rem] font-semibold uppercase tracking-[0.2em] text-[#6984a9] dark:text-[#d6e2b8] sm:text-xs sm:tracking-[0.42em]">
           House To House
         </div>
       </div>

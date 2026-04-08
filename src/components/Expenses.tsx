@@ -154,6 +154,44 @@ export function Expenses() {
     setIsExportOpen(false)
   }
 
+  const renderExpenseCards = () => (
+    <div className="space-y-3 md:hidden">
+      {visibleExpenses.map((exp) => (
+        <div key={exp.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold">{exp.description}</div>
+              <div className="app-muted mt-1 text-xs">{exp.date} | {formatCategoryLabel(exp.category)}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-sm font-semibold">{formatCurrency(exp.amount)}</div>
+              <div className="app-muted text-[11px] uppercase">{exp.type}</div>
+            </div>
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <div className="app-muted text-xs">{exp.user}</div>
+            {canManageEntries && (
+              <button
+                type="button"
+                onClick={() => setPendingDelete({ id: exp.id, description: exp.description })}
+                className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 hover:text-red-800"
+                title="Open a confirmation box before deleting this entry."
+              >
+                <Trash2 size={14} />
+                Delete
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
+      {visibleExpenses.length === 0 && (
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm app-muted">
+          No cash flow entries found for this filter.
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <div className="space-y-6">
       {pendingDelete && (
@@ -250,10 +288,10 @@ export function Expenses() {
         </div>
       )}
       {canManageEntries && (
-      <div className="app-panel rounded-3xl p-6">
+      <div className="app-panel rounded-3xl p-4 sm:p-6">
         <h2 className="text-xl font-semibold mb-4">Add Cash Flow Entry</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
             <select
               value={form.type}
               onChange={(e) => setForm(prev => ({ ...prev, type: e.target.value as 'in' | 'out' }))}
@@ -296,7 +334,7 @@ export function Expenses() {
           <button
             type="submit"
             disabled={!canManageEntries}
-            className="app-button app-button-primary"
+            className="app-button app-button-primary w-full sm:w-auto"
             title="Save this new cash flow entry to the list."
           >
             Add Expense
@@ -305,11 +343,11 @@ export function Expenses() {
       </div>
       )}
 
-      <div className="app-panel rounded-3xl p-6">
+      <div className="app-panel rounded-3xl p-4 sm:p-6">
         <div className="mb-4 flex flex-col gap-4">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-xl font-semibold">Cash Flow Entries</h2>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {currentUser?.role === 'admin' && (
                 <button
                   type="button"
@@ -340,7 +378,7 @@ export function Expenses() {
               )}
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <input
               type="date"
               placeholder="From Date"
@@ -370,7 +408,8 @@ export function Expenses() {
             </select>
           </div>
         </div>
-        <div id="cash-flow-table" className="overflow-x-auto">
+        {renderExpenseCards()}
+        <div id="cash-flow-table" className="hidden overflow-x-auto md:block">
           <table className="w-full table-auto">
             <thead>
               <tr className="border-b border-[var(--border)]">
