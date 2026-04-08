@@ -158,7 +158,7 @@ export function MenuPlanner() {
 
   const exportPNG = async () => {
     const element = document.getElementById('menu-table')
-    if (element) {
+    if (element && menu) {
       const originalOverflow = element.style.overflowX
       const originalWidth = element.style.width
       element.style.overflowX = 'visible'
