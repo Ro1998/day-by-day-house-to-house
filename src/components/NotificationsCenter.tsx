@@ -2,29 +2,103 @@
 
 import { useState } from 'react'
 import { useData } from '@/components/DataProvider'
+import { Trash2 } from 'lucide-react'
 
 export function NotificationsCenter() {
   const { notifications, unreadNotifications, markNotificationAsRead, addNotification, updateNotification, deleteNotification, currentUser } = useData()
   const [form, setForm] = useState({ title: '', message: '' })
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingNotification, setEditingNotification] = useState<{ id: string; title: string; message: string } | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null)
   const canSend = currentUser?.role === 'admin'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (editingId) {
-      await updateNotification(editingId, { title: form.title, message: form.message })
-      setEditingId(null)
-    } else {
-      await addNotification({ title: form.title, message: form.message, category: 'general' })
-    }
+    await addNotification({ title: form.title, message: form.message, category: 'general' })
     setForm({ title: '', message: '' })
   }
 
   return (
     <div className="space-y-6">
+      {pendingDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(18,24,18,0.42)] px-4">
+          <div className="app-panel w-full max-w-md rounded-3xl p-6 shadow-2xl">
+            <h3 className="mb-2 text-xl font-semibold text-red-700">Delete Notification?</h3>
+            <p className="app-muted mb-6 text-sm">
+              This will remove <span className="font-semibold text-[var(--text)]">"{pendingDelete.title}"</span> for everyone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setPendingDelete(null)}
+                className="app-button app-button-ghost"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await deleteNotification(pendingDelete.id)
+                  setPendingDelete(null)
+                }}
+                className="app-button inline-flex items-center gap-2 bg-red-600 text-white hover:bg-red-700"
+              >
+                <Trash2 size={16} />
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingNotification && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(18,24,18,0.42)] px-4">
+          <div className="app-panel w-full max-w-lg rounded-3xl p-6 shadow-2xl">
+            <h3 className="mb-4 text-xl font-semibold">Edit Notification</h3>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault()
+                await updateNotification(editingNotification.id, {
+                  title: editingNotification.title,
+                  message: editingNotification.message,
+                })
+                setEditingNotification(null)
+              }}
+              className="space-y-4"
+            >
+              <input
+                className="app-input"
+                value={editingNotification.title}
+                onChange={(e) => setEditingNotification({ ...editingNotification, title: e.target.value })}
+                placeholder="Title"
+                required
+              />
+              <textarea
+                className="app-input min-h-[140px]"
+                value={editingNotification.message}
+                onChange={(e) => setEditingNotification({ ...editingNotification, message: e.target.value })}
+                placeholder="Message for everyone"
+                required
+              />
+              <div className="flex justify-end gap-3 mt-4">
+                <button
+                  type="button"
+                  onClick={() => setEditingNotification(null)}
+                  className="app-button app-button-ghost"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="app-button app-button-primary">
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {canSend && (
         <div className="app-panel rounded-3xl p-6">
-          <h2 className="mb-4 text-xl font-semibold">{editingId ? 'Edit Notification' : 'Send Notification'}</h2>
+          <h2 className="mb-4 text-xl font-semibold">Send Notification</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <input className="app-input" value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="Title" required />
             <textarea className="app-input min-h-[140px]" value={form.message} onChange={(e) => setForm((prev) => ({ ...prev, message: e.target.value }))} placeholder="Message for everyone" required />
@@ -33,13 +107,8 @@ export function NotificationsCenter() {
             </div>
             <div className="flex gap-3">
               <button type="submit" className="app-button app-button-primary">
-                {editingId ? 'Update Notification' : 'Send To Everyone'}
+                Send To Everyone
               </button>
-              {editingId && (
-                <button type="button" onClick={() => { setEditingId(null); setForm({ title: '', message: '' }) }} className="app-button app-button-ghost">
-                  Cancel
-                </button>
-              )}
             </div>
           </form>
         </div>
@@ -70,9 +139,7 @@ export function NotificationsCenter() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      setEditingId(notification.id)
-                      setForm({ title: notification.title, message: notification.message })
-                      window.scrollTo({ top: 0, behavior: 'smooth' })
+                      setEditingNotification({ id: notification.id, title: notification.title, message: notification.message })
                     }}
                     className="app-button app-button-ghost px-3 py-1.5 text-xs"
                   >
@@ -81,9 +148,7 @@ export function NotificationsCenter() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      if(confirm('Are you sure you want to delete this notification?')) {
-                        deleteNotification(notification.id)
-                      }
+                      setPendingDelete({ id: notification.id, title: notification.title })
                     }}
                     className="app-button border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 px-3 py-1.5 text-xs"
                   >

@@ -38,7 +38,7 @@ export function SupplyReportsBoard() {
   const visibleReports = useMemo(() => {
     const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
     return supplyReports.filter((report) => {
-      if (report.category === 'maintenance') return false
+      if ((report.category as string) === 'maintenance') return false
       if (report.status === 'resolved') {
         const dateString = (report as any).updatedAt || (report as any).createdAt
         if (dateString) {

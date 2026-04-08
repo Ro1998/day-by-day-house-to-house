@@ -21,17 +21,17 @@ function ArrayInput({
   disabled,
   title,
 }: {
-  values: string[]
+  values?: string[]
   onChange: (val: string[]) => void
   className?: string
   placeholder?: string
   disabled?: boolean
   title?: string
 }) {
-  const [localValue, setLocalValue] = useState(() => values.join(', '))
+  const [localValue, setLocalValue] = useState(() => (values || []).join(', '))
 
   useEffect(() => {
-    const newStr = values.join(', ')
+    const newStr = (values || []).join(', ')
     const localParsed = parseNames(localValue).join(', ')
     if (localParsed !== newStr) {
       setLocalValue(newStr)
@@ -85,7 +85,14 @@ export function MenuPlanner() {
 
   useEffect(() => {
     const existing = menus.find((entry) => entry.week === selectedWeek)
-    const nextMenu = existing ? { ...existing } : buildDefaultMenu(selectedWeek)
+    const defaultMenu = buildDefaultMenu(selectedWeek)
+    const nextMenu = existing
+      ? {
+          ...existing,
+          items: existing.items?.length ? existing.items : defaultMenu.items,
+          purchasers: existing.purchasers || [],
+        }
+      : defaultMenu
     setMenu(nextMenu)
     lastSavedSnapshot.current = JSON.stringify(nextMenu)
     setSaveState(existing ? 'saved' : 'idle')
@@ -118,7 +125,7 @@ export function MenuPlanner() {
 
   const updateMenuItem = (index: number, field: keyof MenuItem, value: any) => {
     if (!menu) return
-    const newItems = [...menu.items]
+    const newItems = [...(menu.items || [])]
     newItems[index] = { ...newItems[index], [field]: value }
     setMenu({ ...menu, items: newItems })
   }
@@ -151,8 +158,8 @@ export function MenuPlanner() {
 
   const sendWeeklyMenu = async () => {
     if (!menu) return
-    const lines = menu.items.map((item) => (
-      `${item.day}: Lunch - ${item.lunch || 'TBD'} (${item.lunchCooks.join(', ') || 'TBD'}), Dinner - ${item.dinner || 'TBD'} (${item.dinnerCooks.join(', ') || 'TBD'})`
+    const lines = (menu.items || []).map((item) => (
+      `${item.day}: Lunch - ${item.lunch || 'TBD'} (${(item.lunchCooks || []).join(', ') || 'TBD'}), Dinner - ${item.dinner || 'TBD'} (${(item.dinnerCooks || []).join(', ') || 'TBD'})`
     ))
     await addNotification({
       title: `Weekly Menu for ${menu.week}`,
@@ -250,7 +257,7 @@ export function MenuPlanner() {
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Vegetable Purchasers (2 people)</label>
           <ArrayInput
-            values={menu.purchasers}
+            values={menu.purchasers || []}
             onChange={(purchasers) => setMenu({ ...menu, purchasers })}
             className="app-input"
             placeholder="Enter purchaser names separated by commas"
@@ -271,7 +278,7 @@ export function MenuPlanner() {
               </tr>
             </thead>
             <tbody>
-              {menu.items.map((item, index) => (
+              {(menu.items || []).map((item, index) => (
                 <tr key={item.day} className="border-b border-[var(--border)]">
                   <td className="border border-[var(--border)] p-2 font-medium">
                     {item.day}
@@ -279,7 +286,7 @@ export function MenuPlanner() {
                   <td className="border border-[var(--border)] p-2">
                     <input
                       type="text"
-                      value={item.lunch}
+                      value={item.lunch || ''}
                       onChange={(e) => updateMenuItem(index, 'lunch', e.target.value)}
                       className="app-input"
                       placeholder="Lunch menu"
@@ -289,7 +296,7 @@ export function MenuPlanner() {
                   </td>
                   <td className="border border-[var(--border)] p-2">
                     <ArrayInput
-                      values={item.lunchCooks}
+                      values={item.lunchCooks || []}
                       onChange={(cooks) => updateMenuItem(index, 'lunchCooks', cooks)}
                       className="app-input"
                       placeholder="Enter cooking team names"
@@ -300,7 +307,7 @@ export function MenuPlanner() {
                   <td className="border border-[var(--border)] p-2">
                     <input
                       type="text"
-                      value={item.dinner}
+                      value={item.dinner || ''}
                       onChange={(e) => updateMenuItem(index, 'dinner', e.target.value)}
                       className="app-input"
                       placeholder="Dinner menu"
@@ -310,7 +317,7 @@ export function MenuPlanner() {
                   </td>
                   <td className="border border-[var(--border)] p-2">
                     <ArrayInput
-                      values={item.dinnerCooks}
+                      values={item.dinnerCooks || []}
                       onChange={(cooks) => updateMenuItem(index, 'dinnerCooks', cooks)}
                       className="app-input"
                       placeholder="Enter dinner cooking team names"

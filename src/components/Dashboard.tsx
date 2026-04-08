@@ -73,7 +73,7 @@ export function Dashboard() {
   const currentWeekAvailabilities = availabilities.filter((entry) => entry.week === currentWeek)
   const pendingSuggestions = menuSuggestions.filter((suggestion) => suggestion.status === 'pending')
   const cookingPeople = [...new Set(
-    currentWeekMenu?.items.flatMap((item) => [...item.lunchCooks, ...item.dinnerCooks]) ?? [],
+    currentWeekMenu?.items?.flatMap((item) => [...(item.lunchCooks || []), ...(item.dinnerCooks || [])]) ?? [],
   )].sort((a, b) => a.localeCompare(b))
 
   const handleSuggestionSubmit = async (e: React.FormEvent) => {
@@ -184,11 +184,11 @@ export function Dashboard() {
         <div className="app-panel rounded-3xl p-6">
           <h3 className="mb-4 text-lg font-semibold">This Week&apos;s Menu</h3>
           <div className="space-y-3">
-            {currentWeekMenu?.items.map((item) => (
+            {currentWeekMenu?.items?.map((item) => (
               <div key={item.day} className="rounded-2xl bg-[var(--surface-soft)] p-4">
                 <div className="font-semibold">{item.day}</div>
                 <div className="app-muted text-sm">Lunch: {item.lunch || 'Not set'} | Dinner: {item.dinner || 'Not set'}</div>
-                <div className="app-muted text-sm">Cooking: {[...item.lunchCooks, ...item.dinnerCooks].join(', ') || 'Not assigned'}</div>
+                <div className="app-muted text-sm">Cooking: {[...(item.lunchCooks || []), ...(item.dinnerCooks || [])].join(', ') || 'Not assigned'}</div>
               </div>
             ))}
             {!currentWeekMenu && <p className="app-muted text-sm">No menu published for this week yet.</p>}
