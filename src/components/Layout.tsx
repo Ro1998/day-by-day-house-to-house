@@ -14,7 +14,7 @@ interface LayoutProps {
 
 export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   const { theme, toggleTheme } = useTheme()
-  const { currentUser, logout, loading, error, notice, users, unreadNotifications } = useData()
+  const { currentUser, logout, loading, error, notice, users, unreadNotifications, isSyncing } = useData()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
@@ -106,8 +106,19 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
       <header className={`sticky top-0 z-50 border-b border-[var(--border)] ${isMobileMenuOpen ? 'bg-[var(--surface)]' : 'bg-[var(--surface)]/95 backdrop-blur-xl'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="relative z-50 flex items-start justify-between py-4 md:items-center md:py-6">
-            <div className="flex-1 pr-4">
-              <BrandLogo />
+            <div className="flex-1 pr-4 min-w-0">
+              <div className="flex items-center gap-3">
+                <BrandLogo />
+                {isSyncing && (
+                  <div className="flex items-center gap-2 text-xs text-[var(--text-soft)]" title="Syncing data...">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span className="hidden md:inline">Syncing...</span>
+                  </div>
+                )}
+              </div>
               <p className="app-muted mt-3 hidden text-sm sm:block max-w-2xl">
                 And <span className="font-bold text-[var(--primary-strong)]">day by day</span>, continuing steadfastly with one accord in the temple and breaking bread <span className="font-bold text-[var(--primary-strong)]">from house to house, they partook of their food with exultation and simplicity of heart</span>
               </p>

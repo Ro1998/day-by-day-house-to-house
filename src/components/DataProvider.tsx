@@ -33,6 +33,7 @@ interface DataContextType {
   balance: number
   budget: number
   loading: boolean
+  isSyncing: boolean
   error: string | null
   notice: string | null
   addExpense: (expense: Omit<Expense, 'id' | 'userId'>) => Promise<void>
@@ -98,6 +99,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [budget] = useState(1000)
   const [loading, setLoading] = useState(true)
+  const [isSyncing, setIsSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [deletedExpense, setDeletedExpense] = useState<Expense | null>(null)
@@ -130,7 +132,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
+    let isMounted = true
+    let isPolling = false
     const loadData = async () => {
+      if (isPolling) return
+      isPolling = true
+      if (isMounted && !loading) {
+        setIsSyncing(true)
+      }
       try {
         setError(null)
 
@@ -242,6 +251,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       } finally {
         if (isMounted) {
           setLoading(false)
+          setIsSyncing(false)
         }
         isPolling = false
       }
@@ -250,8 +260,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     loadData()
     const intervalId = setInterval(loadData, 5000)
     return () => {
-      isMounted = false
       clearInterval(intervalId)
+      isMounted = false
     }
   }, [currentUser?.id])
 
@@ -898,6 +908,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       balance,
       budget,
       loading,
+      isSyncing,
       error,
       notice,
       addExpense,
