@@ -163,7 +163,7 @@ export function Dashboard() {
     await reviewAvailability(ids)
   }
 
-  if (currentUser?.role === 'user') {
+  if (currentUser?.role === 'user' || currentUser?.role === 'overseer') {
     return (
       <div className="space-y-6">
         {unreadNotifications.length > 0 && (

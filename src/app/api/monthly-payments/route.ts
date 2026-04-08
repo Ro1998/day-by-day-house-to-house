@@ -26,7 +26,7 @@ export async function GET(request: Request) {
     const payments = await prisma.monthlyPayment.findMany({ include: { user: true } })
     const serialized = payments.map(serializePayment)
 
-    if (auth.user.role !== 'admin') {
+    if (auth.user.role !== 'admin' && auth.user.role !== 'overseer') {
       return NextResponse.json(serialized.map(p => ({
         ...p,
         memberName: 'Hidden',

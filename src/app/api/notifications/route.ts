@@ -30,7 +30,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const auth = await requireApprovedUser(request, ['admin', 'coordinator'])
+    const auth = await requireApprovedUser(request, ['admin', 'coordinator', 'overseer'])
     if (auth.error) return auth.error
     const body = await request.json()
     const notification = await prisma.notification.create({

@@ -82,6 +82,7 @@ export function UserManagement() {
                       >
                         <option value="user">General User</option>
                         <option value="coordinator">Coordinator (CO)</option>
+                        <option value="overseer">Overseer</option>
                         <option value="admin">Admin</option>
                       </select>
                       <button
@@ -155,6 +156,7 @@ export function UserManagement() {
                     >
                       <option value="user">General User</option>
                       <option value="coordinator">Coordinator (CO)</option>
+                      <option value="overseer">Overseer</option>
                       <option value="admin">Admin</option>
                     </select>
                   </td>

@@ -9,7 +9,8 @@ export function NotificationsCenter() {
   const [form, setForm] = useState({ title: '', message: '' })
   const [editingNotification, setEditingNotification] = useState<{ id: string; title: string; message: string } | null>(null)
   const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null)
-  const canSend = currentUser?.role === 'admin'
+  const canSend = currentUser?.role === 'admin' || currentUser?.role === 'overseer'
+  const canManageNotifications = currentUser?.role === 'admin'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -143,7 +144,7 @@ export function NotificationsCenter() {
                 <p className="mt-2 text-sm">{notification.message}</p>
               )}
               <p className="app-muted mt-2 text-xs">From {notification.createdBy}</p>
-              {canSend && (
+              {canManageNotifications && (
                 <div className="mt-4 flex gap-3">
                   <button
                     onClick={(e) => {

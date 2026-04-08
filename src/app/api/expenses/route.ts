@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     const expenses = await prisma.expense.findMany({ include: { user: true } })
     const serializedExpenses = expenses.map(serializeExpense)
 
-    if (auth.user.role === 'admin') {
+    if (auth.user.role === 'admin' || auth.user.role === 'overseer') {
       return NextResponse.json(serializedExpenses)
     }
 
