@@ -7,6 +7,16 @@ const STATUS_STYLES = {
   missing: 'bg-amber-100 text-amber-800 border-amber-200',
   urgent: 'bg-red-100 text-red-800 border-red-200',
   resolved: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  'in-consideration': 'bg-amber-100 text-amber-800 border-amber-200',
+  'will-take-time': 'bg-violet-100 text-violet-800 border-violet-200',
+} as const
+
+const STATUS_LABELS = {
+  missing: 'Needs Repair',
+  urgent: 'Urgent Repair',
+  resolved: 'Fixed / Resolved',
+  'in-consideration': 'In Consideration',
+  'will-take-time': 'Will Take Time',
 } as const
 
 export function MaintenanceBoard() {
@@ -18,7 +28,7 @@ export function MaintenanceBoard() {
     message: '',
     status: 'missing' as 'missing' | 'urgent' | 'resolved',
   })
-  const [responses, setResponses] = useState<Record<string, { status: 'missing' | 'urgent' | 'resolved'; response: string }>>({})
+  const [responses, setResponses] = useState<Record<string, { status: 'resolved' | 'in-consideration' | 'will-take-time'; response: string }>>({})
 
   const coordinatorContacts = useMemo(() => {
     const coordinators = users
@@ -111,7 +121,12 @@ export function MaintenanceBoard() {
 
       <div className="space-y-4">
         {visibleReports.map((report) => {
-          const draft = responses[report.id] ?? { status: report.status, response: report.response ?? '' }
+          const draft = responses[report.id] ?? {
+            status: report.status === 'resolved' || report.status === 'in-consideration' || report.status === 'will-take-time'
+              ? report.status
+              : 'in-consideration',
+            response: report.response ?? '',
+          }
           return (
             <div key={report.id} className="app-panel rounded-3xl p-6">
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -119,7 +134,7 @@ export function MaintenanceBoard() {
                   <div className="flex items-center gap-3">
                     <h3 className="text-lg font-semibold">{report.title}</h3>
                     <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${STATUS_STYLES[report.status]}`}>
-                      {report.status === 'missing' ? 'Needs Repair' : report.status === 'urgent' ? 'Urgent Repair' : 'Fixed'}
+                      {STATUS_LABELS[report.status]}
                     </span>
                   </div>
                   <p className="app-muted mt-1 text-sm">
@@ -141,12 +156,12 @@ export function MaintenanceBoard() {
                       value={draft.status}
                       onChange={(e) => setResponses((prev) => ({
                         ...prev,
-                        [report.id]: { ...draft, status: e.target.value as 'missing' | 'urgent' | 'resolved' },
+                        [report.id]: { ...draft, status: e.target.value as 'resolved' | 'in-consideration' | 'will-take-time' },
                       }))}
                     >
-                      <option value="missing">Needs Repair</option>
-                      <option value="urgent">Urgent Repair</option>
                       <option value="resolved">Fixed / Resolved</option>
+                      <option value="in-consideration">In Consideration</option>
+                      <option value="will-take-time">Will Take Time</option>
                     </select>
                     <textarea
                       className="app-input min-h-[100px]"

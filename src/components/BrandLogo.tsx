@@ -2,10 +2,10 @@
 
 export function BrandLogo() {
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-2 sm:gap-4">
       <svg
         viewBox="0 0 240 120"
-        className="h-16 w-24 shrink-0"
+        className="h-10 w-16 shrink-0 sm:h-16 sm:w-24"
         aria-hidden="true"
       >
         <g fill="#6984A9">
@@ -24,10 +24,10 @@ export function BrandLogo() {
         </g>
       </svg>
       <div className="min-w-0">
-        <div className="text-[0.72rem] font-black uppercase tracking-[0.28em] text-[#263b6a] sm:text-sm">
+        <div className="text-[0.52rem] font-black uppercase tracking-[0.16em] text-[#263b6a] sm:text-sm sm:tracking-[0.28em]">
           Day By Day And
         </div>
-        <div className="text-[0.62rem] font-semibold uppercase tracking-[0.42em] text-[#6984a9] sm:text-xs">
+        <div className="text-[0.5rem] font-semibold uppercase tracking-[0.2em] text-[#6984a9] sm:text-xs sm:tracking-[0.42em]">
           House To House
         </div>
       </div>

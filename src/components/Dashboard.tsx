@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useData } from '@/components/DataProvider'
 import { Pie, Bar } from 'react-chartjs-2'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js'
@@ -10,6 +10,14 @@ import { SupplyReportsBoard } from '@/components/SupplyReportsBoard'
 import { X } from 'lucide-react'
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement)
+
+const REPORT_STATUS_LABELS = {
+  missing: 'Missing',
+  urgent: 'Urgent',
+  resolved: 'Resolved',
+  'in-consideration': 'In Consideration',
+  'will-take-time': 'Will Take Time',
+} as const
 
 export function Dashboard() {
   const {
@@ -32,6 +40,7 @@ export function Dashboard() {
   } = useData()
   const [suggestionForm, setSuggestionForm] = useState({ suggestion: '', preferredDay: '', preferredMeal: '' })
   const [availabilityForm, setAvailabilityForm] = useState({ days: ["Lord's Day"], meals: ['lunch'] as ('lunch' | 'dinner')[], available: true, note: '' })
+  const [reviewedAvailabilityIds, setReviewedAvailabilityIds] = useState<string[]>([])
 
   const toggleDay = (day: string) => setAvailabilityForm(prev => prev.days.includes(day) ? { ...prev, days: prev.days.filter(d => d !== day) } : { ...prev, days: [...prev.days, day] })
   const toggleMeal = (meal: 'lunch' | 'dinner') => setAvailabilityForm(prev => prev.meals.includes(meal) ? { ...prev, meals: prev.meals.filter(m => m !== meal) } : { ...prev, meals: [...prev.meals, meal] })
@@ -75,7 +84,9 @@ export function Dashboard() {
   )].filter(n => n !== 'Hidden').sort((a, b) => a.localeCompare(b))
   const eatingPeopleCount = monthlyPayments.filter((payment) => payment.month === currentMonth && payment.paid).length
   const currentWeekMenu = menus.find((menu) => menu.week === currentWeek)
-  const currentWeekAvailabilities = availabilities.filter((entry) => entry.week === currentWeek)
+  const currentWeekAvailabilities = availabilities.filter((entry) => (
+    entry.week === currentWeek && !reviewedAvailabilityIds.includes(entry.id)
+  ))
   const availabilityReviewGroups = currentWeekAvailabilities.reduce((groups, entry) => {
     const key = `${entry.userId ?? entry.user}-${entry.createdAt.slice(0, 19)}-${entry.available}-${entry.note ?? ''}`
     const existing = groups.get(key)
@@ -117,6 +128,10 @@ export function Dashboard() {
     report.category === 'maintenance' || report.category === 'grocery' || report.category === 'vegetable'
   ))
 
+  useEffect(() => {
+    setReviewedAvailabilityIds((prev) => prev.filter((id) => availabilities.some((entry) => entry.id === id)))
+  }, [availabilities])
+
   const handleSuggestionSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     await addMenuSuggestion(suggestionForm)
@@ -141,6 +156,11 @@ export function Dashboard() {
       )),
     })
     setAvailabilityForm({ days: ["Lord's Day"], meals: ['lunch'], available: true, note: '' })
+  }
+
+  const handleReviewAvailability = async (ids: string[]) => {
+    setReviewedAvailabilityIds((prev) => [...new Set([...prev, ...ids])])
+    await reviewAvailability(ids)
   }
 
   if (currentUser?.role === 'user') {
@@ -344,11 +364,14 @@ export function Dashboard() {
                     <div className="font-semibold">{report.title}</div>
                     {report.status === 'urgent' && <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800">URGENT</span>}
                     {report.status === 'resolved' && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">RESOLVED</span>}
+                    {report.status === 'in-consideration' && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">IN CONSIDERATION</span>}
+                    {report.status === 'will-take-time' && <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-800">WILL TAKE TIME</span>}
                   </div>
                   <div className="app-muted text-sm">
                     {report.category} {report.itemName ? `| ${report.itemName}` : ''} | Reported by {report.createdBy}
                   </div>
                   <div className="mt-2 text-sm">{report.message}</div>
+                  <div className="app-muted mt-2 text-sm">Status: {REPORT_STATUS_LABELS[report.status]}</div>
                   {report.response && (
                     <div className="app-muted mt-2 text-sm">
                       Reply: {report.response}
@@ -527,7 +550,7 @@ export function Dashboard() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => void reviewAvailability(group.ids)}
+                    onClick={() => void handleReviewAvailability(group.ids)}
                     className="app-button app-button-ghost px-3 py-2 text-xs"
                   >
                     Reviewed

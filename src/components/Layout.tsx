@@ -212,30 +212,30 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
       )}
       <header className={`sticky top-0 z-50 border-b border-[var(--border)] ${isMobileMenuOpen ? 'bg-white dark:bg-[#121812]' : 'bg-[var(--surface-strong)]/98 backdrop-blur-md shadow-[0_10px_30px_rgba(18,24,18,0.08)]'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative z-50 flex items-start justify-between py-4 md:items-center md:py-6">
+          <div className="relative z-50 flex items-start justify-between py-3 md:items-center md:py-6">
             <div className="flex-1 pr-4 min-w-0">
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <BrandLogo />
                 <div
-                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-semibold transition sm:px-3 sm:py-1.5 sm:text-xs ${
                     loading || isSyncing
                       ? 'border-[var(--primary)]/30 bg-[var(--surface-soft)] text-[var(--primary-strong)]'
                       : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                  }`}
+                  } ${isMobileMenuOpen ? 'opacity-0 pointer-events-none sm:opacity-100 sm:pointer-events-auto' : ''}`}
                   title={syncTitle}
                 >
                   {loading || isSyncing ? (
-                    <RefreshCw size={14} className="animate-spin" />
+                    <RefreshCw size={12} className="animate-spin sm:h-[14px] sm:w-[14px]" />
                   ) : (
-                    <BadgeCheck size={14} />
+                    <BadgeCheck size={12} className="sm:h-[14px] sm:w-[14px]" />
                   )}
                   <span>{syncLabel}</span>
                 </div>
               </div>
-              <p className="app-muted mt-3 hidden text-sm sm:block max-w-2xl">
+              <p className="app-muted mt-2 max-w-2xl text-[11px] leading-relaxed sm:mt-3 sm:text-sm">
                 And <span className="font-bold text-[var(--primary-strong)]">day by day</span>, continuing steadfastly with one accord in the temple and breaking bread <span className="font-bold text-[var(--primary-strong)]">from house to house, they partook of their food with exultation and simplicity of heart</span>
               </p>
-              <p className="mt-1 hidden text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)] sm:block">
+              <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)] sm:text-xs sm:tracking-[0.2em]">
                 - Acts 2:46
               </p>
             </div>
@@ -298,7 +298,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
           <nav 
             className={`${
               isMobileMenuOpen 
-                ? 'fixed inset-0 z-40 flex flex-col overflow-y-auto bg-white dark:bg-[#121812] px-6 pb-6 pt-36 shadow-2xl' 
+                ? 'fixed inset-x-0 bottom-0 top-[104px] z-40 flex flex-col overflow-y-auto bg-white dark:bg-[#121812] px-6 pb-6 pt-6 shadow-2xl' 
                 : 'hidden'
             } gap-1.5 md:static md:z-auto md:flex md:flex-row md:flex-wrap md:overflow-visible md:bg-transparent md:p-0 md:pb-4`}
           >

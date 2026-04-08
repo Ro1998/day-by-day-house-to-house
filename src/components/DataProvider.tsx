@@ -71,8 +71,8 @@ interface DataContextType {
   updateMenuSuggestionStatus: (id: string, status: 'pending' | 'reviewed') => Promise<void>
   addAvailability: (input: { week: string; entries: Array<{ day: string; meal: 'lunch' | 'dinner'; available: boolean; note?: string }> }) => Promise<void>
   reviewAvailability: (ids: string[]) => Promise<void>
-  addSupplyReport: (input: { title: string; category: 'grocery' | 'vegetable' | 'maintenance'; itemName?: string; message: string; status?: 'missing' | 'urgent' | 'resolved' }) => Promise<void>
-  updateSupplyReport: (input: { id: string; status?: 'missing' | 'urgent' | 'resolved'; response?: string }) => Promise<void>
+  addSupplyReport: (input: { title: string; category: 'grocery' | 'vegetable' | 'maintenance'; itemName?: string; message: string; status?: 'missing' | 'urgent' | 'resolved' | 'in-consideration' | 'will-take-time' }) => Promise<void>
+  updateSupplyReport: (input: { id: string; status?: 'missing' | 'urgent' | 'resolved' | 'in-consideration' | 'will-take-time'; response?: string }) => Promise<void>
   login: (input: { username: string; password: string }) => Promise<boolean>
   logout: () => void
   logActivity: (action: string) => Promise<void>
@@ -840,7 +840,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const addSupplyReport = async (input: { title: string; category: 'grocery' | 'vegetable' | 'maintenance'; itemName?: string; message: string; status?: 'missing' | 'urgent' | 'resolved' }) => {
+  const addSupplyReport = async (input: { title: string; category: 'grocery' | 'vegetable' | 'maintenance'; itemName?: string; message: string; status?: 'missing' | 'urgent' | 'resolved' | 'in-consideration' | 'will-take-time' }) => {
     if (!currentUser) return
     try {
       setError(null)
@@ -857,7 +857,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const updateSupplyReport = async (input: { id: string; status?: 'missing' | 'urgent' | 'resolved'; response?: string }) => {
+  const updateSupplyReport = async (input: { id: string; status?: 'missing' | 'urgent' | 'resolved' | 'in-consideration' | 'will-take-time'; response?: string }) => {
     if (!currentUser) return
     try {
       setError(null)

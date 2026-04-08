@@ -7,6 +7,16 @@ const STATUS_STYLES = {
   missing: 'bg-sky-100 text-sky-800 border-sky-200',
   urgent: 'bg-red-100 text-red-800 border-red-200',
   resolved: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  'in-consideration': 'bg-amber-100 text-amber-800 border-amber-200',
+  'will-take-time': 'bg-violet-100 text-violet-800 border-violet-200',
+} as const
+
+const STATUS_LABELS = {
+  missing: 'Missing',
+  urgent: 'Urgent',
+  resolved: 'Resolved',
+  'in-consideration': 'In Consideration',
+  'will-take-time': 'Will Take Time',
 } as const
 
 export function SupplyReportsBoard() {
@@ -18,7 +28,7 @@ export function SupplyReportsBoard() {
     message: '',
     status: 'missing' as 'missing' | 'urgent' | 'resolved',
   })
-  const [responses, setResponses] = useState<Record<string, { status: 'missing' | 'urgent' | 'resolved'; response: string }>>({})
+  const [responses, setResponses] = useState<Record<string, { status: 'resolved' | 'in-consideration' | 'will-take-time'; response: string }>>({})
 
   const coordinatorContacts = useMemo(() => {
     const coordinators = users
@@ -68,6 +78,8 @@ export function SupplyReportsBoard() {
         <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
           <span className="rounded-full border border-sky-200 bg-sky-100 px-3 py-1 text-sky-800">Blue: Missing</span>
           <span className="rounded-full border border-red-200 bg-red-100 px-3 py-1 text-red-800">Red: Urgent</span>
+          <span className="rounded-full border border-amber-200 bg-amber-100 px-3 py-1 text-amber-800">Gold: In Consideration</span>
+          <span className="rounded-full border border-violet-200 bg-violet-100 px-3 py-1 text-violet-800">Purple: Will Take Time</span>
           <span className="rounded-full border border-emerald-200 bg-emerald-100 px-3 py-1 text-emerald-800">Green: Resolved</span>
         </div>
         <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
@@ -108,7 +120,12 @@ export function SupplyReportsBoard() {
 
       <div className="space-y-4">
         {visibleReports.map((report) => {
-          const draft = responses[report.id] ?? { status: report.status, response: report.response ?? '' }
+          const draft = responses[report.id] ?? {
+            status: report.status === 'resolved' || report.status === 'in-consideration' || report.status === 'will-take-time'
+              ? report.status
+              : 'in-consideration',
+            response: report.response ?? '',
+          }
           return (
             <div key={report.id} className="app-panel rounded-3xl p-6">
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -116,7 +133,7 @@ export function SupplyReportsBoard() {
                   <div className="flex items-center gap-3">
                     <h3 className="text-lg font-semibold">{report.title}</h3>
                     <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${STATUS_STYLES[report.status]}`}>
-                      {report.status}
+                      {STATUS_LABELS[report.status]}
                     </span>
                   </div>
                   <p className="app-muted mt-1 text-sm">
@@ -138,12 +155,12 @@ export function SupplyReportsBoard() {
                       value={draft.status}
                       onChange={(e) => setResponses((prev) => ({
                         ...prev,
-                        [report.id]: { ...draft, status: e.target.value as 'missing' | 'urgent' | 'resolved' },
+                        [report.id]: { ...draft, status: e.target.value as 'resolved' | 'in-consideration' | 'will-take-time' },
                       }))}
                     >
-                      <option value="missing">Missing</option>
-                      <option value="urgent">Urgent</option>
                       <option value="resolved">Resolved</option>
+                      <option value="in-consideration">In Consideration</option>
+                      <option value="will-take-time">Will Take Time</option>
                     </select>
                     <textarea
                       className="app-input min-h-[100px]"

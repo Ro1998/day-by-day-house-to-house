@@ -108,7 +108,7 @@ export interface SupplyReport {
   category: 'grocery' | 'vegetable' | 'maintenance'
   itemName?: string | null
   message: string
-  status: 'missing' | 'urgent' | 'resolved'
+  status: 'missing' | 'urgent' | 'resolved' | 'in-consideration' | 'will-take-time'
   response?: string | null
   createdBy: string
   createdById?: string

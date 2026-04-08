@@ -26,6 +26,7 @@ export function Expenses() {
   })
 
   const categories = ['grocery', 'vegetables', 'gas', 'others', 'food money', 'offering', 'separate meal']
+  const formatCategoryLabel = (category: string) => category.replace(/\b\w/g, (char) => char.toUpperCase())
 
   const getVisibleExpenses = (filters: typeof filter) => {
     const filteredExpenses = expenses.filter(exp => {
@@ -270,7 +271,7 @@ export function Expenses() {
             >
               <option value="">Select Category</option>
               {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
+                <option key={cat} value={cat}>{formatCategoryLabel(cat)}</option>
               ))}
             </select>
             <input
@@ -364,7 +365,7 @@ export function Expenses() {
             >
               <option value="">All Categories</option>
               {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
+                <option key={cat} value={cat}>{formatCategoryLabel(cat)}</option>
               ))}
             </select>
           </div>
