@@ -39,6 +39,8 @@ interface DataContextType {
   deleteExpense: (id: string) => Promise<void>
   undoDelete: () => Promise<void>
   addMonthlyPayment: (payment: Omit<MonthlyPayment, 'id' | 'userId'>) => Promise<void>
+  updateMonthlyPayment: (input: Partial<MonthlyPayment> & { id: string }) => Promise<void>
+  deleteMonthlyPayment: (id: string) => Promise<void>
   updateMenu: (menu: Menu) => Promise<void>
   createUser: (input: {
     name: string
@@ -391,6 +393,45 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       )
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Failed to create monthly payment')
+    }
+  }
+
+  const updateMonthlyPayment = async (input: Partial<MonthlyPayment> & { id: string }) => {
+    if (!currentUser) return
+    try {
+      setError(null)
+      setNotice(null)
+      const res = await fetch('/api/monthly-payments', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(input),
+      })
+      const updated = await readJson<MonthlyPayment>(res, 'Failed to update monthly payment')
+      setMonthlyPayments((prev) => prev.map((entry) => entry.id === updated.id ? updated : entry))
+      await logActivity(`Updated monthly payment for ${updated.memberName} (${updated.month})`)
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to update monthly payment')
+    }
+  }
+
+  const deleteMonthlyPayment = async (id: string) => {
+    if (!currentUser) return
+    try {
+      setError(null)
+      setNotice(null)
+      const res = await fetch(`/api/monthly-payments?id=${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      })
+      await readJson<{ success: boolean }>(res, 'Failed to delete monthly payment')
+      const payment = monthlyPayments.find(p => p.id === id)
+      setMonthlyPayments((prev) => prev.filter((entry) => entry.id !== id))
+      if (payment) {
+        setNotice(`Deleted monthly payment for ${payment.memberName}.`)
+        await logActivity(`Deleted monthly payment for ${payment.memberName} (${payment.month})`)
+      }
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to delete monthly payment')
     }
   }
 
@@ -850,6 +891,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       deleteExpense,
       undoDelete,
       addMonthlyPayment,
+      updateMonthlyPayment,
+      deleteMonthlyPayment,
       updateMenu,
       createUser,
       resetPasswordWithSecurityAnswers,

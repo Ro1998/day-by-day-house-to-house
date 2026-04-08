@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { useData } from '@/components/DataProvider'
 
 const STATUS_STYLES = {
-  missing: 'bg-sky-100 text-sky-800 border-sky-200',
+  missing: 'bg-amber-100 text-amber-800 border-amber-200',
   urgent: 'bg-red-100 text-red-800 border-red-200',
   resolved: 'bg-emerald-100 text-emerald-800 border-emerald-200',
 } as const
@@ -61,14 +61,14 @@ export function MaintenanceBoard() {
   return (
     <div className="space-y-6">
       <div className="app-panel rounded-3xl p-6">
-        <h2 className="mb-2 text-xl font-semibold">Meeting Hall Maintenance</h2>
+        <h2 className="mb-2 text-xl font-semibold">Facility & Meeting Hall Maintenance</h2>
         <p className="app-muted text-sm">
-          Report items needing repair or maintenance. Coordinators and admins can reply and mark it resolved.
+          Report broken parts, plumbing, electrical, or any repair needed in the Meeting Hall or elsewhere. Everyone can see these, and Admins/COs will update the status.
         </p>
         <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
-          <span className="rounded-full border border-sky-200 bg-sky-100 px-3 py-1 text-sky-800">Blue: Reported</span>
+          <span className="rounded-full border border-amber-200 bg-amber-100 px-3 py-1 text-amber-800">Amber: Needs Repair</span>
           <span className="rounded-full border border-red-200 bg-red-100 px-3 py-1 text-red-800">Red: Urgent</span>
-          <span className="rounded-full border border-emerald-200 bg-emerald-100 px-3 py-1 text-emerald-800">Green: Resolved</span>
+          <span className="rounded-full border border-emerald-200 bg-emerald-100 px-3 py-1 text-emerald-800">Green: Fixed</span>
         </div>
         <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
           <div className="text-sm font-semibold text-[var(--primary-strong)]">Coordinator Contact</div>
@@ -87,17 +87,24 @@ export function MaintenanceBoard() {
       </div>
 
       <div className="app-panel rounded-3xl p-6">
-        <h3 className="mb-4 text-lg font-semibold">Submit a Report</h3>
+        <h3 className="mb-4 text-lg font-semibold">Submit a Repair Request</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <input className="app-input" value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="Short title" required />
-            <input className="app-input" value={form.itemName} onChange={(e) => setForm((prev) => ({ ...prev, itemName: e.target.value }))} placeholder="Location or Area, optional" />
+            <input className="app-input" value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="What is broken? (e.g. Fan, Sink)" required />
+            <select className="app-input" value={form.itemName} onChange={(e) => setForm((prev) => ({ ...prev, itemName: e.target.value }))}>
+              <option value="">Select Location...</option>
+              <option value="Meeting Hall">Meeting Hall</option>
+              <option value="Kitchen">Kitchen</option>
+              <option value="Dining Area">Dining Area</option>
+              <option value="Restrooms">Restrooms</option>
+              <option value="Exterior / Other">Exterior / Other</option>
+            </select>
             <select className="app-input" value={form.status} onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as 'missing' | 'urgent' | 'resolved' }))}>
-              <option value="missing">Reported</option>
-              <option value="urgent">Urgent</option>
+              <option value="missing">Needs Repair</option>
+              <option value="urgent">Urgent Repair</option>
             </select>
           </div>
-          <textarea className="app-input min-h-[120px]" value={form.message} onChange={(e) => setForm((prev) => ({ ...prev, message: e.target.value }))} placeholder="What needs to be fixed?" required />
+          <textarea className="app-input min-h-[120px]" value={form.message} onChange={(e) => setForm((prev) => ({ ...prev, message: e.target.value }))} placeholder="Describe the issue and what needs to be fixed..." required />
           <button type="submit" className="app-button app-button-primary">Post Report</button>
         </form>
       </div>
@@ -112,7 +119,7 @@ export function MaintenanceBoard() {
                   <div className="flex items-center gap-3">
                     <h3 className="text-lg font-semibold">{report.title}</h3>
                     <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${STATUS_STYLES[report.status]}`}>
-                      {report.status === 'missing' ? 'reported' : report.status}
+                      {report.status === 'missing' ? 'Needs Repair' : report.status === 'urgent' ? 'Urgent Repair' : 'Fixed'}
                     </span>
                   </div>
                   <p className="app-muted mt-1 text-sm">
@@ -137,9 +144,9 @@ export function MaintenanceBoard() {
                         [report.id]: { ...draft, status: e.target.value as 'missing' | 'urgent' | 'resolved' },
                       }))}
                     >
-                      <option value="missing">Reported</option>
-                      <option value="urgent">Urgent</option>
-                      <option value="resolved">Resolved</option>
+                      <option value="missing">Needs Repair</option>
+                      <option value="urgent">Urgent Repair</option>
+                      <option value="resolved">Fixed / Resolved</option>
                     </select>
                     <textarea
                       className="app-input min-h-[100px]"

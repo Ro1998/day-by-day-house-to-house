@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useData } from '@/components/DataProvider'
 import { Menu, MenuItem } from '@/types'
-import { FileImage } from 'lucide-react'
+import { FileImage, Send, X } from 'lucide-react'
 import html2canvas from 'html2canvas'
 import { addWeeks, format, startOfWeek } from 'date-fns'
 
@@ -38,17 +38,16 @@ function ArrayInput({
     }
   }, [values, localValue])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setLocalValue(e.target.value)
     onChange(parseNames(e.target.value))
   }
 
   return (
-    <input
-      type="text"
+    <textarea
       value={localValue}
       onChange={handleChange}
-      className={className}
+      className={`${className || ''} min-h-[80px] resize-y w-full`}
       placeholder={placeholder}
       disabled={disabled}
       title={title}
@@ -63,6 +62,7 @@ export function MenuPlanner() {
   const [selectedWeek, setSelectedWeek] = useState(() => getWeekKey(new Date()))
   const [menu, setMenu] = useState<Menu | null>(null)
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [viewingMenu, setViewingMenu] = useState<Menu | null>(null)
   const canManageMenu = currentUser?.role === 'admin' || currentUser?.role === 'coordinator'
   const lastSavedSnapshot = useRef('')
 
@@ -93,9 +93,20 @@ export function MenuPlanner() {
           purchasers: existing.purchasers || [],
         }
       : defaultMenu
-    setMenu(nextMenu)
-    lastSavedSnapshot.current = JSON.stringify(nextMenu)
-    setSaveState(existing ? 'saved' : 'idle')
+
+    setMenu((current) => {
+      if (!current || current.week !== selectedWeek) {
+        setTimeout(() => setSaveState(existing ? 'saved' : 'idle'), 0)
+        lastSavedSnapshot.current = JSON.stringify(nextMenu)
+        return nextMenu
+      }
+      if (!current.id && existing) {
+        setTimeout(() => setSaveState('saved'), 0)
+        lastSavedSnapshot.current = JSON.stringify(nextMenu)
+        return nextMenu
+      }
+      return current
+    })
   }, [menus, selectedWeek])
 
   useEffect(() => {
@@ -148,24 +159,62 @@ export function MenuPlanner() {
   const exportPNG = async () => {
     const element = document.getElementById('menu-table')
     if (element) {
-      const canvas = await html2canvas(element)
+      const originalOverflow = element.style.overflowX
+      const originalWidth = element.style.width
+      element.style.overflowX = 'visible'
+      element.style.width = `${element.scrollWidth}px`
+
+      const canvas = await html2canvas(element, { scale: 2, backgroundColor: null })
+
+      element.style.overflowX = originalOverflow
+      element.style.width = originalWidth
+
       const link = document.createElement('a')
-      link.download = 'menu.png'
+      link.download = `menu-${menu.week}.png`
       link.href = canvas.toDataURL()
       link.click()
     }
   }
 
   const sendWeeklyMenu = async () => {
-    if (!menu) return
-    const lines = (menu.items || []).map((item) => (
-      `${item.day}: Lunch - ${item.lunch || 'TBD'} (${(item.lunchCooks || []).join(', ') || 'TBD'}), Dinner - ${item.dinner || 'TBD'} (${(item.dinnerCooks || []).join(', ') || 'TBD'})`
-    ))
-    await addNotification({
-      title: `Weekly Menu for ${menu.week}`,
-      message: lines.join('\n'),
-      category: 'menu',
-    })
+    const element = document.getElementById('menu-table')
+    if (!element || !menu) return
+
+    const originalOverflow = element.style.overflowX
+    const originalWidth = element.style.width
+    element.style.overflowX = 'visible'
+    element.style.width = `${element.scrollWidth}px`
+
+    try {
+      const canvas = await html2canvas(element, { scale: 2, backgroundColor: null })
+      element.style.overflowX = originalOverflow
+      element.style.width = originalWidth
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) return
+        const file = new File([blob], `menu-${menu.week}.png`, { type: 'image/png' })
+        const fallbackText = `The menu for the week of ${menu.week} is ready.`
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({ title: `Weekly Menu - ${menu.week}`, text: fallbackText, files: [file] })
+            await addNotification({ title: `Weekly Menu for ${menu.week}`, message: fallbackText, category: 'menu' })
+            return
+          } catch (err) {
+            console.log('Share canceled', err)
+          }
+        }
+
+        const link = document.createElement('a')
+        link.download = `menu-${menu.week}.png`
+        link.href = canvas.toDataURL()
+        link.click()
+        await addNotification({ title: `Weekly Menu for ${menu.week}`, message: fallbackText, category: 'menu' })
+      }, 'image/png')
+    } catch (err) {
+      element.style.overflowX = originalOverflow
+      element.style.width = originalWidth
+    }
   }
 
   if (!menu) return <div>Loading...</div>
@@ -211,10 +260,11 @@ export function MenuPlanner() {
               type="button"
               onClick={() => void sendWeeklyMenu()}
               disabled={!canManageMenu}
-              className="app-button app-button-ghost"
+            className="app-button app-button-primary flex items-center space-x-1"
               title="Send this weekly menu as a notification to everyone in the app."
             >
-              Send Menu
+            <Send size={16} />
+            <span>Share & Send</span>
             </button>
           </div>
         </div>
@@ -266,8 +316,8 @@ export function MenuPlanner() {
           />
         </div>
 
-        <div id="menu-table" className="overflow-x-auto">
-          <table className="w-full table-auto border-collapse border border-[var(--border)]">
+        <div id="menu-table" className="overflow-x-auto bg-[var(--surface)] p-2 -mx-2 rounded-xl">
+          <table className="w-full table-auto border-collapse border border-[var(--border)] min-w-[1000px]">
             <thead>
               <tr className="bg-[var(--surface-soft)]">
                 <th className="border border-[var(--border)] p-2">Day</th>
@@ -284,11 +334,10 @@ export function MenuPlanner() {
                     {item.day}
                   </td>
                   <td className="border border-[var(--border)] p-2">
-                    <input
-                      type="text"
+                    <textarea
                       value={item.lunch || ''}
                       onChange={(e) => updateMenuItem(index, 'lunch', e.target.value)}
-                      className="app-input"
+                      className="app-input min-h-[80px] resize-y w-full"
                       placeholder="Lunch menu"
                       disabled={!canManageMenu}
                       title={`Enter the lunch menu for ${item.day}.`}
@@ -305,11 +354,10 @@ export function MenuPlanner() {
                     />
                   </td>
                   <td className="border border-[var(--border)] p-2">
-                    <input
-                      type="text"
+                    <textarea
                       value={item.dinner || ''}
                       onChange={(e) => updateMenuItem(index, 'dinner', e.target.value)}
-                      className="app-input"
+                      className="app-input min-h-[80px] resize-y w-full"
                       placeholder="Dinner menu"
                       disabled={!canManageMenu}
                       title={`Enter the dinner menu for ${item.day}.`}
@@ -339,9 +387,9 @@ export function MenuPlanner() {
             <button
               key={savedMenu.week}
               type="button"
-              onClick={() => setSelectedWeek(savedMenu.week)}
+              onClick={() => setViewingMenu(savedMenu)}
               className={`app-button ${
-                savedMenu.week === selectedWeek ? 'app-button-primary' : 'app-button-ghost'
+                savedMenu.week === selectedWeek ? 'bg-[var(--surface-soft)] border border-[var(--primary)] text-[var(--primary-strong)]' : 'app-button-ghost bg-[var(--surface-soft)] border border-[var(--border)]'
               }`}
               title={`Open the saved menu for the week starting ${savedMenu.week}.`}
             >
@@ -353,6 +401,55 @@ export function MenuPlanner() {
           )}
         </div>
       </div>
+
+      {viewingMenu && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(18,24,18,0.42)] px-4 py-6 backdrop-blur-sm overflow-y-auto">
+          <div className="app-panel w-full max-w-5xl rounded-3xl p-6 shadow-2xl my-auto">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-xl font-semibold">Menu for {viewingMenu.week}</h3>
+              <button onClick={() => setViewingMenu(null)} className="app-button app-button-ghost p-2 rounded-full">
+                <X size={20} />
+              </button>
+            </div>
+            {viewingMenu.purchasers && viewingMenu.purchasers.length > 0 && (
+              <div className="mb-4 text-sm bg-[var(--surface-soft)] px-4 py-3 rounded-2xl border border-[var(--border)]">
+                <span className="font-semibold">Vegetable Purchasers: </span>
+                {viewingMenu.purchasers.join(', ')}
+              </div>
+            )}
+            <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+              <table className="w-full table-auto text-sm text-left">
+                <thead>
+                  <tr className="bg-[var(--surface-soft)]">
+                    <th className="p-3 border-b border-[var(--border)] font-semibold">Day</th>
+                    <th className="p-3 border-b border-[var(--border)] font-semibold">Lunch</th>
+                    <th className="p-3 border-b border-[var(--border)] font-semibold">Cooking Team</th>
+                    <th className="p-3 border-b border-[var(--border)] font-semibold">Dinner</th>
+                    <th className="p-3 border-b border-[var(--border)] font-semibold">Dinner Team</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(viewingMenu.items || []).map((item) => (
+                    <tr key={item.day} className="border-b border-[var(--border)] last:border-0">
+                      <td className="p-3 font-medium border-r border-[var(--border)]">{item.day}</td>
+                      <td className="p-3 border-r border-[var(--border)] whitespace-pre-wrap">{item.lunch || '-'}</td>
+                      <td className="p-3 border-r border-[var(--border)] text-[var(--primary-strong)] font-medium">{item.lunchCooks?.join(', ') || '-'}</td>
+                      <td className="p-3 border-r border-[var(--border)] whitespace-pre-wrap">{item.dinner || '-'}</td>
+                      <td className="p-3 text-[var(--primary-strong)] font-medium">{item.dinnerCooks?.join(', ') || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button onClick={() => setViewingMenu(null)} className="app-button app-button-ghost">Close View</button>
+              {canManageMenu && (
+                <button onClick={() => { setSelectedWeek(viewingMenu.week); setViewingMenu(null); window.scrollTo({ top: 0, behavior: 'smooth' }) }} className="app-button app-button-primary">Edit This Menu</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -28,6 +28,7 @@ export function Dashboard() {
     addMenuSuggestion,
     addAvailability,
     updateMenuSuggestionStatus,
+    supplyReports,
   } = useData()
   const [suggestionForm, setSuggestionForm] = useState({ suggestion: '', preferredDay: '', preferredMeal: '' })
   const [availabilityForm, setAvailabilityForm] = useState({ day: 'Tuesday', meal: 'lunch' as 'lunch' | 'dinner', available: true, note: '' })
@@ -75,6 +76,7 @@ export function Dashboard() {
   const cookingPeople = [...new Set(
     currentWeekMenu?.items?.flatMap((item) => [...(item.lunchCooks || []), ...(item.dinnerCooks || [])]) ?? [],
   )].sort((a, b) => a.localeCompare(b))
+  const pendingMaintenance = supplyReports.filter((report) => (report.category as string) === 'maintenance' && report.status !== 'resolved')
 
   const handleSuggestionSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -237,28 +239,48 @@ export function Dashboard() {
           </div>
         </div>
 
-        <div className="app-panel rounded-3xl p-6">
-          <h3 className="mb-4 text-lg font-semibold">Notifications</h3>
-          <div className="space-y-3">
-            {notifications.slice(0, 5).map((notification) => {
-              const isUnread = unreadNotifications.some(n => n.id === notification.id)
-              return (
-              <div 
-                key={notification.id} 
-                className={`rounded-2xl ${isUnread ? 'bg-[var(--primary)]/10 cursor-pointer' : 'bg-[var(--surface-soft)]'} p-4`}
-                onClick={() => isUnread && markNotificationAsRead(notification.id)}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="font-semibold">
-                    {notification.title}
-                    {isUnread && <span className="ml-2 inline-block h-2 w-2 rounded-full bg-[var(--primary-strong)]"></span>}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="app-panel rounded-3xl p-6">
+            <h3 className="mb-4 text-lg font-semibold">Notifications</h3>
+            <div className="space-y-3">
+              {notifications.slice(0, 5).map((notification) => {
+                const isUnread = unreadNotifications.some(n => n.id === notification.id)
+                return (
+                <div 
+                  key={notification.id} 
+                  className={`rounded-2xl ${isUnread ? 'bg-[var(--primary)]/10 cursor-pointer' : 'bg-[var(--surface-soft)]'} p-4`}
+                  onClick={() => isUnread && markNotificationAsRead(notification.id)}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="font-semibold">
+                      {notification.title}
+                      {isUnread && <span className="ml-2 inline-block h-2 w-2 rounded-full bg-[var(--primary-strong)]"></span>}
+                    </div>
+                    <span className="app-muted text-xs">{new Date(notification.createdAt).toLocaleString()}</span>
                   </div>
-                  <span className="app-muted text-xs">{new Date(notification.createdAt).toLocaleString()}</span>
+                  <div className="app-muted mt-2 text-sm">{notification.message}</div>
                 </div>
-                <div className="app-muted mt-2 text-sm">{notification.message}</div>
-              </div>
-            )})}
-            {notifications.length === 0 && <div className="app-muted text-sm">No notifications yet.</div>}
+              )})}
+              {notifications.length === 0 && <div className="app-muted text-sm">No notifications yet.</div>}
+            </div>
+          </div>
+          
+          <div className="app-panel rounded-3xl p-6">
+            <h3 className="mb-4 text-lg font-semibold">Pending Maintenance</h3>
+            <div className="space-y-3">
+              {pendingMaintenance.slice(0, 5).map((report) => (
+                <div key={report.id} className="rounded-2xl bg-[var(--surface-soft)] p-4">
+                  <div className="flex items-center gap-2">
+                    <div className="font-semibold">{report.title}</div>
+                    {report.status === 'urgent' && <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800">URGENT</span>}
+                  </div>
+                  <div className="app-muted text-sm">
+                    {report.itemName ? `${report.itemName} | ` : ''}Reported by {report.createdBy}
+                  </div>
+                </div>
+              ))}
+              {pendingMaintenance.length === 0 && <p className="app-muted text-sm">No pending repair items.</p>}
+            </div>
           </div>
         </div>
 
@@ -408,28 +430,48 @@ export function Dashboard() {
         </div>
       </div>
 
-      <div className="app-panel rounded-3xl p-6">
-        <h3 className="mb-4 text-lg font-semibold">Recent Notifications</h3>
-        <div className="space-y-3">
-          {notifications.slice(0, 5).map((notification) => {
-            const isUnread = unreadNotifications.some(n => n.id === notification.id)
-            return (
-            <div 
-              key={notification.id} 
-              className={`rounded-2xl ${isUnread ? 'bg-[var(--primary)]/10 cursor-pointer' : 'bg-[var(--surface-soft)]'} p-4`}
-              onClick={() => isUnread && markNotificationAsRead(notification.id)}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="font-semibold">
-                  {notification.title}
-                  {isUnread && <span className="ml-2 inline-block h-2 w-2 rounded-full bg-[var(--primary-strong)]"></span>}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="app-panel rounded-3xl p-6">
+          <h3 className="mb-4 text-lg font-semibold">Recent Notifications</h3>
+          <div className="space-y-3">
+            {notifications.slice(0, 5).map((notification) => {
+              const isUnread = unreadNotifications.some(n => n.id === notification.id)
+              return (
+              <div 
+                key={notification.id} 
+                className={`rounded-2xl ${isUnread ? 'bg-[var(--primary)]/10 cursor-pointer' : 'bg-[var(--surface-soft)]'} p-4`}
+                onClick={() => isUnread && markNotificationAsRead(notification.id)}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="font-semibold">
+                    {notification.title}
+                    {isUnread && <span className="ml-2 inline-block h-2 w-2 rounded-full bg-[var(--primary-strong)]"></span>}
+                  </div>
+                  <span className="app-muted text-xs">{new Date(notification.createdAt).toLocaleString()}</span>
                 </div>
-                <span className="app-muted text-xs">{new Date(notification.createdAt).toLocaleString()}</span>
+                <div className="app-muted mt-2 text-sm">{notification.message}</div>
               </div>
-              <div className="app-muted mt-2 text-sm">{notification.message}</div>
-            </div>
-          )})}
-          {notifications.length === 0 && <p className="app-muted text-sm">No notifications sent yet.</p>}
+            )})}
+            {notifications.length === 0 && <p className="app-muted text-sm">No notifications sent yet.</p>}
+          </div>
+        </div>
+        
+        <div className="app-panel rounded-3xl p-6">
+          <h3 className="mb-4 text-lg font-semibold">Pending Maintenance</h3>
+          <div className="space-y-3">
+            {pendingMaintenance.slice(0, 5).map((report) => (
+              <div key={report.id} className="rounded-2xl bg-[var(--surface-soft)] p-4">
+                <div className="flex items-center gap-2">
+                  <div className="font-semibold">{report.title}</div>
+                  {report.status === 'urgent' && <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800">URGENT</span>}
+                </div>
+                <div className="app-muted text-sm">
+                  {report.itemName ? `${report.itemName} | ` : ''}Reported by {report.createdBy}
+                </div>
+              </div>
+            ))}
+            {pendingMaintenance.length === 0 && <p className="app-muted text-sm">No pending repair items.</p>}
+          </div>
         </div>
       </div>
 
