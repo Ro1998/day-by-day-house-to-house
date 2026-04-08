@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shared-house-hub-v1';
+const CACHE_NAME = 'family-app-v2';
 const APP_SHELL = ['/', '/manifest.json', '/icon.svg', '/apple-touch-icon.svg'];
 
 self.addEventListener('install', (event) => {
@@ -18,19 +18,30 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) return cachedResponse;
+  const requestUrl = new URL(event.request.url);
+  const isAppAsset = requestUrl.origin === self.location.origin;
 
-      return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-          return networkResponse;
+  event.respondWith(
+    fetch(event.request, { cache: 'no-store' })
+      .then((networkResponse) => {
+        if (
+          isAppAsset &&
+          networkResponse &&
+          networkResponse.status === 200 &&
+          (networkResponse.type === 'basic' || networkResponse.type === 'default')
+        ) {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
         }
 
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
         return networkResponse;
-      });
-    })
+      })
+      .catch(() => caches.match(event.request).then((cachedResponse) => cachedResponse || caches.match('/')))
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
