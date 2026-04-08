@@ -14,7 +14,6 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarEle
 export function Dashboard() {
   const {
     expenses,
-    balance,
     monthlyBalance,
     activities,
     currentUser,
@@ -57,7 +56,7 @@ export function Dashboard() {
     labels: ['Cash In', 'Cash Out', 'Balance'],
     datasets: [{
       label: 'Amount',
-      data: [cashIn, cashOut, balance],
+      data: [cashIn, cashOut, monthlyBalance],
       backgroundColor: ['#4CAF50', '#F44336', '#2196F3'],
     }],
   }
@@ -386,14 +385,11 @@ export function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-5">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
         <div className="app-panel rounded-3xl p-6">
-          <h3 className="text-lg font-semibold mb-2">Balance</h3>
-          <p className="text-2xl font-bold text-[var(--primary-strong)]">{formatCurrency(balance)}</p>
-        </div>
-        <div className="app-panel rounded-3xl p-6">
-          <h3 className="text-lg font-semibold mb-2">This Month&apos;s Balance</h3>
+          <h3 className="text-lg font-semibold mb-2">Remaining Balance</h3>
           <p className="text-2xl font-bold text-[var(--primary)]">{formatCurrency(monthlyBalance)}</p>
+          <p className="app-muted mt-2 text-sm">This month&apos;s income minus this month&apos;s expenses.</p>
         </div>
         <div className="app-panel rounded-3xl p-6">
           <h3 className="text-lg font-semibold mb-2">Status</h3>

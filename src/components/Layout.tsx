@@ -128,22 +128,6 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
 
   return (
     <div className="app-shell">
-      <div
-        className={`fixed right-3 top-3 z-[110] inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold shadow-lg sm:right-4 sm:top-4 ${
-          loading || isSyncing
-            ? 'border-[var(--primary)]/30 bg-[var(--surface)] text-[var(--primary-strong)]'
-            : 'border-emerald-500/20 bg-emerald-500/95 text-white'
-        }`}
-        title={syncTitle}
-      >
-        {loading || isSyncing ? (
-          <RefreshCw size={14} className="animate-spin" />
-        ) : (
-          <BadgeCheck size={14} />
-        )}
-        <span>{syncLabel}</span>
-      </div>
-
       {showInstallPrompt && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[rgba(18,24,18,0.48)] px-4 backdrop-blur-sm">
           <div className="app-panel w-full max-w-md rounded-[2rem] p-6 shadow-2xl">
@@ -210,8 +194,23 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="relative z-50 flex items-start justify-between py-4 md:items-center md:py-6">
             <div className="flex-1 pr-4 min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-3">
                 <BrandLogo />
+                <div
+                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                    loading || isSyncing
+                      ? 'border-[var(--primary)]/30 bg-[var(--surface-soft)] text-[var(--primary-strong)]'
+                      : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                  }`}
+                  title={syncTitle}
+                >
+                  {loading || isSyncing ? (
+                    <RefreshCw size={14} className="animate-spin" />
+                  ) : (
+                    <BadgeCheck size={14} />
+                  )}
+                  <span>{syncLabel}</span>
+                </div>
               </div>
               <p className="app-muted mt-3 hidden text-sm sm:block max-w-2xl">
                 And <span className="font-bold text-[var(--primary-strong)]">day by day</span>, continuing steadfastly with one accord in the temple and breaking bread <span className="font-bold text-[var(--primary-strong)]">from house to house, they partook of their food with exultation and simplicity of heart</span>
