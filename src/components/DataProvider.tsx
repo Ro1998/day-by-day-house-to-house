@@ -105,10 +105,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [deletedExpense, setDeletedExpense] = useState<Expense | null>(null)
+  const [refreshTick, setRefreshTick] = useState(0)
 
   const authHeaders = (): Record<string, string> => (
     currentUser ? { 'x-user-id': currentUser.id } : {}
   )
+
+  const triggerRefresh = () => setRefreshTick((tick) => tick + 1)
 
   const readJson = async <T,>(res: Response, fallbackMessage: string): Promise<T> => {
     let payload: T | ApiError | null = null
@@ -162,6 +165,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
         const usersRes = await fetch('/api/users', {
           headers: authHeaders(),
+          cache: 'no-store',
         })
         if (usersRes.ok) {
           const usersData = await readJson<User[]>(usersRes, 'Failed to load users')
@@ -184,15 +188,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }
 
         const [expensesRes, paymentsRes, menusRes, activitiesRes, inventoryRes, notificationsRes, suggestionsRes, availabilitiesRes, supplyReportsRes] = await Promise.all([
-          fetch('/api/expenses', { headers: authHeaders() }),
-          fetch('/api/monthly-payments', { headers: authHeaders() }),
-          fetch('/api/menus', { headers: authHeaders() }),
-          fetch('/api/activities', { headers: authHeaders() }),
-          fetch('/api/inventory', { headers: authHeaders() }),
-          fetch('/api/notifications', { headers: authHeaders() }),
-          fetch('/api/menu-suggestions', { headers: authHeaders() }),
-          fetch('/api/availability', { headers: authHeaders() }),
-          fetch('/api/supply-reports', { headers: authHeaders() }),
+          fetch('/api/expenses', { headers: authHeaders(), cache: 'no-store' }),
+          fetch('/api/monthly-payments', { headers: authHeaders(), cache: 'no-store' }),
+          fetch('/api/menus', { headers: authHeaders(), cache: 'no-store' }),
+          fetch('/api/activities', { headers: authHeaders(), cache: 'no-store' }),
+          fetch('/api/inventory', { headers: authHeaders(), cache: 'no-store' }),
+          fetch('/api/notifications', { headers: authHeaders(), cache: 'no-store' }),
+          fetch('/api/menu-suggestions', { headers: authHeaders(), cache: 'no-store' }),
+          fetch('/api/availability', { headers: authHeaders(), cache: 'no-store' }),
+          fetch('/api/supply-reports', { headers: authHeaders(), cache: 'no-store' }),
         ])
 
         const expensesData = await readJson<Expense[]>(expensesRes, 'Failed to load expenses')
@@ -262,12 +266,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
 
     loadData()
-    const intervalId = setInterval(loadData, 5000)
+    const intervalId = setInterval(loadData, 2000)
     return () => {
       clearInterval(intervalId)
       isMounted = false
     }
-  }, [currentUser?.id])
+  }, [currentUser?.id, refreshTick])
 
   useEffect(() => {
     if (currentUser) {
@@ -813,6 +817,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       })
       const createdAvailabilities = await readJson<Availability[]>(res, 'Failed to add availability')
       setAvailabilities((prev) => [...createdAvailabilities, ...prev])
+      triggerRefresh()
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Failed to add availability')
     }
@@ -829,6 +834,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       })
       await readJson<{ success: boolean }>(res, 'Failed to review availability')
       setAvailabilities((prev) => prev.filter((entry) => !ids.includes(entry.id)))
+      triggerRefresh()
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Failed to review availability')
     }
@@ -845,6 +851,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       })
       const report = await readJson<SupplyReport>(res, 'Failed to create supply report')
       setSupplyReports((prev) => [report, ...prev])
+      triggerRefresh()
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Failed to create supply report')
     }
@@ -861,6 +868,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       })
       const report = await readJson<SupplyReport>(res, 'Failed to update supply report')
       setSupplyReports((prev) => prev.map((entry) => entry.id === report.id ? report : entry))
+      triggerRefresh()
 
       if (input.status === 'resolved' && (report as any).createdBy) {
         await addNotification({

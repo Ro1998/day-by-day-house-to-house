@@ -1,6 +1,6 @@
 {
-  "name": "Shared House Hub",
-  "short_name": "House Hub",
+  "name": "Family",
+  "short_name": "Family",
   "description": "Shared home planning, food money tracking, supplies, and daily coordination.",
   "start_url": "/",
   "scope": "/",

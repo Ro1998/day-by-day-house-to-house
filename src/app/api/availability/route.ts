@@ -24,7 +24,11 @@ export async function GET(request: Request) {
       include: { user: true },
       orderBy: [{ week: 'desc' }, { createdAt: 'desc' }],
     })
-    return NextResponse.json(availabilities.map(serializeAvailability))
+    return NextResponse.json(availabilities.map(serializeAvailability), {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      },
+    })
   } catch (error) {
     return apiError('availability.GET', error, 'Failed to fetch availability')
   }

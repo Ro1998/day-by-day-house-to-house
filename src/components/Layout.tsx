@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTheme } from './ThemeProvider'
 import { useData } from './DataProvider'
 import { BadgeCheck, Bell, Boxes, Download, Home, MenuSquare, Moon, Receipt, Settings2, Share, Smartphone, Sun, Wallet, Menu as MenuIcon, X, Wrench, RefreshCw } from 'lucide-react'
@@ -28,6 +28,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
   const [installPromptMode, setInstallPromptMode] = useState<'native' | 'ios' | 'manual' | null>(null)
+  const profileMenuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (isMobileMenuOpen) {
@@ -43,6 +44,25 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
       setEditProfileForm({ name: currentUser.name, phone: (currentUser as any).phone || '' })
     }
   }, [currentUser])
+
+  useEffect(() => {
+    if (!isProfileMenuOpen) return
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      if (!profileMenuRef.current) return
+      const target = event.target
+      if (target instanceof Node && !profileMenuRef.current.contains(target)) {
+        setIsProfileMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('touchstart', handlePointerDown)
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('touchstart', handlePointerDown)
+    }
+  }, [isProfileMenuOpen])
 
   useEffect(() => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as Navigator & { standalone?: boolean }).standalone === true
@@ -141,7 +161,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
                 <div>
                   <h3 className="text-xl font-semibold">Install on your phone</h3>
                   <p className="app-muted mt-2 text-sm">
-                    Open Shared House Hub from your home screen and use it like an app.
+                    Open Family from your home screen and use it like an app.
                   </p>
                 </div>
               </div>
@@ -190,7 +210,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
           </div>
         </div>
       )}
-      <header className={`sticky top-0 z-50 border-b border-[var(--border)] ${isMobileMenuOpen ? 'bg-white dark:bg-[#121812]' : 'bg-[var(--surface)]/95 backdrop-blur-xl'}`}>
+      <header className={`sticky top-0 z-50 border-b border-[var(--border)] ${isMobileMenuOpen ? 'bg-white dark:bg-[#121812]' : 'bg-[var(--surface-strong)]/98 backdrop-blur-md shadow-[0_10px_30px_rgba(18,24,18,0.08)]'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="relative z-50 flex items-start justify-between py-4 md:items-center md:py-6">
             <div className="flex-1 pr-4 min-w-0">
@@ -236,7 +256,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
               </button>
 
               {currentUser && (
-                <div className="relative z-[60]">
+                <div className="relative z-[60]" ref={profileMenuRef}>
                   <button
                     onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                     className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-[var(--primary)]/20 font-bold text-[var(--primary-strong)] transition-transform hover:scale-105"

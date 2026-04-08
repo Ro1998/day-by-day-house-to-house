@@ -105,7 +105,7 @@ export interface Availability {
 export interface SupplyReport {
   id: string
   title: string
-  category: 'grocery' | 'vegetable'
+  category: 'grocery' | 'vegetable' | 'maintenance'
   itemName?: string | null
   message: string
   status: 'missing' | 'urgent' | 'resolved'

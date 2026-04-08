@@ -113,7 +113,9 @@ export function Dashboard() {
   const cookingPeople = [...new Set(
     currentWeekMenu?.items?.flatMap((item) => [...(item.lunchCooks || []), ...(item.dinnerCooks || [])]) ?? [],
   )].sort((a, b) => a.localeCompare(b))
-  const pendingMaintenance = supplyReports.filter((report) => (report.category as string) === 'maintenance' && report.status !== 'resolved')
+  const dashboardReports = supplyReports.filter((report) => (
+    report.category === 'maintenance' || report.category === 'grocery' || report.category === 'vegetable'
+  ))
 
   const handleSuggestionSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -334,20 +336,27 @@ export function Dashboard() {
           </div>
           
           <div className="app-panel rounded-3xl p-6">
-            <h3 className="mb-4 text-lg font-semibold">Pending Maintenance</h3>
+            <h3 className="mb-4 text-lg font-semibold">Maintenance And Shortage Reports</h3>
             <div className="space-y-3">
-              {pendingMaintenance.slice(0, 5).map((report) => (
+              {dashboardReports.map((report) => (
                 <div key={report.id} className="rounded-2xl bg-[var(--surface-soft)] p-4">
                   <div className="flex items-center gap-2">
                     <div className="font-semibold">{report.title}</div>
                     {report.status === 'urgent' && <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800">URGENT</span>}
+                    {report.status === 'resolved' && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">RESOLVED</span>}
                   </div>
                   <div className="app-muted text-sm">
-                    {report.itemName ? `${report.itemName} | ` : ''}Reported by {report.createdBy}
+                    {report.category} {report.itemName ? `| ${report.itemName}` : ''} | Reported by {report.createdBy}
                   </div>
+                  <div className="mt-2 text-sm">{report.message}</div>
+                  {report.response && (
+                    <div className="app-muted mt-2 text-sm">
+                      Reply: {report.response}
+                    </div>
+                  )}
                 </div>
               ))}
-              {pendingMaintenance.length === 0 && <p className="app-muted text-sm">No pending repair items.</p>}
+              {dashboardReports.length === 0 && <p className="app-muted text-sm">No maintenance or shortage reports yet.</p>}
             </div>
           </div>
         </div>
@@ -572,20 +581,23 @@ export function Dashboard() {
         </div>
         
         <div className="app-panel rounded-3xl p-6">
-          <h3 className="mb-4 text-lg font-semibold">Pending Maintenance</h3>
+          <h3 className="mb-4 text-lg font-semibold">Maintenance And Shortage Reports</h3>
           <div className="space-y-3">
-            {pendingMaintenance.slice(0, 5).map((report) => (
+            {dashboardReports.map((report) => (
               <div key={report.id} className="rounded-2xl bg-[var(--surface-soft)] p-4">
                 <div className="flex items-center gap-2">
                   <div className="font-semibold">{report.title}</div>
                   {report.status === 'urgent' && <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800">URGENT</span>}
+                  {report.status === 'resolved' && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">RESOLVED</span>}
                 </div>
                 <div className="app-muted text-sm">
-                  {report.itemName ? `${report.itemName} | ` : ''}Reported by {report.createdBy}
+                  {report.category} {report.itemName ? `| ${report.itemName}` : ''} | Reported by {report.createdBy}
                 </div>
+                <div className="mt-2 text-sm">{report.message}</div>
+                {report.response && <div className="app-muted mt-2 text-sm">Reply: {report.response}</div>}
               </div>
             ))}
-            {pendingMaintenance.length === 0 && <p className="app-muted text-sm">No pending repair items.</p>}
+            {dashboardReports.length === 0 && <p className="app-muted text-sm">No maintenance or shortage reports yet.</p>}
           </div>
         </div>
       </div>

@@ -25,7 +25,11 @@ export async function GET(request: Request) {
       include: { createdBy: true },
       orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
     })
-    return NextResponse.json(reports.map(serializeReport))
+    return NextResponse.json(reports.map(serializeReport), {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      },
+    })
   } catch (error) {
     return apiError('supply-reports.GET', error, 'Failed to fetch supply reports')
   }

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Shared House Hub',
+    title: 'Family',
   },
   icons: {
     icon: '/icon.svg',
