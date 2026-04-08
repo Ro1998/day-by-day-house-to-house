@@ -114,7 +114,11 @@ export function Dashboard() {
                   <h3 className="text-lg font-semibold">{notification.title}</h3>
                   <span className="app-muted text-xs">{new Date(notification.createdAt).toLocaleString()}</span>
                 </div>
-                <p className="text-sm">{notification.message}</p>
+                {notification.message.startsWith('[MENU_IMAGE]') ? (
+                  <img src={notification.message.replace('[MENU_IMAGE]', '')} alt="Weekly Menu" className="mt-2 w-full rounded-xl border border-[var(--border)] object-contain max-h-96" />
+                ) : (
+                  <p className="text-sm">{notification.message}</p>
+                )}
                 <p className="app-muted mt-2 text-xs">From {notification.createdBy}</p>
               </div>
             ))}
@@ -258,7 +262,11 @@ export function Dashboard() {
                     </div>
                     <span className="app-muted text-xs">{new Date(notification.createdAt).toLocaleString()}</span>
                   </div>
-                  <div className="app-muted mt-2 text-sm">{notification.message}</div>
+                  {notification.message.startsWith('[MENU_IMAGE]') ? (
+                    <img src={notification.message.replace('[MENU_IMAGE]', '')} alt="Weekly Menu" className="mt-3 w-full rounded-xl border border-[var(--border)] object-contain max-h-48" />
+                  ) : (
+                    <div className="app-muted mt-2 text-sm">{notification.message}</div>
+                  )}
                 </div>
               )})}
               {notifications.length === 0 && <div className="app-muted text-sm">No notifications yet.</div>}
@@ -306,7 +314,11 @@ export function Dashboard() {
                 <h3 className="text-lg font-semibold">{notification.title}</h3>
                 <span className="app-muted text-xs">{new Date(notification.createdAt).toLocaleString()}</span>
               </div>
-              <p className="text-sm">{notification.message}</p>
+              {notification.message.startsWith('[MENU_IMAGE]') ? (
+                <img src={notification.message.replace('[MENU_IMAGE]', '')} alt="Weekly Menu" className="mt-2 w-full rounded-xl border border-[var(--border)] object-contain max-h-96" />
+              ) : (
+                <p className="text-sm">{notification.message}</p>
+              )}
               <p className="app-muted mt-2 text-xs">From {notification.createdBy}</p>
             </div>
           ))}
@@ -449,7 +461,11 @@ export function Dashboard() {
                   </div>
                   <span className="app-muted text-xs">{new Date(notification.createdAt).toLocaleString()}</span>
                 </div>
-                <div className="app-muted mt-2 text-sm">{notification.message}</div>
+                {notification.message.startsWith('[MENU_IMAGE]') ? (
+                  <img src={notification.message.replace('[MENU_IMAGE]', '')} alt="Weekly Menu" className="mt-3 w-full rounded-xl border border-[var(--border)] object-contain max-h-48" />
+                ) : (
+                  <div className="app-muted mt-2 text-sm">{notification.message}</div>
+                )}
               </div>
             )})}
             {notifications.length === 0 && <p className="app-muted text-sm">No notifications sent yet.</p>}

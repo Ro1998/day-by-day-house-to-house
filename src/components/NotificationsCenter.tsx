@@ -72,6 +72,11 @@ export function NotificationsCenter() {
                 placeholder="Title"
                 required
               />
+                {editingNotification.message.startsWith('[MENU_IMAGE]') ? (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                    This is an image notification. Editing the text will break the image unless you know what you are doing.
+                  </div>
+                ) : null}
               <textarea
                 className="app-input min-h-[140px]"
                 value={editingNotification.message}
@@ -132,7 +137,11 @@ export function NotificationsCenter() {
                 </h3>
                 <span className="app-muted text-xs">{new Date(notification.createdAt).toLocaleString()}</span>
               </div>
-              <p className="mt-2 text-sm">{notification.message}</p>
+              {notification.message.startsWith('[MENU_IMAGE]') ? (
+                <img src={notification.message.replace('[MENU_IMAGE]', '')} alt="Weekly Menu" className="mt-3 w-full rounded-xl border border-[var(--border)] object-contain max-h-96" />
+              ) : (
+                <p className="mt-2 text-sm">{notification.message}</p>
+              )}
               <p className="app-muted mt-2 text-xs">From {notification.createdBy}</p>
               {canSend && (
                 <div className="mt-4 flex gap-3">

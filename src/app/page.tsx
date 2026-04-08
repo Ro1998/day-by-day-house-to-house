@@ -11,6 +11,7 @@ import { MonthlyFoodMoney } from '@/components/MonthlyFoodMoney'
 import { MenuPlanner } from '@/components/MenuPlanner'
 import { NotificationsCenter } from '@/components/NotificationsCenter'
 import { UserManagement } from '@/components/UserManagement'
+import { MaintenanceBoard } from '@/components/MaintenanceBoard'
 
 export default function Home() {
   const { currentUser } = useData()
@@ -28,6 +29,8 @@ export default function Home() {
         return currentUser?.role === 'admin' || currentUser?.role === 'coordinator' ? <InventoryManager /> : <Dashboard />
       case 'monthly':
         return <MonthlyFoodMoney />
+              case 'maintenance':
+                return <MaintenanceBoard />
       case 'menu':
         return <MenuPlanner />
       case 'users':

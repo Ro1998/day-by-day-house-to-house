@@ -157,17 +157,22 @@ export function MenuPlanner() {
   }
 
   const exportPNG = async () => {
-    const element = document.getElementById('menu-table')
-    if (element && menu) {
-      const originalOverflow = element.style.overflowX
-      const originalWidth = element.style.width
-      element.style.overflowX = 'visible'
-      element.style.width = `${element.scrollWidth}px`
+    const wrapper = document.getElementById('menu-export-area')
+    const tableContainer = document.getElementById('menu-table-container')
+    if (wrapper && tableContainer && menu) {
+      const originalOverflow = tableContainer.style.overflowX
+      const originalWidth = tableContainer.style.width
+      tableContainer.style.overflowX = 'visible'
+      tableContainer.style.width = `${tableContainer.scrollWidth}px`
 
-      const canvas = await html2canvas(element, { scale: 2, backgroundColor: null })
+      const originalWrapperWidth = wrapper.style.width
+      wrapper.style.width = `${tableContainer.scrollWidth + 32}px`
 
-      element.style.overflowX = originalOverflow
-      element.style.width = originalWidth
+      const canvas = await html2canvas(wrapper, { scale: 2, backgroundColor: '#ffffff' })
+
+      tableContainer.style.overflowX = originalOverflow
+      tableContainer.style.width = originalWidth
+      wrapper.style.width = originalWrapperWidth
 
       const link = document.createElement('a')
       link.download = `menu-${menu.week}.png`
@@ -177,28 +182,36 @@ export function MenuPlanner() {
   }
 
   const sendWeeklyMenu = async () => {
-    const element = document.getElementById('menu-table')
-    if (!element || !menu) return
+    const wrapper = document.getElementById('menu-export-area')
+    const tableContainer = document.getElementById('menu-table-container')
+    if (!wrapper || !tableContainer || !menu) return
 
-    const originalOverflow = element.style.overflowX
-    const originalWidth = element.style.width
-    element.style.overflowX = 'visible'
-    element.style.width = `${element.scrollWidth}px`
+    const originalOverflow = tableContainer.style.overflowX
+    const originalWidth = tableContainer.style.width
+    tableContainer.style.overflowX = 'visible'
+    tableContainer.style.width = `${tableContainer.scrollWidth}px`
+
+    const originalWrapperWidth = wrapper.style.width
+    wrapper.style.width = `${tableContainer.scrollWidth + 32}px`
 
     try {
-      const canvas = await html2canvas(element, { scale: 2, backgroundColor: null })
-      element.style.overflowX = originalOverflow
-      element.style.width = originalWidth
+      const canvas = await html2canvas(wrapper, { scale: 2, backgroundColor: '#ffffff' })
+      tableContainer.style.overflowX = originalOverflow
+      tableContainer.style.width = originalWidth
+      wrapper.style.width = originalWrapperWidth
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
 
       canvas.toBlob(async (blob) => {
         if (!blob) return
-        const file = new File([blob], `menu-${menu.week}.png`, { type: 'image/png' })
+        const file = new File([blob], `menu-${menu.week}.jpg`, { type: 'image/jpeg' })
         const fallbackText = `The menu for the week of ${menu.week} is ready.`
+        const notificationMessage = `[MENU_IMAGE]${dataUrl}`
 
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({ title: `Weekly Menu - ${menu.week}`, text: fallbackText, files: [file] })
-            await addNotification({ title: `Weekly Menu for ${menu.week}`, message: fallbackText, category: 'menu' })
+            await addNotification({ title: `Weekly Menu for ${menu.week}`, message: notificationMessage, category: 'menu' })
             return
           } catch (err) {
             console.log('Share canceled', err)
@@ -206,14 +219,15 @@ export function MenuPlanner() {
         }
 
         const link = document.createElement('a')
-        link.download = `menu-${menu.week}.png`
-        link.href = canvas.toDataURL()
+        link.download = `menu-${menu.week}.jpg`
+        link.href = dataUrl
         link.click()
-        await addNotification({ title: `Weekly Menu for ${menu.week}`, message: fallbackText, category: 'menu' })
-      }, 'image/png')
+        await addNotification({ title: `Weekly Menu for ${menu.week}`, message: notificationMessage, category: 'menu' })
+      }, 'image/jpeg', 0.8)
     } catch (err) {
-      element.style.overflowX = originalOverflow
-      element.style.width = originalWidth
+      tableContainer.style.overflowX = originalOverflow
+      tableContainer.style.width = originalWidth
+      wrapper.style.width = originalWrapperWidth
     }
   }
 
@@ -304,20 +318,21 @@ export function MenuPlanner() {
           </div>
         </div>
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Vegetable Purchasers (2 people)</label>
-          <ArrayInput
-            values={menu.purchasers || []}
-            onChange={(purchasers) => setMenu({ ...menu, purchasers })}
-            className="app-input"
-            placeholder="Enter purchaser names separated by commas"
-            disabled={!canManageMenu}
-            title="List the people responsible for buying vegetables this week."
-          />
-        </div>
+        <div id="menu-export-area" className="bg-[var(--surface)] p-4 -mx-4 rounded-2xl">
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Vegetable Purchasers (2 people)</label>
+            <ArrayInput
+              values={menu.purchasers || []}
+              onChange={(purchasers) => setMenu({ ...menu, purchasers })}
+              className="app-input"
+              placeholder="Enter purchaser names separated by commas"
+              disabled={!canManageMenu}
+              title="List the people responsible for buying vegetables this week."
+            />
+          </div>
 
-        <div id="menu-table" className="overflow-x-auto bg-[var(--surface)] p-2 -mx-2 rounded-xl">
-          <table className="w-full table-auto border-collapse border border-[var(--border)] min-w-[1000px]">
+          <div id="menu-table-container" className="overflow-x-auto bg-[var(--surface)] p-2 -mx-2 rounded-xl">
+            <table className="w-full table-auto border-collapse border border-[var(--border)] min-w-[1000px]">
             <thead>
               <tr className="bg-[var(--surface-soft)]">
                 <th className="border border-[var(--border)] p-2">Day</th>
@@ -377,6 +392,7 @@ export function MenuPlanner() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 

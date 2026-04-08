@@ -437,43 +437,46 @@ export function MonthlyFoodMoney() {
                   </td>
                   {canManageEntries && (
                     <td className="p-2 text-right">
-                      <div className="relative inline-block text-left">
+                      {openMenuId === payment.id ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingPayment({
+                                ...payment,
+                                amountStr: String(payment.amount),
+                                mealCountStr: payment.paymentType === 'per-meal' ? String(payment.amount) : '',
+                              })
+                              setOpenMenuId(null)
+                            }}
+                            className="app-button app-button-ghost px-3 py-1.5 text-xs"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setPendingDelete(payment); setOpenMenuId(null); }}
+                            className="app-button border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 px-3 py-1.5 text-xs"
+                          >
+                            Delete
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setOpenMenuId(null)}
+                            className="app-button app-button-ghost px-2 py-1.5 text-xs text-gray-500"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
                         <button
                           type="button"
-                          onClick={() => setOpenMenuId(openMenuId === payment.id ? null : payment.id)}
+                          onClick={() => setOpenMenuId(payment.id)}
                           className="p-2 app-button-ghost rounded-full hover:bg-[var(--surface-soft)]"
                         >
                           <MoreVertical size={16} />
                         </button>
-                        {openMenuId === payment.id && (
-                          <>
-                            <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)} />
-                            <div className="absolute right-0 mt-2 w-32 rounded-xl bg-[var(--surface)] border border-[var(--border)] shadow-xl z-50 p-1">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditingPayment({
-                                    ...payment,
-                                    amountStr: String(payment.amount),
-                                    mealCountStr: payment.paymentType === 'per-meal' ? String(payment.amount) : '',
-                                  })
-                                  setOpenMenuId(null)
-                                }}
-                                className="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-[var(--surface-soft)] transition-colors"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => { setPendingDelete(payment); setOpenMenuId(null); }}
-                                className="w-full text-left px-3 py-2 text-sm text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
+                      )}
                     </td>
                   )}
                 </tr>
