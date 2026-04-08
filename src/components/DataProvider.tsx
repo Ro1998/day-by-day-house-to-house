@@ -145,7 +145,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setMenuSuggestions([])
           setAvailabilities([])
           setSupplyReports([])
-          isPolling = false
           return
         }
 
@@ -243,8 +242,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       } finally {
         if (isMounted) {
           setLoading(false)
-          isPolling = false
         }
+        isPolling = false
       }
     }
 
