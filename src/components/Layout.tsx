@@ -27,7 +27,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   const canManageOperations = currentUser?.role === 'admin' || currentUser?.role === 'coordinator'
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
-  const [installPromptMode, setInstallPromptMode] = useState<'native' | 'ios' | null>(null)
+  const [installPromptMode, setInstallPromptMode] = useState<'native' | 'ios' | 'manual' | null>(null)
 
   useEffect(() => {
     if (isMobileMenuOpen) {
@@ -48,11 +48,13 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as Navigator & { standalone?: boolean }).standalone === true
     const isIOS = /iPhone|iPad|iPod/i.test(window.navigator.userAgent)
     const isMobile = /Android|iPhone|iPad|iPod/i.test(window.navigator.userAgent)
-    const installDismissed = window.localStorage.getItem('install_prompt_dismissed') === 'true'
+    const installDismissed = window.sessionStorage.getItem('install_prompt_seen_v2') === 'true'
 
-    if (!isStandalone && !installDismissed && isIOS && isMobile) {
-      setInstallPromptMode('ios')
-      setShowInstallPrompt(true)
+    if (!isStandalone && !installDismissed && isMobile) {
+      window.setTimeout(() => {
+        setInstallPromptMode(isIOS ? 'ios' : 'manual')
+        setShowInstallPrompt(true)
+      }, 1200)
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -95,7 +97,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
       const { outcome } = await deferredPrompt.userChoice
       if (outcome === 'accepted') {
         setShowInstallPrompt(false)
-        window.localStorage.setItem('install_prompt_dismissed', 'true')
+        window.sessionStorage.setItem('install_prompt_seen_v2', 'true')
       }
       setDeferredPrompt(null)
     }
@@ -103,7 +105,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
 
   const dismissInstallPrompt = () => {
     setShowInstallPrompt(false)
-    window.localStorage.setItem('install_prompt_dismissed', 'true')
+    window.sessionStorage.setItem('install_prompt_seen_v2', 'true')
   }
 
   const syncLabel = loading || isSyncing ? 'Syncing' : 'Synced'
@@ -126,34 +128,80 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
 
   return (
     <div className="app-shell">
+      <div
+        className={`fixed right-3 top-3 z-[110] inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold shadow-lg sm:right-4 sm:top-4 ${
+          loading || isSyncing
+            ? 'border-[var(--primary)]/30 bg-[var(--surface)] text-[var(--primary-strong)]'
+            : 'border-emerald-500/20 bg-emerald-500/95 text-white'
+        }`}
+        title={syncTitle}
+      >
+        {loading || isSyncing ? (
+          <RefreshCw size={14} className="animate-spin" />
+        ) : (
+          <BadgeCheck size={14} />
+        )}
+        <span>{syncLabel}</span>
+      </div>
+
       {showInstallPrompt && (
-        <div className="sticky top-0 z-[100] border-b border-[var(--border)] bg-[var(--primary)] px-4 py-3 text-sm text-[#eefabd] shadow-lg">
-          <div className="mx-auto flex max-w-7xl items-start justify-between gap-3">
-            <div className="flex items-start gap-3 pr-2">
-              {installPromptMode === 'ios' ? <Smartphone size={18} className="mt-0.5 shrink-0" /> : <Download size={18} className="mt-0.5 shrink-0" />}
-              <div>
-                <p className="font-semibold">
-                  Install Shared House Hub on your phone
-                </p>
-                <p className="mt-1 text-xs text-[#eefabd]/90">
-                  {installPromptMode === 'ios'
-                    ? 'Tap Share, then choose Add to Home Screen to open it like an app.'
-                    : 'Install it for faster access and an app-like full-screen experience.'}
-                </p>
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[rgba(18,24,18,0.48)] px-4 backdrop-blur-sm">
+          <div className="app-panel w-full max-w-md rounded-[2rem] p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                {installPromptMode === 'ios' ? (
+                  <Smartphone size={22} className="mt-1 shrink-0 text-[var(--primary-strong)]" />
+                ) : (
+                  <Download size={22} className="mt-1 shrink-0 text-[var(--primary-strong)]" />
+                )}
+                <div>
+                  <h3 className="text-xl font-semibold">Install on your phone</h3>
+                  <p className="app-muted mt-2 text-sm">
+                    Open Shared House Hub from your home screen and use it like an app.
+                  </p>
+                </div>
               </div>
+              <button onClick={dismissInstallPrompt} className="text-[var(--text-soft)] transition hover:text-[var(--text)]" aria-label="Dismiss install prompt">
+                <X size={18} />
+              </button>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+
+            <div className="mt-5 rounded-2xl bg-[var(--surface-soft)] p-4 text-sm">
               {installPromptMode === 'ios' ? (
-                <div className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold">
-                  <Share size={14} />
-                  Add to Home Screen
+                <div className="space-y-3">
+                  <p>1. Tap the <span className="font-semibold">Share</span> button in Safari.</p>
+                  <p>2. Choose <span className="font-semibold">Add to Home Screen</span>.</p>
+                  <div className="inline-flex items-center gap-2 rounded-full bg-[var(--surface)] px-3 py-2 font-semibold text-[var(--primary-strong)]">
+                    <Share size={14} />
+                    Add to Home Screen
+                  </div>
                 </div>
               ) : (
-                <button onClick={handleInstallClick} className="rounded-full bg-[var(--surface)] px-3 py-1.5 font-bold text-[var(--text)] shadow-sm">
+                <div className="space-y-3">
+                  <p>
+                    {installPromptMode === 'native'
+                      ? 'Tap install below to add it to the home screen.'
+                      : 'Use your browser menu and choose Install app or Add to Home Screen.'}
+                  </p>
+                  {installPromptMode === 'manual' && (
+                    <p className="app-muted text-xs">
+                      If your browser does not show the install choice yet, open the site again after a little use and it should become available.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button onClick={dismissInstallPrompt} className="app-button app-button-ghost">
+                Later
+              </button>
+              {installPromptMode === 'native' && (
+                <button onClick={() => void handleInstallClick()} className="app-button app-button-primary inline-flex items-center gap-2">
+                  <Download size={16} />
                   Install
                 </button>
               )}
-              <button onClick={dismissInstallPrompt} className="opacity-80 transition hover:opacity-100" aria-label="Dismiss install prompt"><X size={18} /></button>
             </div>
           </div>
         </div>
@@ -172,24 +220,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
                 - Acts 2:46
               </p>
             </div>
-
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-              <div
-                className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold ${
-                  loading || isSyncing
-                    ? 'border-[var(--primary)]/30 bg-[var(--primary)]/12 text-[var(--primary-strong)]'
-                    : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                }`}
-                title={syncTitle}
-              >
-                {loading || isSyncing ? (
-                  <RefreshCw size={14} className="animate-spin" />
-                ) : (
-                  <BadgeCheck size={14} />
-                )}
-                <span className="hidden sm:inline">{syncLabel}</span>
-              </div>
-
               <button
                 onClick={toggleTheme}
                 className="app-button app-button-ghost inline-flex items-center justify-center p-2 sm:p-3"

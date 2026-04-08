@@ -15,7 +15,7 @@ export function Dashboard() {
   const {
     expenses,
     balance,
-    budget,
+    monthlyBalance,
     activities,
     currentUser,
     monthlyPayments,
@@ -27,6 +27,7 @@ export function Dashboard() {
     availabilities,
     addMenuSuggestion,
     addAvailability,
+    reviewAvailability,
     updateMenuSuggestionStatus,
     supplyReports,
   } = useData()
@@ -61,12 +62,12 @@ export function Dashboard() {
     }],
   }
 
-  const lowBalance = balance < budget * 0.2
   const currentMonth = new Date().toISOString().slice(0, 7)
   const currentWeek = format(startOfWeek(new Date(), { weekStartsOn: 2 }), 'yyyy-MM-dd')
   const monthExpenses = expenses.filter((expense) => expense.date.startsWith(currentMonth))
   const monthIncome = monthExpenses.filter((expense) => expense.type === 'in').reduce((sum, expense) => sum + expense.amount, 0)
   const monthSpend = monthExpenses.filter((expense) => expense.type === 'out').reduce((sum, expense) => sum + expense.amount, 0)
+  const lowBalance = monthIncome > 0 ? monthlyBalance < monthIncome * 0.2 : monthlyBalance < 0
   const generalActivities = activities.filter((activity) => !/income|cash in|paid/i.test(activity.action)).slice(0, 5)
   const eatingPeople = [...new Set(
     monthlyPayments
@@ -76,6 +77,39 @@ export function Dashboard() {
   const eatingPeopleCount = monthlyPayments.filter((payment) => payment.month === currentMonth && payment.paid).length
   const currentWeekMenu = menus.find((menu) => menu.week === currentWeek)
   const currentWeekAvailabilities = availabilities.filter((entry) => entry.week === currentWeek)
+  const availabilityReviewGroups = currentWeekAvailabilities.reduce((groups, entry) => {
+    const key = `${entry.userId ?? entry.user}-${entry.createdAt.slice(0, 19)}-${entry.available}-${entry.note ?? ''}`
+    const existing = groups.get(key)
+
+    if (existing) {
+      existing.ids.push(entry.id)
+      existing.selections.push({
+        label: `${entry.day === 'Sunday' ? "Lord's Day" : entry.day} - ${entry.meal}`,
+        sortKey: `${entry.day}-${entry.meal}`,
+      })
+      return groups
+    }
+
+    groups.set(key, {
+      ids: [entry.id],
+      user: entry.user,
+      available: entry.available,
+      note: entry.note,
+      createdAt: entry.createdAt,
+      selections: [{
+        label: `${entry.day === 'Sunday' ? "Lord's Day" : entry.day} - ${entry.meal}`,
+        sortKey: `${entry.day}-${entry.meal}`,
+      }],
+    })
+    return groups
+  }, new Map<string, {
+    ids: string[]
+    user: string
+    available: boolean
+    note?: string | null
+    createdAt: string
+    selections: Array<{ label: string; sortKey: string }>
+  }>())
   const pendingSuggestions = menuSuggestions.filter((suggestion) => suggestion.status === 'pending')
   const cookingPeople = [...new Set(
     currentWeekMenu?.items?.flatMap((item) => [...(item.lunchCooks || []), ...(item.dinnerCooks || [])]) ?? [],
@@ -94,17 +128,17 @@ export function Dashboard() {
       alert('Please select at least one day and one meal.')
       return
     }
-    for (const day of availabilityForm.days) {
-      for (const meal of availabilityForm.meals) {
-        await addAvailability({
-          week: currentWeek,
+    await addAvailability({
+      week: currentWeek,
+      entries: availabilityForm.days.flatMap((day) => (
+        availabilityForm.meals.map((meal) => ({
           day,
           meal,
           available: availabilityForm.available,
           note: availabilityForm.note,
-        })
-      }
-    }
+        }))
+      )),
+    })
     setAvailabilityForm({ days: ["Lord's Day"], meals: ['lunch'], available: true, note: '' })
   }
 
@@ -358,8 +392,8 @@ export function Dashboard() {
           <p className="text-2xl font-bold text-[var(--primary-strong)]">{formatCurrency(balance)}</p>
         </div>
         <div className="app-panel rounded-3xl p-6">
-          <h3 className="text-lg font-semibold mb-2">Budget</h3>
-          <p className="text-2xl font-bold text-[var(--primary)]">{formatCurrency(budget)}</p>
+          <h3 className="text-lg font-semibold mb-2">This Month&apos;s Balance</h3>
+          <p className="text-2xl font-bold text-[var(--primary)]">{formatCurrency(monthlyBalance)}</p>
         </div>
         <div className="app-panel rounded-3xl p-6">
           <h3 className="text-lg font-semibold mb-2">Status</h3>
@@ -477,13 +511,33 @@ export function Dashboard() {
         <div className="app-panel rounded-3xl p-6">
           <h3 className="mb-4 text-lg font-semibold">Cooking Availability This Week</h3>
           <div className="space-y-3">
-            {currentWeekAvailabilities.map((entry) => (
-              <div key={entry.id} className="rounded-2xl bg-[var(--surface-soft)] p-4">
-                <div className="font-semibold">{entry.user}</div>
-                <div className="app-muted text-sm">
-                  {entry.day === 'Sunday' ? "Lord's Day" : entry.day} | {entry.meal} | {entry.available ? 'Available' : 'Not available'}
+            {Array.from(availabilityReviewGroups.values()).map((group) => (
+              <div key={group.ids.join('-')} className="rounded-2xl bg-[var(--surface-soft)] p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="font-semibold">{group.user}</div>
+                    <div className="app-muted text-sm">
+                      {group.available ? 'Available to cook' : 'Not available'} | {new Date(group.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void reviewAvailability(group.ids)}
+                    className="app-button app-button-ghost px-3 py-2 text-xs"
+                  >
+                    Reviewed
+                  </button>
                 </div>
-                {entry.note && <div className="app-muted mt-1 text-sm">{entry.note}</div>}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {group.selections
+                    .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+                    .map((selection) => (
+                      <span key={selection.label} className="rounded-full bg-[var(--primary)]/12 px-3 py-1.5 text-xs font-semibold text-[var(--primary-strong)]">
+                        {selection.label}
+                      </span>
+                    ))}
+                </div>
+                {group.note && <div className="app-muted mt-3 text-sm">{group.note}</div>}
               </div>
             ))}
             {currentWeekAvailabilities.length === 0 && <p className="app-muted text-sm">No availability submissions for this week.</p>}

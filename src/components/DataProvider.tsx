@@ -31,7 +31,7 @@ interface DataContextType {
   supplyReports: SupplyReport[]
   currentUser: User | null
   balance: number
-  budget: number
+  monthlyBalance: number
   loading: boolean
   isSyncing: boolean
   lastSyncTime: Date | null
@@ -69,7 +69,8 @@ interface DataContextType {
   deleteNotification: (id: string) => Promise<void>
   addMenuSuggestion: (input: { suggestion: string; preferredDay?: string; preferredMeal?: string }) => Promise<void>
   updateMenuSuggestionStatus: (id: string, status: 'pending' | 'reviewed') => Promise<void>
-  addAvailability: (input: { week: string; day: string; meal: 'lunch' | 'dinner'; available: boolean; note?: string }) => Promise<void>
+  addAvailability: (input: { week: string; entries: Array<{ day: string; meal: 'lunch' | 'dinner'; available: boolean; note?: string }> }) => Promise<void>
+  reviewAvailability: (ids: string[]) => Promise<void>
   addSupplyReport: (input: { title: string; category: 'grocery' | 'vegetable' | 'maintenance'; itemName?: string; message: string; status?: 'missing' | 'urgent' | 'resolved' }) => Promise<void>
   updateSupplyReport: (input: { id: string; status?: 'missing' | 'urgent' | 'resolved'; response?: string }) => Promise<void>
   login: (input: { username: string; password: string }) => Promise<boolean>
@@ -98,7 +99,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [availabilities, setAvailabilities] = useState<Availability[]>([])
   const [supplyReports, setSupplyReports] = useState<SupplyReport[]>([])
   const [currentUser, setCurrentUser] = useState<User | null>(null)
-  const [budget] = useState(1000)
   const [loading, setLoading] = useState(true)
   const [isSyncing, setIsSyncing] = useState(false)
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
@@ -302,6 +302,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [currentUser])
 
   const balance = expenses.reduce((acc, exp) => acc + (exp.type === 'in' ? exp.amount : -exp.amount), 0)
+  const currentMonth = new Date().toISOString().slice(0, 7)
+  const monthlyBalance = expenses
+    .filter((expense) => expense.date.startsWith(currentMonth))
+    .reduce((acc, expense) => acc + (expense.type === 'in' ? expense.amount : -expense.amount), 0)
 
   const addExpense = async (expense: Omit<Expense, 'id' | 'userId'>) => {
     if (!currentUser) return
@@ -798,7 +802,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const addAvailability = async (input: { week: string; day: string; meal: 'lunch' | 'dinner'; available: boolean; note?: string }) => {
+  const addAvailability = async (input: { week: string; entries: Array<{ day: string; meal: 'lunch' | 'dinner'; available: boolean; note?: string }> }) => {
     if (!currentUser) return
     try {
       setError(null)
@@ -807,10 +811,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ ...input, userId: currentUser.id }),
       })
-      const availability = await readJson<Availability>(res, 'Failed to add availability')
-      setAvailabilities((prev) => [availability, ...prev])
+      const createdAvailabilities = await readJson<Availability[]>(res, 'Failed to add availability')
+      setAvailabilities((prev) => [...createdAvailabilities, ...prev])
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Failed to add availability')
+    }
+  }
+
+  const reviewAvailability = async (ids: string[]) => {
+    if (!currentUser || ids.length === 0) return
+    try {
+      setError(null)
+      const res = await fetch('/api/availability', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ ids }),
+      })
+      await readJson<{ success: boolean }>(res, 'Failed to review availability')
+      setAvailabilities((prev) => prev.filter((entry) => !ids.includes(entry.id)))
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to review availability')
     }
   }
 
@@ -910,7 +930,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       supplyReports,
       currentUser,
       balance,
-      budget,
+      monthlyBalance,
       loading,
       isSyncing,
       lastSyncTime,
@@ -938,6 +958,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       addMenuSuggestion,
       updateMenuSuggestionStatus,
       addAvailability,
+      reviewAvailability,
       addSupplyReport,
       updateSupplyReport,
       login,

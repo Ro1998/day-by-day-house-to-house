@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useData } from '@/components/DataProvider'
-import { FileImage, FileSpreadsheet, FileText, Trash2, Undo } from 'lucide-react'
+import { Download, FileImage, FileSpreadsheet, FileText, Trash2, Undo, X } from 'lucide-react'
 import jsPDF from 'jspdf'
 import * as XLSX from 'xlsx'
 import html2canvas from 'html2canvas'
@@ -18,6 +18,28 @@ export function Expenses() {
   })
   const [filter, setFilter] = useState({ dateFrom: '', dateTo: '', category: '' })
   const [pendingDelete, setPendingDelete] = useState<{ id: string; description: string } | null>(null)
+  const [isExportOpen, setIsExportOpen] = useState(false)
+  const [exportConfig, setExportConfig] = useState({
+    dateFrom: '',
+    dateTo: '',
+    format: 'pdf' as 'pdf' | 'xlsx' | 'png',
+  })
+
+  const categories = ['grocery', 'vegetables', 'gas', 'others', 'food money', 'offering', 'separate meal']
+
+  const getVisibleExpenses = (filters: typeof filter) => {
+    const filteredExpenses = expenses.filter(exp => {
+      const dateMatch = (!filters.dateFrom || exp.date >= filters.dateFrom) &&
+                        (!filters.dateTo || exp.date <= filters.dateTo)
+      const categoryMatch = !filters.category || exp.category === filters.category
+      return dateMatch && categoryMatch
+    })
+
+    const currentMonthKey = getCurrentMonthKey()
+    return isGeneralUser
+      ? filteredExpenses.filter((expense) => expense.date.startsWith(currentMonthKey) && expense.type === 'out')
+      : filteredExpenses
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,57 +55,102 @@ export function Expenses() {
     setForm({ type: 'out', category: '', amount: '', description: '' })
   }
 
-  const filteredExpenses = expenses.filter(exp => {
-    const dateMatch = (!filter.dateFrom || exp.date >= filter.dateFrom) &&
-                      (!filter.dateTo || exp.date <= filter.dateTo)
-    const categoryMatch = !filter.category || exp.category === filter.category
-    return dateMatch && categoryMatch
-  })
   const isGeneralUser = currentUser?.role === 'user'
   const canManageEntries = currentUser?.role === 'admin' || currentUser?.role === 'coordinator'
   const currentMonthKey = getCurrentMonthKey()
-  const visibleExpenses = isGeneralUser
-    ? filteredExpenses.filter((expense) => expense.date.startsWith(currentMonthKey) && expense.type === 'out')
-    : filteredExpenses
-  const visibleIncomeTotal = filteredExpenses
+  const visibleExpenses = getVisibleExpenses(filter)
+  const visibleIncomeTotal = expenses
+    .filter((expense) => (!filter.dateFrom || expense.date >= filter.dateFrom) &&
+      (!filter.dateTo || expense.date <= filter.dateTo) &&
+      (!filter.category || expense.category === filter.category))
     .filter((expense) => expense.date.startsWith(currentMonthKey) && expense.type === 'in')
     .reduce((sum, expense) => sum + expense.amount, 0)
 
-  const exportPDF = () => {
+  const exportRows = getVisibleExpenses({ ...filter, dateFrom: exportConfig.dateFrom, dateTo: exportConfig.dateTo })
+
+  const exportPDF = (rows: typeof visibleExpenses) => {
     const doc = new jsPDF()
     doc.text('Cash Flow Report', 20, 20)
     let y = 40
-    visibleExpenses.forEach(exp => {
+    rows.forEach(exp => {
       doc.text(`${exp.date} - ${exp.category} - INR ${exp.amount} - ${exp.description}`, 20, y)
       y += 10
     })
     doc.save('expenses.pdf')
   }
 
-  const exportXLS = () => {
-    const ws = XLSX.utils.json_to_sheet(visibleExpenses)
+  const exportXLS = (rows: typeof visibleExpenses) => {
+    const ws = XLSX.utils.json_to_sheet(rows)
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Expenses')
     XLSX.writeFile(wb, 'expenses.xlsx')
   }
 
-  const exportPNG = async () => {
-    const element = document.getElementById('cash-flow-table')
-    if (!element) return
-
+  const exportPNG = async (rows: typeof visibleExpenses) => {
+    const element = document.createElement('div')
+    element.style.position = 'fixed'
+    element.style.left = '-9999px'
+    element.style.top = '0'
+    element.style.padding = '24px'
+    element.style.background = '#ffffff'
+    element.style.color = '#1f2937'
+    element.style.width = '900px'
+    element.innerHTML = `
+      <h2 style="margin:0 0 16px;font-size:24px;">Cash Flow Report</h2>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;">
+        <thead>
+          <tr>
+            <th style="text-align:left;border-bottom:1px solid #d1d5db;padding:8px;">Date</th>
+            <th style="text-align:left;border-bottom:1px solid #d1d5db;padding:8px;">Type</th>
+            <th style="text-align:left;border-bottom:1px solid #d1d5db;padding:8px;">Category</th>
+            <th style="text-align:left;border-bottom:1px solid #d1d5db;padding:8px;">Amount</th>
+            <th style="text-align:left;border-bottom:1px solid #d1d5db;padding:8px;">Description</th>
+            <th style="text-align:left;border-bottom:1px solid #d1d5db;padding:8px;">User</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map((exp) => `
+            <tr>
+              <td style="border-bottom:1px solid #e5e7eb;padding:8px;">${exp.date}</td>
+              <td style="border-bottom:1px solid #e5e7eb;padding:8px;">${exp.type}</td>
+              <td style="border-bottom:1px solid #e5e7eb;padding:8px;">${exp.category}</td>
+              <td style="border-bottom:1px solid #e5e7eb;padding:8px;">${formatCurrency(exp.amount)}</td>
+              <td style="border-bottom:1px solid #e5e7eb;padding:8px;">${exp.description}</td>
+              <td style="border-bottom:1px solid #e5e7eb;padding:8px;">${exp.user}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `
+    document.body.appendChild(element)
     const canvas = await html2canvas(element)
+    document.body.removeChild(element)
     const link = document.createElement('a')
     link.download = 'cash-flow.png'
     link.href = canvas.toDataURL()
     link.click()
   }
 
-  const categories = ['grocery', 'vegetables', 'gas', 'others', 'food money', 'offering', 'separate meal']
-
   const confirmDelete = async () => {
     if (!pendingDelete) return
     await deleteExpense(pendingDelete.id)
     setPendingDelete(null)
+  }
+
+  const handleExport = async () => {
+    if (exportRows.length === 0) {
+      return
+    }
+
+    if (exportConfig.format === 'pdf') {
+      exportPDF(exportRows)
+    } else if (exportConfig.format === 'xlsx') {
+      exportXLS(exportRows)
+    } else {
+      await exportPNG(exportRows)
+    }
+
+    setIsExportOpen(false)
   }
 
   return (
@@ -110,6 +177,59 @@ export function Expenses() {
               >
                 <Trash2 size={16} />
                 Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isExportOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(18,24,18,0.42)] px-4 backdrop-blur-sm">
+          <div className="app-panel w-full max-w-lg rounded-3xl p-6">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-semibold">Export Cash Flow</h3>
+                <p className="app-muted mt-1 text-sm">Choose the date range and format, then export in one step.</p>
+              </div>
+              <button onClick={() => setIsExportOpen(false)} className="text-[var(--text-soft)] hover:text-[var(--text)]" aria-label="Close export dialog">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <input
+                type="date"
+                value={exportConfig.dateFrom}
+                onChange={(e) => setExportConfig((prev) => ({ ...prev, dateFrom: e.target.value }))}
+                className="app-input"
+              />
+              <input
+                type="date"
+                value={exportConfig.dateTo}
+                onChange={(e) => setExportConfig((prev) => ({ ...prev, dateTo: e.target.value }))}
+                className="app-input"
+              />
+              <select
+                value={exportConfig.format}
+                onChange={(e) => setExportConfig((prev) => ({ ...prev, format: e.target.value as 'pdf' | 'xlsx' | 'png' }))}
+                className="app-input md:col-span-2"
+              >
+                <option value="pdf">PDF</option>
+                <option value="xlsx">Excel</option>
+                <option value="png">PNG</option>
+              </select>
+            </div>
+            <p className="app-muted mt-4 text-sm">
+              {exportRows.length} entries ready to export.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button onClick={() => setIsExportOpen(false)} className="app-button app-button-ghost">
+                Cancel
+              </button>
+              <button onClick={() => void handleExport()} className="app-button app-button-primary inline-flex items-center gap-2" disabled={exportRows.length === 0}>
+                {exportConfig.format === 'pdf' && <FileText size={16} />}
+                {exportConfig.format === 'xlsx' && <FileSpreadsheet size={16} />}
+                {exportConfig.format === 'png' && <FileImage size={16} />}
+                Export
               </button>
             </div>
           </div>
@@ -188,18 +308,38 @@ export function Expenses() {
         <div className="mb-4 flex flex-col gap-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Cash Flow Entries</h2>
-            {notice?.includes('Deleted') && (
-              <button
-                onClick={undoDelete}
-                className="app-button app-button-secondary flex items-center space-x-1 px-3 py-2"
-                title="Restore the most recently deleted entry."
-              >
-                <Undo size={16} />
-                <span>Undo</span>
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {currentUser?.role === 'admin' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setExportConfig((prev) => ({
+                      ...prev,
+                      dateFrom: filter.dateFrom,
+                      dateTo: filter.dateTo,
+                    }))
+                    setIsExportOpen(true)
+                  }}
+                  className="app-button app-button-ghost inline-flex items-center gap-2 px-3 py-2"
+                  title="Open the cash flow export options."
+                >
+                  <Download size={16} />
+                  Export
+                </button>
+              )}
+              {notice?.includes('Deleted') && (
+                <button
+                  onClick={undoDelete}
+                  className="app-button app-button-secondary flex items-center space-x-1 px-3 py-2"
+                  title="Restore the most recently deleted entry."
+                >
+                  <Undo size={16} />
+                  <span>Undo</span>
+                </button>
+              )}
+            </div>
           </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_1fr_1fr_auto]">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <input
               type="date"
               placeholder="From Date"
@@ -227,35 +367,6 @@ export function Expenses() {
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={exportPDF}
-                className="app-button app-button-ghost inline-flex items-center gap-2 px-3 py-2"
-                title="Download the currently filtered cash flow entries as a PDF file."
-              >
-                <FileText size={16} />
-                <span>PDF</span>
-              </button>
-              <button
-                type="button"
-                onClick={exportXLS}
-                className="app-button app-button-secondary inline-flex items-center gap-2 px-3 py-2"
-                title="Download the currently filtered cash flow entries as an Excel file."
-              >
-                <FileSpreadsheet size={16} />
-                <span>Excel</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => void exportPNG()}
-                className="app-button app-button-ghost inline-flex items-center gap-2 px-3 py-2"
-                title="Download the current cash flow table as a PNG image."
-              >
-                <FileImage size={16} />
-                <span>PNG</span>
-              </button>
-            </div>
           </div>
         </div>
         <div id="cash-flow-table" className="overflow-x-auto">

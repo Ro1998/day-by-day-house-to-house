@@ -35,19 +35,53 @@ export async function POST(request: Request) {
     const auth = await requireApprovedUser(request)
     if (auth.error) return auth.error
     const body = await request.json()
-    const availability = await prisma.availability.create({
-      data: {
-        week: String(body.week),
-        day: String(body.day),
-        meal: String(body.meal),
-        available: Boolean(body.available),
-        note: body.note ? String(body.note).trim() : null,
-        userId: body.userId,
-      },
-      include: { user: true },
-    })
-    return NextResponse.json(serializeAvailability(availability))
+    const week = String(body.week)
+    const userId = String(body.userId)
+    const entries: Array<{ day: string; meal: string; available: boolean; note?: string }> = Array.isArray(body.entries) ? body.entries : []
+
+    if (entries.length === 0) {
+      return NextResponse.json({ error: 'At least one availability selection is required.' }, { status: 400 })
+    }
+
+    const availabilities = await prisma.$transaction(
+      entries.map((entry) => prisma.availability.create({
+        data: {
+          week,
+          day: String(entry.day),
+          meal: String(entry.meal),
+          available: Boolean(entry.available),
+          note: entry.note ? String(entry.note).trim() : null,
+          userId,
+        },
+        include: { user: true },
+      })),
+    )
+
+    return NextResponse.json(availabilities.map(serializeAvailability))
   } catch (error) {
     return apiError('availability.POST', error, 'Failed to create availability')
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const auth = await requireApprovedUser(request, ['admin', 'coordinator'])
+    if (auth.error) return auth.error
+    const body = await request.json()
+    const ids: string[] = Array.isArray(body.ids) ? body.ids.map((id: unknown) => String(id)) : []
+
+    if (ids.length === 0) {
+      return NextResponse.json({ error: 'Availability ids are required.' }, { status: 400 })
+    }
+
+    await prisma.availability.deleteMany({
+      where: {
+        id: { in: ids },
+      },
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return apiError('availability.DELETE', error, 'Failed to review availability')
   }
 }
