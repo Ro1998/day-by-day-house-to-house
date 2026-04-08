@@ -13,6 +13,49 @@ const parseNames = (value: string) =>
     .map((item) => item.trim())
     .filter(Boolean)
 
+function ArrayInput({
+  values,
+  onChange,
+  className,
+  placeholder,
+  disabled,
+  title,
+}: {
+  values: string[]
+  onChange: (val: string[]) => void
+  className?: string
+  placeholder?: string
+  disabled?: boolean
+  title?: string
+}) {
+  const [localValue, setLocalValue] = useState(() => values.join(', '))
+
+  useEffect(() => {
+    const newStr = values.join(', ')
+    const localParsed = parseNames(localValue).join(', ')
+    if (localParsed !== newStr) {
+      setLocalValue(newStr)
+    }
+  }, [values, localValue])
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalValue(e.target.value)
+    onChange(parseNames(e.target.value))
+  }
+
+  return (
+    <input
+      type="text"
+      value={localValue}
+      onChange={handleChange}
+      className={className}
+      placeholder={placeholder}
+      disabled={disabled}
+      title={title}
+    />
+  )
+}
+
 export function MenuPlanner() {
   const { menus, updateMenu, currentUser, addNotification } = useData()
   const getWeekKey = (date: Date) => format(startOfWeek(date, { weekStartsOn: 2 }), 'yyyy-MM-dd')
@@ -206,10 +249,9 @@ export function MenuPlanner() {
 
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Vegetable Purchasers (2 people)</label>
-          <input
-            type="text"
-            value={menu.purchasers.join(', ')}
-            onChange={(e) => setMenu({ ...menu, purchasers: parseNames(e.target.value) })}
+          <ArrayInput
+            values={menu.purchasers}
+            onChange={(purchasers) => setMenu({ ...menu, purchasers })}
             className="app-input"
             placeholder="Enter purchaser names separated by commas"
             disabled={!canManageMenu}
@@ -246,10 +288,9 @@ export function MenuPlanner() {
                     />
                   </td>
                   <td className="border border-[var(--border)] p-2">
-                    <input
-                      type="text"
-                      value={item.lunchCooks.join(', ')}
-                      onChange={(e) => updateMenuItem(index, 'lunchCooks', parseNames(e.target.value))}
+                    <ArrayInput
+                      values={item.lunchCooks}
+                      onChange={(cooks) => updateMenuItem(index, 'lunchCooks', cooks)}
                       className="app-input"
                       placeholder="Enter cooking team names"
                       disabled={!canManageMenu}
@@ -268,10 +309,9 @@ export function MenuPlanner() {
                     />
                   </td>
                   <td className="border border-[var(--border)] p-2">
-                    <input
-                      type="text"
-                      value={item.dinnerCooks.join(', ')}
-                      onChange={(e) => updateMenuItem(index, 'dinnerCooks', parseNames(e.target.value))}
+                    <ArrayInput
+                      values={item.dinnerCooks}
+                      onChange={(cooks) => updateMenuItem(index, 'dinnerCooks', cooks)}
                       className="app-input"
                       placeholder="Enter dinner cooking team names"
                       disabled={!canManageMenu}
