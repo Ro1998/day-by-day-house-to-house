@@ -34,6 +34,7 @@ interface DataContextType {
   budget: number
   loading: boolean
   isSyncing: boolean
+  lastSyncTime: Date | null
   error: string | null
   notice: string | null
   addExpense: (expense: Omit<Expense, 'id' | 'userId'>) => Promise<void>
@@ -100,6 +101,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [budget] = useState(1000)
   const [loading, setLoading] = useState(true)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [deletedExpense, setDeletedExpense] = useState<Expense | null>(null)
@@ -241,6 +243,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setMenuSuggestions(prev => JSON.stringify(prev) === JSON.stringify(suggestionsData) ? prev : suggestionsData)
           setAvailabilities(prev => JSON.stringify(prev) === JSON.stringify(availabilitiesData) ? prev : availabilitiesData)
           setSupplyReports(prev => JSON.stringify(prev) === JSON.stringify(supplyReportsData) ? prev : supplyReportsData)
+          setLastSyncTime(new Date())
           setError(null)
         }
       } catch (loadError) {
@@ -910,6 +913,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       budget,
       loading,
       isSyncing,
+      lastSyncTime,
       error,
       notice,
       addExpense,

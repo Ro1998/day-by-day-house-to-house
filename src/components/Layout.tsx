@@ -1,11 +1,10 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect } from 'react'
 import { useTheme } from './ThemeProvider'
 import { useData } from './DataProvider'
-import { Bell, Boxes, Home, LogOut, MenuSquare, Moon, Receipt, Settings2, Sun, Wallet, Menu as MenuIcon, X, Wrench, RefreshCw, CloudCheck } from 'lucide-react'
+import { BadgeCheck, Bell, Boxes, Home, MenuSquare, Moon, Receipt, Settings2, Sun, Wallet, Menu as MenuIcon, X, Wrench, RefreshCw } from 'lucide-react'
 import { BrandLogo } from './BrandLogo'
-import { useSearchParams } from 'next/navigation'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -115,7 +114,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
                     {isSyncing ? (
                       <RefreshCw size={14} className="animate-spin" />
                     ) : (
-                      <CloudCheck size={14} />
+                      <BadgeCheck size={14} />
                     )}
                     <span className="hidden md:inline">
                       {isSyncing ? 'Syncing...' : 'Synced'}
