@@ -196,7 +196,7 @@ export function Dashboard() {
           <div className="space-y-3">
             {currentWeekMenu?.items?.map((item) => (
               <div key={item.day} className="rounded-2xl bg-[var(--surface-soft)] p-4">
-                <div className="font-semibold">{item.day}</div>
+                <div className="font-semibold">{item.day === 'Sunday' ? "Lord's Day" : item.day}</div>
                 <div className="app-muted text-sm">Lunch: {item.lunch || 'Not set'} | Dinner: {item.dinner || 'Not set'}</div>
                 <div className="app-muted text-sm">Cooking: {[...(item.lunchCooks || []), ...(item.dinnerCooks || [])].join(', ') || 'Not assigned'}</div>
               </div>
@@ -421,16 +421,32 @@ export function Dashboard() {
         </div>
       </div>
 
-      <div className="app-panel rounded-3xl p-6">
-        <h3 className="text-lg font-semibold mb-4">Recent Activities</h3>
-        <div className="space-y-2">
-          {activities
-            .filter((a) => currentUser?.role === 'admin' || !/income|cash in|paid/i.test(a.action))
-            .slice(-5).reverse().map(activity => (
-            <div key={activity.id} className="app-muted text-sm">
-              <span className="font-medium">{activity.user}</span> {activity.action} at {new Date(activity.timestamp).toLocaleString()}
-            </div>
-          ))}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="app-panel rounded-3xl p-6">
+          <h3 className="mb-4 text-lg font-semibold">This Week&apos;s Menu</h3>
+          <div className="space-y-3">
+            {currentWeekMenu?.items?.map((item) => (
+              <div key={item.day} className="rounded-2xl bg-[var(--surface-soft)] p-4">
+                <div className="font-semibold">{item.day === 'Sunday' ? "Lord's Day" : item.day}</div>
+                <div className="app-muted text-sm">Lunch: {item.lunch || 'Not set'} | Dinner: {item.dinner || 'Not set'}</div>
+                <div className="app-muted text-sm">Cooking: {[...(item.lunchCooks || []), ...(item.dinnerCooks || [])].join(', ') || 'Not assigned'}</div>
+              </div>
+            ))}
+            {!currentWeekMenu && <p className="app-muted text-sm">No menu published for this week yet.</p>}
+          </div>
+        </div>
+
+        <div className="app-panel rounded-3xl p-6">
+          <h3 className="text-lg font-semibold mb-4">Recent Activities</h3>
+          <div className="space-y-2">
+            {activities
+              .filter((a) => currentUser?.role === 'admin' || !/income|cash in|paid/i.test(a.action))
+              .slice(-5).reverse().map(activity => (
+              <div key={activity.id} className="app-muted text-sm">
+                <span className="font-medium">{activity.user}</span> {activity.action} at {new Date(activity.timestamp).toLocaleString()}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -443,7 +459,7 @@ export function Dashboard() {
                 <div className="font-semibold">{suggestion.suggestion}</div>
                 <div className="app-muted text-sm">
                   From {suggestion.user}
-                  {suggestion.preferredDay ? ` | ${suggestion.preferredDay}` : ''}
+                  {suggestion.preferredDay ? ` | ${suggestion.preferredDay === 'Sunday' ? "Lord's Day" : suggestion.preferredDay}` : ''}
                   {suggestion.preferredMeal ? ` | ${suggestion.preferredMeal}` : ''}
                 </div>
                 <button
@@ -465,7 +481,7 @@ export function Dashboard() {
               <div key={entry.id} className="rounded-2xl bg-[var(--surface-soft)] p-4">
                 <div className="font-semibold">{entry.user}</div>
                 <div className="app-muted text-sm">
-                  {entry.day} | {entry.meal} | {entry.available ? 'Available' : 'Not available'}
+                  {entry.day === 'Sunday' ? "Lord's Day" : entry.day} | {entry.meal} | {entry.available ? 'Available' : 'Not available'}
                 </div>
                 {entry.note && <div className="app-muted mt-1 text-sm">{entry.note}</div>}
               </div>

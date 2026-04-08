@@ -20,6 +20,8 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
   const [editProfileForm, setEditProfileForm] = useState({ name: '', phone: '' })
   const canManageOperations = currentUser?.role === 'admin' || currentUser?.role === 'coordinator'
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false)
 
   useEffect(() => {
     if (isMobileMenuOpen) {
@@ -35,6 +37,16 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
       setEditProfileForm({ name: currentUser.name, phone: (currentUser as any).phone || '' })
     }
   }, [currentUser])
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault()
+      setDeferredPrompt(e)
+      setShowInstallPrompt(true)
+    }
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+  }, [])
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -58,6 +70,17 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
     }
   }
 
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt()
+      const { outcome } = await deferredPrompt.userChoice
+      if (outcome === 'accepted') {
+        setShowInstallPrompt(false)
+      }
+      setDeferredPrompt(null)
+    }
+  }
+
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'expenses', label: 'Cash Flow', icon: Receipt },
@@ -65,12 +88,21 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
     { id: 'maintenance', label: 'Maintenance', icon: Wrench },
     ...(canManageOperations ? [{ id: 'inventory', label: 'Supplies', icon: Boxes }] : []),
     ...(currentUser?.role === 'admin' ? [{ id: 'monthly', label: 'Monthly Food Money', icon: Wallet }] : []),
-    ...(canManageOperations ? [{ id: 'menu', label: 'Menu Planner', icon: MenuSquare }] : []),
+    ...(currentUser?.role === 'admin' ? [{ id: 'menu', label: 'Menu Planner', icon: MenuSquare }] : []),
     ...(currentUser?.role === 'admin' ? [{ id: 'users', label: 'User Access', icon: Settings2 }] : []),
   ]
 
   return (
     <div className="app-shell">
+      {showInstallPrompt && (
+        <div className="bg-[var(--primary)] text-[var(--primary-strong)] px-4 py-3 flex justify-between items-center text-sm font-medium z-[100] relative">
+          <span>Install Shared House Hub for quick access!</span>
+          <div className="flex gap-3 items-center">
+            <button onClick={handleInstallClick} className="bg-[var(--surface)] px-3 py-1.5 rounded-full shadow-sm text-[var(--text)] font-bold">Install</button>
+            <button onClick={() => setShowInstallPrompt(false)} className="opacity-70 hover:opacity-100"><X size={18}/></button>
+          </div>
+        </div>
+      )}
       <header className={`sticky top-0 z-50 border-b border-[var(--border)] ${isMobileMenuOpen ? 'bg-[var(--surface)]' : 'bg-[var(--surface)]/95 backdrop-blur-xl'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="relative z-50 flex items-start justify-between py-4 md:items-center md:py-6">
@@ -143,7 +175,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
           <nav 
             className={`${
               isMobileMenuOpen 
-                ? 'fixed inset-0 z-40 flex flex-col overflow-y-auto bg-[var(--surface)] px-6 pb-6 pt-36' 
+                ? 'fixed inset-0 z-40 flex flex-col overflow-y-auto bg-white dark:bg-[#121812] px-6 pb-6 pt-36 shadow-2xl' 
                 : 'hidden'
             } gap-1.5 md:static md:z-auto md:flex md:flex-row md:flex-wrap md:overflow-visible md:bg-transparent md:p-0 md:pb-4`}
           >

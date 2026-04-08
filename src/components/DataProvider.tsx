@@ -145,6 +145,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setMenuSuggestions([])
           setAvailabilities([])
           setSupplyReports([])
+          isPolling = false
           return
         }
 
@@ -153,7 +154,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         })
         if (usersRes.ok) {
           const usersData = await readJson<User[]>(usersRes, 'Failed to load users')
-          setUsers(usersData)
+          setUsers(prev => JSON.stringify(prev) === JSON.stringify(usersData) ? prev : usersData)
 
           const refreshedCurrentUser = currentUser
             ? usersData.find((user) => user.id === currentUser.id) ?? null
@@ -221,25 +222,38 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        setExpenses(expensesData)
-        setMonthlyPayments(paymentsData)
-        setMenus(menusData)
-        setActivities(activitiesData)
-        setInventoryItems(inventoryData)
-        setNotifications(notificationsData)
-        setMenuSuggestions(suggestionsData)
-        setAvailabilities(availabilitiesData)
-        setSupplyReports(supplyReportsData)
+        if (isMounted) {
+          setExpenses(prev => JSON.stringify(prev) === JSON.stringify(expensesData) ? prev : expensesData)
+          setMonthlyPayments(prev => JSON.stringify(prev) === JSON.stringify(paymentsData) ? prev : paymentsData)
+          setMenus(prev => JSON.stringify(prev) === JSON.stringify(menusData) ? prev : menusData)
+          setActivities(prev => JSON.stringify(prev) === JSON.stringify(activitiesData) ? prev : activitiesData)
+          setInventoryItems(prev => JSON.stringify(prev) === JSON.stringify(inventoryData) ? prev : inventoryData)
+          setNotifications(prev => JSON.stringify(prev) === JSON.stringify(notificationsData) ? prev : notificationsData)
+          setMenuSuggestions(prev => JSON.stringify(prev) === JSON.stringify(suggestionsData) ? prev : suggestionsData)
+          setAvailabilities(prev => JSON.stringify(prev) === JSON.stringify(availabilitiesData) ? prev : availabilitiesData)
+          setSupplyReports(prev => JSON.stringify(prev) === JSON.stringify(supplyReportsData) ? prev : supplyReportsData)
+          setError(null)
+        }
       } catch (loadError) {
-        const message = loadError instanceof Error ? loadError.message : 'Failed to load application data'
-        setError(message)
-        console.error('Failed to load data', loadError)
+        if (isMounted && loading) {
+          const message = loadError instanceof Error ? loadError.message : 'Failed to load application data'
+          setError(message)
+          console.error('Failed to load data', loadError)
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+          isPolling = false
+        }
       }
     }
 
     loadData()
+    const intervalId = setInterval(loadData, 5000)
+    return () => {
+      isMounted = false
+      clearInterval(intervalId)
+    }
   }, [currentUser?.id])
 
   useEffect(() => {

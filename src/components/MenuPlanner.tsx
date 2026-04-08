@@ -346,7 +346,7 @@ export function MenuPlanner() {
               {(menu.items || []).map((item, index) => (
                 <tr key={item.day} className="border-b border-[var(--border)]">
                   <td className="border border-[var(--border)] p-2 font-medium">
-                    {item.day}
+                    {item.day === 'Sunday' ? "Lord's Day" : item.day}
                   </td>
                   <td className="border border-[var(--border)] p-2">
                     <textarea
@@ -447,7 +447,7 @@ export function MenuPlanner() {
                 <tbody>
                   {(viewingMenu.items || []).map((item) => (
                     <tr key={item.day} className="border-b border-[var(--border)] last:border-0">
-                      <td className="p-3 font-medium border-r border-[var(--border)]">{item.day}</td>
+                      <td className="p-3 font-medium border-r border-[var(--border)]">{item.day === 'Sunday' ? "Lord's Day" : item.day}</td>
                       <td className="p-3 border-r border-[var(--border)] whitespace-pre-wrap">{item.lunch || '-'}</td>
                       <td className="p-3 border-r border-[var(--border)] text-[var(--primary-strong)] font-medium">{item.lunchCooks?.join(', ') || '-'}</td>
                       <td className="p-3 border-r border-[var(--border)] whitespace-pre-wrap">{item.dinner || '-'}</td>
