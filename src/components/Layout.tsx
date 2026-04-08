@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useTheme } from './ThemeProvider'
 import { useData } from './DataProvider'
-import { Bell, Boxes, Home, LogOut, MenuSquare, Moon, Receipt, Settings2, Sun, Wallet, Menu as MenuIcon, X, Wrench } from 'lucide-react'
+import { Bell, Boxes, Home, LogOut, MenuSquare, Moon, Receipt, Settings2, Sun, Wallet, Menu as MenuIcon, X, Wrench, RefreshCw, CloudCheck } from 'lucide-react'
 import { BrandLogo } from './BrandLogo'
+import { useSearchParams } from 'next/navigation'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -14,7 +15,7 @@ interface LayoutProps {
 
 export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   const { theme, toggleTheme } = useTheme()
-  const { currentUser, logout, loading, error, notice, users, unreadNotifications, isSyncing } = useData()
+  const { currentUser, logout, loading, error, notice, users, unreadNotifications, isSyncing, lastSyncTime } = useData()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
@@ -103,19 +104,22 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
           </div>
         </div>
       )}
-      <header className={`sticky top-0 z-50 border-b border-[var(--border)] ${isMobileMenuOpen ? 'bg-[var(--surface)]' : 'bg-[var(--surface)]/95 backdrop-blur-xl'}`}>
+      <header className={`sticky top-0 z-50 border-b border-[var(--border)] ${isMobileMenuOpen ? 'bg-white dark:bg-[#121812]' : 'bg-[var(--surface)]/95 backdrop-blur-xl'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="relative z-50 flex items-start justify-between py-4 md:items-center md:py-6">
             <div className="flex-1 pr-4 min-w-0">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <BrandLogo />
-                {isSyncing && (
-                  <div className="flex items-center gap-2 text-xs text-[var(--text-soft)]" title="Syncing data...">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                {currentUser && (
+                  <div className="flex items-center gap-2 text-xs text-[var(--text-soft)]" title={isSyncing ? "Syncing data..." : (lastSyncTime ? `Last synced: ${lastSyncTime.toLocaleTimeString()}` : 'Ready')}>
+                    {isSyncing ? (
+                      <RefreshCw size={14} className="animate-spin" />
+                    ) : (
+                      <CloudCheck size={14} />
+                    )}
+                    <span className="hidden md:inline">
+                      {isSyncing ? 'Syncing...' : 'Synced'}
                     </span>
-                    <span className="hidden md:inline">Syncing...</span>
                   </div>
                 )}
               </div>

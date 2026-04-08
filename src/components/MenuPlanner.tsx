@@ -63,7 +63,7 @@ export function MenuPlanner() {
   const [menu, setMenu] = useState<Menu | null>(null)
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [viewingMenu, setViewingMenu] = useState<Menu | null>(null)
-  const canManageMenu = currentUser?.role === 'admin' || currentUser?.role === 'coordinator'
+  const canManageMenu = currentUser?.role === 'admin'
   const lastSavedSnapshot = useRef('')
 
   const buildDefaultMenu = (week: string): Menu => {
@@ -242,29 +242,29 @@ export function MenuPlanner() {
       )}
       {currentUser && !canManageMenu && (
         <div className="app-panel rounded-2xl px-4 py-3 text-sm">
-          Only the Coordinator (CO) or Admin can update the weekly menu.
+          Only the Admin can update the weekly menu.
         </div>
       )}
       <div className="app-panel rounded-3xl p-6">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
           <div>
             <h2 className="text-xl font-semibold">Weekly Menu Planner</h2>
             <p className="app-muted mt-1 text-sm">
               Auto-saves by week so you can review older menus any time.
             </p>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2 w-full md:w-auto">
             <button
               onClick={saveMenu}
               disabled={!canManageMenu}
-              className="app-button app-button-primary"
+              className="app-button app-button-primary flex-1 md:flex-none justify-center"
               title="Save this week's menu right away."
             >
               Save Now
             </button>
             <button
               onClick={exportPNG}
-              className="app-button app-button-secondary flex items-center space-x-1"
+              className="app-button app-button-secondary flex flex-1 md:flex-none items-center justify-center space-x-1"
               title="Download the visible weekly menu as a PNG image."
             >
               <FileImage size={16} />
@@ -274,7 +274,7 @@ export function MenuPlanner() {
               type="button"
               onClick={() => void sendWeeklyMenu()}
               disabled={!canManageMenu}
-            className="app-button app-button-primary flex items-center space-x-1"
+            className="app-button app-button-primary flex flex-1 md:flex-none items-center justify-center space-x-1"
               title="Send this weekly menu as a notification to everyone in the app."
             >
             <Send size={16} />

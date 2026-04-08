@@ -132,6 +132,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
+    // Safely track the component mount status to prevent memory leaks
     let isMounted = true
     let isPolling = false
     const loadData = async () => {
