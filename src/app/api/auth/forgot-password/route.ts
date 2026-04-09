@@ -31,9 +31,9 @@ export async function POST(request: Request) {
       return verifyPassword(submitted, stored) ? count + 1 : count
     }, 0)
 
-    if (correctCount < 3) {
+    if (correctCount < SECURITY_QUESTIONS.length) {
       return NextResponse.json(
-        { error: 'Please answer at least 3 security questions correctly to reset your password.' },
+        { error: `Please answer all ${SECURITY_QUESTIONS.length} security questions correctly to reset your password.` },
         { status: 403 },
       )
     }

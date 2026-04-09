@@ -37,8 +37,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Name, username, email, and password are required.' }, { status: 400 })
     }
 
-    if (answeredCount < 3) {
-      return NextResponse.json({ error: 'Please answer at least 3 security questions.' }, { status: 400 })
+    if (answeredCount < SECURITY_QUESTIONS.length) {
+      return NextResponse.json({ error: `Please answer all ${SECURITY_QUESTIONS.length} security questions.` }, { status: 400 })
     }
 
     const existingUser = await prisma.user.findFirst({

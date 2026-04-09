@@ -64,15 +64,23 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
     ({ id }) => forgotForm.securityAnswers[id]?.trim(),
   ).length
 
-  useEffect(() => {
-    if (notice !== 'Email verified. Your account request was sent to the admin for approval.') return
-
+  const resetRegisterFlow = () => {
     setRegisterForm({ name: '', username: '', email: '', phone: '', password: '', securityAnswers: {} })
     setRegistrationOtp('')
     setRegisterStep('form')
+  }
+
+  const showPendingApprovalPopup = (message: string) => {
+    resetRegisterFlow()
     setAuthMode('login')
-    setApprovalPopupMessage('Your email was verified successfully. Please wait for the admin to approve your request.')
+    setApprovalPopupMessage(message)
     setShowApprovalPopup(true)
+  }
+
+  useEffect(() => {
+    if (notice !== 'Email verified. Your account request was sent to the admin for approval.') return
+
+    showPendingApprovalPopup('Your email was verified successfully. Please wait for the admin to approve your request.')
   }, [notice])
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -82,8 +90,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
       const result = await login(loginForm)
       if (!result.success) {
         if (result.pendingApproval) {
-          setApprovalPopupMessage('Your account is waiting for admin approval. Please try again after an admin approves your request.')
-          setShowApprovalPopup(true)
+          showPendingApprovalPopup('Your account is waiting for admin approval. Please try again after an admin approves your request.')
         }
         return
       }
@@ -98,6 +105,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
     e.preventDefault()
     setAuthAction('request-otp')
     try {
+      setShowApprovalPopup(false)
       const sent = await requestRegistrationOtp(registerForm)
       if (!sent) return
       setRegistrationOtp('')
@@ -113,16 +121,12 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
     try {
       const result = await verifyRegistrationOtp({ email: registerForm.email, otp: registrationOtp })
       if (!result.submitted) return
-      setRegisterForm({ name: '', username: '', email: '', phone: '', password: '', securityAnswers: {} })
-      setRegistrationOtp('')
-      setRegisterStep('form')
       if (result.user) {
+        resetRegisterFlow()
         onContinue()
         return
       }
-      setAuthMode('login')
-      setApprovalPopupMessage('Your email was verified successfully. Please wait for the admin to approve your request.')
-      setShowApprovalPopup(true)
+      showPendingApprovalPopup('Your email was verified successfully. Please wait for the admin to approve your request.')
     } finally {
       setAuthAction('idle')
     }
@@ -419,12 +423,12 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                             ))}
                           </div>
                           <p className="app-muted mt-3 text-xs">
-                            Answered: {forgotAnsweredCount} of 5
+                            Answered: {forgotAnsweredCount} of {SECURITY_QUESTIONS.length}
                           </p>
                         </div>
                         <button
                           type="submit"
-                          disabled={!forgotForm.username.trim() || !forgotForm.newPassword.trim() || forgotAnsweredCount < 3 || authAction !== 'idle'}
+                          disabled={!forgotForm.username.trim() || !forgotForm.newPassword.trim() || forgotAnsweredCount < SECURITY_QUESTIONS.length || authAction !== 'idle'}
                           className="app-button app-button-secondary inline-flex w-full items-center justify-center gap-2"
                         >
                           <RotateCcw size={18} />
@@ -441,98 +445,110 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                         : 'pointer-events-none absolute inset-0 translate-x-8 opacity-0'
                     }`}
                   >
-                    <form onSubmit={registerStep === 'form' ? handleCreateUser : handleVerifyRegistration} className="space-y-4">
-                      <input
-                        type="text"
-                        value={registerForm.name}
-                        onChange={(e) => setRegisterForm((prev) => ({ ...prev, name: e.target.value }))}
-                        className="app-input"
-                        placeholder="Full name"
-                        required
-                        disabled={registerStep === 'otp'}
-                      />
-                      <input
-                        type="text"
-                        value={registerForm.username}
-                        onChange={(e) => setRegisterForm((prev) => ({ ...prev, username: e.target.value }))}
-                        className="app-input"
-                        placeholder="Username"
-                        autoComplete="username"
-                        required
-                        disabled={registerStep === 'otp'}
-                      />
-                      <input
-                        type="email"
-                        value={registerForm.email}
-                        onChange={(e) => setRegisterForm((prev) => ({ ...prev, email: e.target.value }))}
-                        className="app-input"
-                        placeholder="Email address"
-                        autoComplete="email"
-                        required
-                        disabled={registerStep === 'otp'}
-                      />
-                      <input
-                        type="tel"
-                        value={registerForm.phone}
-                        onChange={(e) => setRegisterForm((prev) => ({ ...prev, phone: e.target.value }))}
-                        className="app-input"
-                        placeholder="Phone number (optional)"
-                        autoComplete="tel"
-                        disabled={registerStep === 'otp'}
-                      />
-                      <div className="relative">
+                    {registerStep === 'form' ? (
+                      <form onSubmit={handleCreateUser} className="space-y-4">
                         <input
-                          type={showPasswords.register ? 'text' : 'password'}
-                          value={registerForm.password}
-                          onChange={(e) => setRegisterForm((prev) => ({ ...prev, password: e.target.value }))}
-                          className="app-input pr-12"
-                          placeholder="Password"
-                          autoComplete="new-password"
+                          type="text"
+                          value={registerForm.name}
+                          onChange={(e) => setRegisterForm((prev) => ({ ...prev, name: e.target.value }))}
+                          className="app-input"
+                          placeholder="Full name"
                           required
-                          disabled={registerStep === 'otp'}
                         />
+                        <input
+                          type="text"
+                          value={registerForm.username}
+                          onChange={(e) => setRegisterForm((prev) => ({ ...prev, username: e.target.value }))}
+                          className="app-input"
+                          placeholder="Username"
+                          autoComplete="username"
+                          required
+                        />
+                        <input
+                          type="email"
+                          value={registerForm.email}
+                          onChange={(e) => setRegisterForm((prev) => ({ ...prev, email: e.target.value }))}
+                          className="app-input"
+                          placeholder="Email address"
+                          autoComplete="email"
+                          required
+                        />
+                        <input
+                          type="tel"
+                          value={registerForm.phone}
+                          onChange={(e) => setRegisterForm((prev) => ({ ...prev, phone: e.target.value }))}
+                          className="app-input"
+                          placeholder="Phone number (optional)"
+                          autoComplete="tel"
+                        />
+                        <div className="relative">
+                          <input
+                            type={showPasswords.register ? 'text' : 'password'}
+                            value={registerForm.password}
+                            onChange={(e) => setRegisterForm((prev) => ({ ...prev, password: e.target.value }))}
+                            className="app-input pr-12"
+                            placeholder="Password"
+                            autoComplete="new-password"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPasswords((prev) => ({ ...prev, register: !prev.register }))}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-soft)]"
+                          >
+                            {showPasswords.register ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                          <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--primary-strong)]">
+                            <ShieldCheck size={16} />
+                            Security Questions
+                          </div>
+                          <p className="app-muted mb-4 text-sm">
+                            Answer all 3 questions. You will use them to reset your password if needed.
+                          </p>
+                          <div className="space-y-3">
+                            {SECURITY_QUESTIONS.map(({ id, question }) => (
+                              <div key={id}>
+                                <label className="mb-1 block text-sm font-medium">{question}</label>
+                                <input
+                                  type="text"
+                                  value={registerForm.securityAnswers[id] ?? ''}
+                                  onChange={(e) => setRegisterForm((prev) => ({
+                                    ...prev,
+                                    securityAnswers: {
+                                      ...prev.securityAnswers,
+                                      [id]: e.target.value,
+                                    },
+                                  }))}
+                                  className="app-input"
+                                  placeholder="Your answer"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                          <p className="app-muted mt-3 text-xs">
+                            Answered: {registerAnsweredCount} of {SECURITY_QUESTIONS.length}
+                          </p>
+                        </div>
                         <button
-                          type="button"
-                          onClick={() => setShowPasswords((prev) => ({ ...prev, register: !prev.register }))}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-soft)]"
+                          type="submit"
+                          disabled={
+                            authAction !== 'idle' ||
+                            !registerForm.name.trim() ||
+                            !registerForm.username.trim() ||
+                            !registerForm.email.trim() ||
+                            !registerForm.password.trim() ||
+                            registerAnsweredCount < SECURITY_QUESTIONS.length
+                          }
+                          className="app-button app-button-secondary inline-flex w-full items-center justify-center gap-2"
                         >
-                          {showPasswords.register ? <EyeOff size={18} /> : <Eye size={18} />}
+                          <UserPlus size={18} />
+                          {authAction === 'request-otp' ? 'Sending Code...' : 'Send Verification Code'}
                         </button>
-                      </div>
-                      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-                        <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--primary-strong)]">
-                          <ShieldCheck size={16} />
-                          Security Questions
-                        </div>
-                        <p className="app-muted mb-4 text-sm">
-                          Answer any 3 or more. You will use these to reset your password if needed.
-                        </p>
-                        <div className="space-y-3">
-                          {SECURITY_QUESTIONS.map(({ id, question }) => (
-                            <div key={id}>
-                              <label className="mb-1 block text-sm font-medium">{question}</label>
-                              <input
-                                type="text"
-                                value={registerForm.securityAnswers[id] ?? ''}
-                                onChange={(e) => setRegisterForm((prev) => ({
-                                  ...prev,
-                                  securityAnswers: {
-                                    ...prev.securityAnswers,
-                                    [id]: e.target.value,
-                                  },
-                                }))}
-                                className="app-input"
-                                placeholder="Your answer"
-                                disabled={registerStep === 'otp'}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                        <p className="app-muted mt-3 text-xs">
-                          Answered: {registerAnsweredCount} of 5
-                        </p>
-                      </div>
-                      {registerStep === 'otp' && (
+                      </form>
+                    ) : (
+                      <form onSubmit={handleVerifyRegistration} className="space-y-4">
                         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
                           <div className="mb-2 text-sm font-semibold text-[var(--primary-strong)]">Email Verification</div>
                           <p className="app-muted mb-3 text-sm">
@@ -554,31 +570,20 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                             </p>
                           )}
                         </div>
-                      )}
-                      <div className="flex flex-col gap-3 sm:flex-row">
-                        <button
-                          type="submit"
-                          disabled={
-                            authAction !== 'idle' || (
-                            registerStep === 'form'
-                              ? (
-                                  !registerForm.name.trim() ||
-                                  !registerForm.username.trim() ||
-                                  !registerForm.email.trim() ||
-                                  !registerForm.password.trim() ||
-                                  registerAnsweredCount < 3
-                                )
-                              : registrationOtp.trim().length !== 6
-                            )
-                          }
-                          className="app-button app-button-secondary inline-flex w-full items-center justify-center gap-2"
-                        >
-                          <UserPlus size={18} />
-                          {registerStep === 'form'
-                            ? (authAction === 'request-otp' ? 'Sending Code...' : 'Send Verification Code')
-                            : (authAction === 'verify-otp' ? 'Verifying...' : 'Verify and Register')}
-                        </button>
-                        {registerStep === 'otp' && (
+                        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm">
+                          <div className="font-semibold text-[var(--text)]">{registerForm.name}</div>
+                          <div className="app-muted mt-1">{registerForm.email}</div>
+                          <div className="app-muted mt-2">Your details are ready. Enter the code to finish registration.</div>
+                        </div>
+                        <div className="flex flex-col gap-3 sm:flex-row">
+                          <button
+                            type="submit"
+                            disabled={authAction !== 'idle' || registrationOtp.trim().length !== 6}
+                            className="app-button app-button-secondary inline-flex w-full items-center justify-center gap-2"
+                          >
+                            <UserPlus size={18} />
+                            {authAction === 'verify-otp' ? 'Verifying...' : 'Verify and Register'}
+                          </button>
                           <button
                             type="button"
                             onClick={() => {
@@ -590,9 +595,9 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                           >
                             Edit Details
                           </button>
-                        )}
-                      </div>
-                    </form>
+                        </div>
+                      </form>
+                    )}
                   </div>
                 </div>
               </>
