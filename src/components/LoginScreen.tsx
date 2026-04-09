@@ -37,6 +37,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
   })
   const [registrationOtp, setRegistrationOtp] = useState('')
   const [registerStep, setRegisterStep] = useState<'form' | 'otp'>('form')
+  const [showApprovalPopup, setShowApprovalPopup] = useState(false)
   const [forgotForm, setForgotForm] = useState({
     username: '',
     newPassword: '',
@@ -77,12 +78,17 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
 
   const handleVerifyRegistration = async (e: React.FormEvent) => {
     e.preventDefault()
-    const user = await verifyRegistrationOtp({ email: registerForm.email, otp: registrationOtp })
-    if (!user) return
+    const result = await verifyRegistrationOtp({ email: registerForm.email, otp: registrationOtp })
+    if (!result.submitted) return
     setRegisterForm({ name: '', username: '', email: '', phone: '', password: '', securityAnswers: {} })
     setRegistrationOtp('')
     setRegisterStep('form')
-    onContinue()
+    if (result.user) {
+      onContinue()
+      return
+    }
+    setAuthMode('login')
+    setShowApprovalPopup(true)
   }
 
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -102,6 +108,25 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
 
   return (
     <div className="app-shell relative overflow-hidden px-4 py-8 sm:px-6 lg:px-8">
+      {showApprovalPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(18,24,18,0.42)] px-4">
+          <div className="app-panel w-full max-w-md rounded-3xl p-6">
+            <h3 className="mb-2 text-xl font-semibold">Request Submitted</h3>
+            <p className="app-muted mb-6 text-sm">
+              Your email was verified successfully. Please wait for the admin to approve your request.
+            </p>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowApprovalPopup(false)}
+                className="app-button app-button-primary"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-[-8%] top-10 h-40 w-40 rounded-full bg-[rgba(160,214,131,0.32)] blur-3xl" />
         <div className="absolute bottom-0 right-[-6%] h-56 w-56 rounded-full bg-[rgba(105,132,169,0.26)] blur-3xl" />

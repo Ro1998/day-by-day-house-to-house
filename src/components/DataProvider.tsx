@@ -52,7 +52,7 @@ interface DataContextType {
     password: string
     securityAnswers: Record<string, string>
   }) => Promise<boolean>
-  verifyRegistrationOtp: (input: { email: string; otp: string }) => Promise<User | null>
+  verifyRegistrationOtp: (input: { email: string; otp: string }) => Promise<{ user: User | null; submitted: boolean }>
   resetPasswordWithSecurityAnswers: (input: {
     username: string
     newPassword: string
@@ -554,7 +554,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const trimmedEmail = input.email.trim().toLowerCase()
     if (!trimmedEmail || !input.otp.trim()) {
       setError('Please enter your email and the verification code.')
-      return null
+      return { user: null, submitted: false }
     }
 
     try {
@@ -572,14 +572,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (user.approved) {
         setCurrentUser(user)
         setNotice('Your admin account is ready. You are now signed in.')
-        return user
+        return { user, submitted: true }
       }
 
       setNotice('Email verified. Your account request was sent to the admin for approval.')
-      return null
+      return { user: null, submitted: true }
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Failed to verify registration code')
-      return null
+      return { user: null, submitted: false }
     }
   }
 
