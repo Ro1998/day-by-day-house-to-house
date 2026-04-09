@@ -123,6 +123,8 @@ model Notification {
   message     String
   category    String   @default("general")
   createdById String
+  recipientUserIds String[] @default([])
+  readByUserIds String[] @default([])
   createdBy   User     @relation("NotificationCreator", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
 }

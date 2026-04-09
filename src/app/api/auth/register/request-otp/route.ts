@@ -2,7 +2,7 @@ import { randomInt } from 'crypto'
 import { NextResponse } from 'next/server'
 import { apiError } from '@/lib/api-error'
 import { prisma } from '@/lib/prisma'
-import { hashPassword } from '@/lib/password'
+import { hashPassword, hashValue } from '@/lib/password'
 import { SECURITY_QUESTIONS, type SecurityQuestionId } from '@/lib/security-questions'
 import { isEmailConfigured, sendRegistrationOtpEmail } from '@/lib/email'
 
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     }
 
     const otp = randomInt(100000, 1000000).toString()
-    const otpHash = hashPassword(otp)
+    const otpHash = hashValue(otp)
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000)
 
     await prisma.registrationVerification.deleteMany({

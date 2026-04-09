@@ -25,7 +25,7 @@ interface DataContextType {
   inventoryItems: InventoryItem[]
   notifications: Notification[]
   unreadNotifications: Notification[]
-  markNotificationAsRead: (id: string) => void
+  markNotificationAsRead: (id: string) => Promise<void>
   menuSuggestions: MenuSuggestion[]
   availabilities: Availability[]
   supplyReports: SupplyReport[]
@@ -71,6 +71,7 @@ interface DataContextType {
     category?: 'general' | 'menu'
     menuData?: Menu
     emailImageDataUrl?: string
+    recipientUserIds?: string[]
   }) => Promise<void>
   updateNotification: (id: string, input: { title: string; message: string }) => Promise<void>
   deleteNotification: (id: string) => Promise<void>
@@ -101,7 +102,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [activities, setActivities] = useState<Activity[]>([])
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
-  const [readNotificationIds, setReadNotificationIds] = useState<Set<string>>(new Set())
   const [menuSuggestions, setMenuSuggestions] = useState<MenuSuggestion[]>([])
   const [availabilities, setAvailabilities] = useState<Availability[]>([])
   const [supplyReports, setSupplyReports] = useState<SupplyReport[]>([])
@@ -133,24 +133,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       throw error
     } finally {
       window.clearTimeout(timeoutId)
-    }
-  }
-
-  const getReadNotificationsStorageKey = (userId: string) => `read_notifications_${userId}`
-
-  const readStoredNotificationIds = (userId: string) => {
-    if (typeof window === 'undefined') return new Set<string>()
-
-    try {
-      const stored = localStorage.getItem(getReadNotificationsStorageKey(userId))
-      if (!stored) return new Set<string>()
-
-      const parsed = JSON.parse(stored)
-      if (!Array.isArray(parsed)) return new Set<string>()
-
-      return new Set(parsed.filter((value): value is string => typeof value === 'string'))
-    } catch {
-      return new Set<string>()
     }
   }
 
@@ -313,35 +295,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       isMounted = false
     }
   }, [currentUser?.id, refreshTick])
-
-  useEffect(() => {
-    if (!currentUser) {
-      setReadNotificationIds(new Set())
-      return
-    }
-
-    setReadNotificationIds(readStoredNotificationIds(currentUser.id))
-  }, [currentUser])
-
-  useEffect(() => {
-    if (!currentUser || typeof window === 'undefined') return
-
-    const validNotificationIds = new Set(notifications.map((notification) => notification.id))
-    const next = new Set(Array.from(readNotificationIds).filter((id) => validNotificationIds.has(id)))
-    const hasChanges =
-      next.size !== readNotificationIds.size ||
-      Array.from(next).some((id) => !readNotificationIds.has(id))
-
-    if (hasChanges) {
-      setReadNotificationIds(next)
-      return
-    }
-
-    localStorage.setItem(
-      getReadNotificationsStorageKey(currentUser.id),
-      JSON.stringify(Array.from(next)),
-    )
-  }, [currentUser, notifications, readNotificationIds])
 
   useEffect(() => {
     if (!currentUser || typeof window === 'undefined') return
@@ -624,7 +577,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       })
       const user = await readJson<User>(res, 'Failed to verify registration code')
       if (user.approved) {
-        setReadNotificationIds(readStoredNotificationIds(user.id))
         setCurrentUser(user)
         setNotice('Your admin account is ready. You are now signed in.')
         return { user, submitted: true }
@@ -811,6 +763,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     category?: 'general' | 'menu'
     menuData?: Menu
     emailImageDataUrl?: string
+    recipientUserIds?: string[]
   }) => {
     if (!currentUser) return
     try {
@@ -859,16 +812,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }
 
   const markNotificationAsRead = (id: string) => {
-    if (!currentUser) return
-    setReadNotificationIds((prev) => {
-      const next = new Set(prev)
-      next.add(id)
-      localStorage.setItem(
-        getReadNotificationsStorageKey(currentUser.id),
-        JSON.stringify(Array.from(next)),
-      )
-      return next
-    })
+    if (!currentUser) return Promise.resolve()
+    return (async () => {
+      try {
+        const res = await fetch('/api/notifications', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({ id, markRead: true }),
+        })
+        const updated = await readJson<Notification>(res, 'Failed to mark notification as read')
+        setNotifications((prev) => prev.map((entry) => entry.id === updated.id ? updated : entry))
+      } catch (actionError) {
+        setError(actionError instanceof Error ? actionError.message : 'Failed to mark notification as read')
+      }
+    })()
   }
 
   const addMenuSuggestion = async (input: { suggestion: string; preferredDay?: string; preferredMeal?: string }) => {
@@ -989,7 +946,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ username: input.username.trim().toLowerCase(), password: input.password }),
       })
       const user = await readJson<User>(res, 'Failed to sign in')
-      setReadNotificationIds(readStoredNotificationIds(user.id))
       setCurrentUser(user)
       return { success: true, pendingApproval: false }
     } catch (actionError) {
@@ -1022,7 +978,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const unreadNotifications = notifications.filter(n => !readNotificationIds.has(n.id))
+  const unreadNotifications = currentUser
+    ? notifications.filter((notification) => !(notification.readByUserIds ?? []).includes(currentUser.id))
+    : []
 
   return (
     <DataContext.Provider value={{

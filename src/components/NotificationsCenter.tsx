@@ -5,17 +5,23 @@ import { useData } from '@/components/DataProvider'
 import { Trash2 } from 'lucide-react'
 
 export function NotificationsCenter() {
-  const { notifications, unreadNotifications, markNotificationAsRead, addNotification, updateNotification, deleteNotification, currentUser } = useData()
-  const [form, setForm] = useState({ title: '', message: '' })
+  const { notifications, unreadNotifications, markNotificationAsRead, addNotification, updateNotification, deleteNotification, currentUser, users } = useData()
+  const [form, setForm] = useState({ title: '', message: '', recipientMode: 'everyone' as 'everyone' | 'specific', recipientUserIds: [] as string[] })
   const [editingNotification, setEditingNotification] = useState<{ id: string; title: string; message: string } | null>(null)
   const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null)
   const canSend = currentUser?.role === 'admin' || currentUser?.role === 'overseer'
   const canManageNotifications = currentUser?.role === 'admin'
+  const approvedRecipients = users.filter((user) => user.approved)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    await addNotification({ title: form.title, message: form.message, category: 'general' })
-    setForm({ title: '', message: '' })
+    await addNotification({
+      title: form.title,
+      message: form.message,
+      category: 'general',
+      recipientUserIds: form.recipientMode === 'specific' ? form.recipientUserIds : undefined,
+    })
+    setForm({ title: '', message: '', recipientMode: 'everyone', recipientUserIds: [] })
   }
 
   return (
@@ -107,13 +113,60 @@ export function NotificationsCenter() {
           <h2 className="mb-4 text-xl font-semibold">Send Notification</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <input className="app-input" value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="Title" required />
-            <textarea className="app-input min-h-[140px]" value={form.message} onChange={(e) => setForm((prev) => ({ ...prev, message: e.target.value }))} placeholder="Message for everyone" required />
+            <textarea className="app-input min-h-[140px]" value={form.message} onChange={(e) => setForm((prev) => ({ ...prev, message: e.target.value }))} placeholder={form.recipientMode === 'everyone' ? 'Message for everyone' : 'Message for selected people'} required />
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+              <div className="mb-3 text-sm font-semibold text-[var(--primary-strong)]">Recipients</div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    checked={form.recipientMode === 'everyone'}
+                    onChange={() => setForm((prev) => ({ ...prev, recipientMode: 'everyone', recipientUserIds: [] }))}
+                  />
+                  Everyone
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    checked={form.recipientMode === 'specific'}
+                    onChange={() => setForm((prev) => ({ ...prev, recipientMode: 'specific' }))}
+                  />
+                  Specific people
+                </label>
+              </div>
+              {form.recipientMode === 'specific' && (
+                <div className="mt-4 space-y-2">
+                  {approvedRecipients.map((user) => (
+                    <label key={user.id} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={form.recipientUserIds.includes(user.id)}
+                        onChange={(e) => setForm((prev) => ({
+                          ...prev,
+                          recipientUserIds: e.target.checked
+                            ? [...prev.recipientUserIds, user.id]
+                            : prev.recipientUserIds.filter((id) => id !== user.id),
+                        }))}
+                      />
+                      <span>{user.name}</span>
+                      {user.email && <span className="app-muted text-xs">({user.email})</span>}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm">
-              Notifications will be sent via email to all approved users with email addresses.
+              {form.recipientMode === 'everyone'
+                ? 'Notifications will be shown in-app and sent by email to all approved users with email addresses.'
+                : 'Notifications will be shown in-app and sent by email only to the selected approved users.'}
             </div>
             <div className="flex gap-3">
-              <button type="submit" className="app-button app-button-primary">
-                Send To Everyone
+              <button
+                type="submit"
+                disabled={form.recipientMode === 'specific' && form.recipientUserIds.length === 0}
+                className="app-button app-button-primary"
+              >
+                {form.recipientMode === 'everyone' ? 'Send To Everyone' : 'Send To Selected People'}
               </button>
             </div>
           </form>

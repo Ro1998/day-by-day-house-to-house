@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { apiError } from '@/lib/api-error'
 import { prisma } from '@/lib/prisma'
-import { hashPassword } from '@/lib/password'
+import { verifyPassword, verifyValue } from '@/lib/password'
 import { sendAdminRegistrationRequestEmail } from '@/lib/email'
 
 export async function POST(request: Request) {
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'This verification code has expired. Please request a new one.' }, { status: 400 })
     }
 
-    if (verification.otpHash !== hashPassword(otp)) {
+    if (!verifyValue(otp, verification.otpHash) && !verifyPassword(otp, verification.otpHash)) {
       return NextResponse.json({ error: 'The verification code is incorrect.' }, { status: 400 })
     }
 

@@ -76,6 +76,8 @@ export interface Notification {
   category: 'general' | 'menu'
   createdBy: string
   createdById?: string
+  recipientUserIds?: string[]
+  readByUserIds?: string[]
   createdAt: string
 }
 
