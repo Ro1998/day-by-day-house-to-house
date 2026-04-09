@@ -80,7 +80,7 @@ interface DataContextType {
   reviewAvailability: (ids: string[]) => Promise<void>
   addSupplyReport: (input: { title: string; category: 'grocery' | 'vegetable' | 'maintenance'; itemName?: string; message: string; status?: 'missing' | 'urgent' | 'resolved' | 'in-consideration' | 'will-take-time' }) => Promise<void>
   updateSupplyReport: (input: { id: string; status?: 'missing' | 'urgent' | 'resolved' | 'in-consideration' | 'will-take-time'; response?: string }) => Promise<void>
-  login: (input: { username: string; password: string }) => Promise<boolean>
+  login: (input: { username: string; password: string }) => Promise<{ success: boolean; pendingApproval: boolean }>
   logout: () => void
   logActivity: (action: string) => Promise<void>
 }
@@ -932,10 +932,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       })
       const user = await readJson<User>(res, 'Failed to sign in')
       setCurrentUser(user)
-      return true
+      return { success: true, pendingApproval: false }
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : 'Failed to sign in')
-      return false
+      const message = actionError instanceof Error ? actionError.message : 'Failed to sign in'
+      setError(message)
+      return {
+        success: false,
+        pendingApproval: message === 'Your account is waiting for admin approval.',
+      }
     }
   }
 

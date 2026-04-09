@@ -38,6 +38,9 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
   const [registrationOtp, setRegistrationOtp] = useState('')
   const [registerStep, setRegisterStep] = useState<'form' | 'otp'>('form')
   const [showApprovalPopup, setShowApprovalPopup] = useState(false)
+  const [approvalPopupMessage, setApprovalPopupMessage] = useState(
+    'Your email was verified successfully. Please wait for the admin to approve your request.',
+  )
   const [forgotForm, setForgotForm] = useState({
     username: '',
     newPassword: '',
@@ -62,8 +65,14 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    const success = await login(loginForm)
-    if (!success) return
+    const result = await login(loginForm)
+    if (!result.success) {
+      if (result.pendingApproval) {
+        setApprovalPopupMessage('Your account is waiting for admin approval. Please try again after an admin approves your request.')
+        setShowApprovalPopup(true)
+      }
+      return
+    }
     setLoginForm({ username: '', password: '' })
     onContinue()
   }
@@ -88,6 +97,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
       return
     }
     setAuthMode('login')
+    setApprovalPopupMessage('Your email was verified successfully. Please wait for the admin to approve your request.')
     setShowApprovalPopup(true)
   }
 
@@ -113,7 +123,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
           <div className="app-panel w-full max-w-md rounded-3xl p-6">
             <h3 className="mb-2 text-xl font-semibold">Request Submitted</h3>
             <p className="app-muted mb-6 text-sm">
-              Your email was verified successfully. Please wait for the admin to approve your request.
+              {approvalPopupMessage}
             </p>
             <div className="flex justify-end">
               <button
