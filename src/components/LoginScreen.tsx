@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Eye, EyeOff, LogIn, Moon, RotateCcw, ShieldCheck, Sparkles, Sun, UserPlus } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import { useData } from '@/components/DataProvider'
@@ -63,6 +63,17 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
   const forgotAnsweredCount = SECURITY_QUESTIONS.filter(
     ({ id }) => forgotForm.securityAnswers[id]?.trim(),
   ).length
+
+  useEffect(() => {
+    if (notice !== 'Email verified. Your account request was sent to the admin for approval.') return
+
+    setRegisterForm({ name: '', username: '', email: '', phone: '', password: '', securityAnswers: {} })
+    setRegistrationOtp('')
+    setRegisterStep('form')
+    setAuthMode('login')
+    setApprovalPopupMessage('Your email was verified successfully. Please wait for the admin to approve your request.')
+    setShowApprovalPopup(true)
+  }, [notice])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -120,6 +120,40 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const triggerRefresh = () => setRefreshTick((tick) => tick + 1)
 
+  const fetchWithTimeout = async (input: RequestInfo | URL, init?: RequestInit, timeoutMs = 15000) => {
+    const controller = new AbortController()
+    const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs)
+
+    try {
+      return await fetch(input, { ...init, signal: controller.signal })
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new Error('The request took too long. Please try again.')
+      }
+      throw error
+    } finally {
+      window.clearTimeout(timeoutId)
+    }
+  }
+
+  const getReadNotificationsStorageKey = (userId: string) => `read_notifications_${userId}`
+
+  const readStoredNotificationIds = (userId: string) => {
+    if (typeof window === 'undefined') return new Set<string>()
+
+    try {
+      const stored = localStorage.getItem(getReadNotificationsStorageKey(userId))
+      if (!stored) return new Set<string>()
+
+      const parsed = JSON.parse(stored)
+      if (!Array.isArray(parsed)) return new Set<string>()
+
+      return new Set(parsed.filter((value): value is string => typeof value === 'string'))
+    } catch {
+      return new Set<string>()
+    }
+  }
+
   const readJson = async <T,>(res: Response, fallbackMessage: string): Promise<T> => {
     let payload: T | ApiError | null = null
 
@@ -281,13 +315,33 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [currentUser?.id, refreshTick])
 
   useEffect(() => {
-    if (currentUser) {
-      const stored = localStorage.getItem(`read_notifications_${currentUser.id}`)
-      if (stored) {
-        setReadNotificationIds(new Set(JSON.parse(stored)))
-      } else setReadNotificationIds(new Set())
+    if (!currentUser) {
+      setReadNotificationIds(new Set())
+      return
     }
+
+    setReadNotificationIds(readStoredNotificationIds(currentUser.id))
   }, [currentUser])
+
+  useEffect(() => {
+    if (!currentUser || typeof window === 'undefined') return
+
+    const validNotificationIds = new Set(notifications.map((notification) => notification.id))
+    const next = new Set(Array.from(readNotificationIds).filter((id) => validNotificationIds.has(id)))
+    const hasChanges =
+      next.size !== readNotificationIds.size ||
+      Array.from(next).some((id) => !readNotificationIds.has(id))
+
+    if (hasChanges) {
+      setReadNotificationIds(next)
+      return
+    }
+
+    localStorage.setItem(
+      getReadNotificationsStorageKey(currentUser.id),
+      JSON.stringify(Array.from(next)),
+    )
+  }, [currentUser, notifications, readNotificationIds])
 
   useEffect(() => {
     if (!currentUser || typeof window === 'undefined') return
@@ -529,7 +583,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     try {
       setError(null)
       setNotice(null)
-      const res = await fetch('/api/auth/register/request-otp', {
+      const res = await fetchWithTimeout('/api/auth/register/request-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -560,7 +614,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     try {
       setError(null)
       setNotice(null)
-      const res = await fetch('/api/auth/register/verify-otp', {
+      const res = await fetchWithTimeout('/api/auth/register/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -570,6 +624,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       })
       const user = await readJson<User>(res, 'Failed to verify registration code')
       if (user.approved) {
+        setReadNotificationIds(readStoredNotificationIds(user.id))
         setCurrentUser(user)
         setNotice('Your admin account is ready. You are now signed in.')
         return { user, submitted: true }
@@ -596,7 +651,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     try {
       setError(null)
       setNotice(null)
-      const res = await fetch('/api/auth/forgot-password', {
+      const res = await fetchWithTimeout('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -644,7 +699,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     try {
       setError(null)
       setNotice(null)
-      const res = await fetch('/api/auth/reset-with-token', {
+      const res = await fetchWithTimeout('/api/auth/reset-with-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
@@ -808,7 +863,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setReadNotificationIds((prev) => {
       const next = new Set(prev)
       next.add(id)
-      localStorage.setItem(`read_notifications_${currentUser.id}`, JSON.stringify(Array.from(next)))
+      localStorage.setItem(
+        getReadNotificationsStorageKey(currentUser.id),
+        JSON.stringify(Array.from(next)),
+      )
       return next
     })
   }
@@ -925,12 +983,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     try {
       setError(null)
       setNotice(null)
-      const res = await fetch('/api/auth/login', {
+      const res = await fetchWithTimeout('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: input.username.trim().toLowerCase(), password: input.password }),
       })
       const user = await readJson<User>(res, 'Failed to sign in')
+      setReadNotificationIds(readStoredNotificationIds(user.id))
       setCurrentUser(user)
       return { success: true, pendingApproval: false }
     } catch (actionError) {
