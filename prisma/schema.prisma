@@ -15,7 +15,7 @@ model User {
   name                     String @unique
   username                 String? @unique
   email                    String? @unique
-  phone                    String?
+  phone                    String? @unique
   passwordHash             String?
   securityAnswers          String?
   passwordResetTokenHash   String?
@@ -38,7 +38,7 @@ model RegistrationVerification {
   name            String
   username        String   @unique
   email           String   @unique
-  phone           String?
+  phone           String?   @unique
   passwordHash    String
   securityAnswers String
   otpHash         String

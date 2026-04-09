@@ -18,6 +18,66 @@ const serializeSecurityAnswers = (answers: Partial<Record<SecurityQuestionId, st
   )
 )
 
+const getRegistrationConflictMessage = async (input: {
+  username: string
+  email: string
+  phone?: string
+}) => {
+  const { username, email, phone } = input
+
+  const existingUsername = await prisma.user.findFirst({
+    where: { username },
+    select: { id: true },
+  })
+  if (existingUsername) {
+    return 'This username is already taken. Please choose a different username.'
+  }
+
+  const pendingUsername = await prisma.registrationVerification.findFirst({
+    where: { username },
+    select: { id: true },
+  })
+  if (pendingUsername) {
+    return 'This username is already taken. Please choose a different username.'
+  }
+
+  const existingEmail = await prisma.user.findFirst({
+    where: { email },
+    select: { id: true },
+  })
+  if (existingEmail) {
+    return 'This email is already in use. Please sign in instead.'
+  }
+
+  const pendingEmail = await prisma.registrationVerification.findFirst({
+    where: { email },
+    select: { id: true },
+  })
+  if (pendingEmail) {
+    return 'This email is already in use. Please sign in instead.'
+  }
+
+  if (phone) {
+    const existingPhone = await prisma.user.findFirst({
+      where: { phone },
+      select: { id: true },
+    })
+    if (existingPhone) {
+      return 'This phone number is already in use. Please use a different phone number.'
+    }
+
+    const pendingPhone = await prisma.registrationVerification.findFirst({
+      where: { phone },
+      select: { id: true },
+    })
+    if (pendingPhone) {
+      return 'This phone number is already in use. Please use a different phone number.'
+    }
+  }
+
+  return null
+}
+
 export async function POST(request: Request) {
   try {
     if (!isEmailConfigured()) {
@@ -41,14 +101,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Please answer all ${SECURITY_QUESTIONS.length} security questions.` }, { status: 400 })
     }
 
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        OR: [{ email }, { username }, { name }],
-      },
-      select: { id: true },
+    const conflictMessage = await getRegistrationConflictMessage({
+      username,
+      email,
+      phone: phone || undefined,
     })
-    if (existingUser) {
-      return NextResponse.json({ error: 'An account with this name, username, or email already exists.' }, { status: 400 })
+    if (conflictMessage) {
+      return NextResponse.json({ error: conflictMessage }, { status: 400 })
     }
 
     const otp = randomInt(100000, 1000000).toString()
@@ -57,7 +116,7 @@ export async function POST(request: Request) {
 
     await prisma.registrationVerification.deleteMany({
       where: {
-        OR: [{ email }, { username }],
+        OR: [{ email }, { username }, ...(phone ? [{ phone }] : [])],
       },
     })
 

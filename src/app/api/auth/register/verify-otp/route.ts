@@ -31,19 +31,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'The verification code is incorrect.' }, { status: 400 })
     }
 
-    const conflictingUser = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: verification.email },
-          { username: verification.username },
-          { name: verification.name },
-        ],
-      },
+    const conflictingUsername = await prisma.user.findFirst({
+      where: { username: verification.username },
       select: { id: true },
     })
-    if (conflictingUser) {
+    if (conflictingUsername) {
       await prisma.registrationVerification.delete({ where: { email } })
-      return NextResponse.json({ error: 'An account with this name, username, or email already exists.' }, { status: 400 })
+      return NextResponse.json({ error: 'This username is already taken. Please choose a different username.' }, { status: 400 })
+    }
+
+    const conflictingEmail = await prisma.user.findFirst({
+      where: { email: verification.email },
+      select: { id: true },
+    })
+    if (conflictingEmail) {
+      await prisma.registrationVerification.delete({ where: { email } })
+      return NextResponse.json({ error: 'This email is already in use. Please sign in instead.' }, { status: 400 })
+    }
+
+    if (verification.phone) {
+      const conflictingPhone = await prisma.user.findFirst({
+        where: { phone: verification.phone },
+        select: { id: true },
+      })
+      if (conflictingPhone) {
+        await prisma.registrationVerification.delete({ where: { email } })
+        return NextResponse.json({ error: 'This phone number is already in use. Please use a different phone number.' }, { status: 400 })
+      }
     }
 
     const approvedUserCount = await prisma.user.count({ where: { approved: true } })

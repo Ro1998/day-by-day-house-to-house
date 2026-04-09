@@ -83,6 +83,15 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
     showPendingApprovalPopup('Your email was verified successfully. Please wait for the admin to approve your request.')
   }, [notice])
 
+  useEffect(() => {
+    if (authMode !== 'register') return
+    if (error !== 'This email is already in use. Please sign in instead.') return
+
+    setRegisterStep('form')
+    setRegistrationOtp('')
+    setAuthMode('login')
+  }, [authMode, error])
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setAuthAction('login')

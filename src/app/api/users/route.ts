@@ -17,6 +17,52 @@ const serializeSecurityAnswers = (answers: Partial<Record<SecurityQuestionId, st
   )
 )
 
+const getUserConflictMessage = async (input: {
+  username: string
+  email: string
+  phone?: string
+  excludeUserId?: string
+}) => {
+  const { username, email, phone, excludeUserId } = input
+
+  const usernameConflict = await prisma.user.findFirst({
+    where: {
+      username,
+      ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
+    },
+    select: { id: true },
+  })
+  if (usernameConflict) {
+    return 'This username is already taken. Please choose a different username.'
+  }
+
+  const emailConflict = await prisma.user.findFirst({
+    where: {
+      email,
+      ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
+    },
+    select: { id: true },
+  })
+  if (emailConflict) {
+    return 'This email is already in use. Please sign in instead.'
+  }
+
+  if (phone) {
+    const phoneConflict = await prisma.user.findFirst({
+      where: {
+        phone,
+        ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
+      },
+      select: { id: true },
+    })
+    if (phoneConflict) {
+      return 'This phone number is already in use. Please use a different phone number.'
+    }
+  }
+
+  return null
+}
+
 export async function GET(request: Request) {
   try {
     const auth = await requireApprovedUser(request)
@@ -62,6 +108,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Please answer all ${SECURITY_QUESTIONS.length} security questions.` }, { status: 400 })
     }
 
+    const conflictMessage = await getUserConflictMessage({
+      username,
+      email,
+      phone: phone || undefined,
+    })
+    if (conflictMessage) {
+      return NextResponse.json({ error: conflictMessage }, { status: 400 })
+    }
+
     const user = await prisma.user.create({
       data: {
         name,
@@ -86,6 +141,22 @@ export async function PATCH(request: Request) {
     if (auth.error) return auth.error
 
     const body = await request.json()
+    if (body.phone !== undefined) {
+      const phone = String(body.phone).trim()
+      const phoneConflict = phone
+        ? await prisma.user.findFirst({
+            where: {
+              phone,
+              id: { not: String(body.id) },
+            },
+            select: { id: true },
+          })
+        : null
+
+      if (phoneConflict) {
+        return NextResponse.json({ error: 'This phone number is already in use. Please use a different phone number.' }, { status: 400 })
+      }
+    }
     const user = await prisma.user.update({
       where: { id: body.id },
       data: {
