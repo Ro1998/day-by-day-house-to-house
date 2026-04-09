@@ -49,7 +49,14 @@ export function UserManagement() {
       )}
 
       <div className="app-panel rounded-3xl p-6">
-        <h2 className="mb-2 text-xl font-semibold">Pending Access Requests</h2>
+        <div className="mb-2 flex items-center gap-3">
+          <h2 className="text-xl font-semibold">Pending Access Requests</h2>
+          {pendingUsers.length > 0 && (
+            <span className="inline-flex min-w-7 items-center justify-center rounded-full bg-amber-500 px-2 py-1 text-xs font-bold text-white">
+              {pendingUsers.length}
+            </span>
+          )}
+        </div>
         <p className="app-muted mb-6 text-sm">
           Only admins can approve accounts and assign each person&apos;s function.
         </p>

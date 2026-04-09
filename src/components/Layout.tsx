@@ -30,6 +30,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
   const [installPromptMode, setInstallPromptMode] = useState<'native' | 'ios' | 'manual' | null>(null)
   const profileMenuRef = useRef<HTMLDivElement | null>(null)
+  const pendingAccessCount = users.filter((user) => !user.approved).length
 
   useEffect(() => {
     if (isMobileMenuOpen) {
@@ -322,6 +323,11 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
                 {tab.id === 'notifications' && unreadNotifications.length > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm">
                     {unreadNotifications.length}
+                  </span>
+                )}
+                {tab.id === 'users' && pendingAccessCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white shadow-sm">
+                    {pendingAccessCount}
                   </span>
                 )}
               </button>

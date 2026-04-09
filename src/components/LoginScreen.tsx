@@ -41,6 +41,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
   const [approvalPopupMessage, setApprovalPopupMessage] = useState(
     'Your email was verified successfully. Please wait for the admin to approve your request.',
   )
+  const [authAction, setAuthAction] = useState<'idle' | 'login' | 'request-otp' | 'verify-otp' | 'forgot' | 'reset-link'>('idle')
   const [forgotForm, setForgotForm] = useState({
     username: '',
     newPassword: '',
@@ -65,55 +66,80 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    const result = await login(loginForm)
-    if (!result.success) {
-      if (result.pendingApproval) {
-        setApprovalPopupMessage('Your account is waiting for admin approval. Please try again after an admin approves your request.')
-        setShowApprovalPopup(true)
+    setAuthAction('login')
+    try {
+      const result = await login(loginForm)
+      if (!result.success) {
+        if (result.pendingApproval) {
+          setApprovalPopupMessage('Your account is waiting for admin approval. Please try again after an admin approves your request.')
+          setShowApprovalPopup(true)
+        }
+        return
       }
-      return
+      setLoginForm({ username: '', password: '' })
+      onContinue()
+    } finally {
+      setAuthAction('idle')
     }
-    setLoginForm({ username: '', password: '' })
-    onContinue()
   }
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault()
-    const sent = await requestRegistrationOtp(registerForm)
-    if (!sent) return
-    setRegistrationOtp('')
-    setRegisterStep('otp')
+    setAuthAction('request-otp')
+    try {
+      const sent = await requestRegistrationOtp(registerForm)
+      if (!sent) return
+      setRegistrationOtp('')
+      setRegisterStep('otp')
+    } finally {
+      setAuthAction('idle')
+    }
   }
 
   const handleVerifyRegistration = async (e: React.FormEvent) => {
     e.preventDefault()
-    const result = await verifyRegistrationOtp({ email: registerForm.email, otp: registrationOtp })
-    if (!result.submitted) return
-    setRegisterForm({ name: '', username: '', email: '', phone: '', password: '', securityAnswers: {} })
-    setRegistrationOtp('')
-    setRegisterStep('form')
-    if (result.user) {
-      onContinue()
-      return
+    setAuthAction('verify-otp')
+    try {
+      const result = await verifyRegistrationOtp({ email: registerForm.email, otp: registrationOtp })
+      if (!result.submitted) return
+      setRegisterForm({ name: '', username: '', email: '', phone: '', password: '', securityAnswers: {} })
+      setRegistrationOtp('')
+      setRegisterStep('form')
+      if (result.user) {
+        onContinue()
+        return
+      }
+      setAuthMode('login')
+      setApprovalPopupMessage('Your email was verified successfully. Please wait for the admin to approve your request.')
+      setShowApprovalPopup(true)
+    } finally {
+      setAuthAction('idle')
     }
-    setAuthMode('login')
-    setApprovalPopupMessage('Your email was verified successfully. Please wait for the admin to approve your request.')
-    setShowApprovalPopup(true)
   }
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault()
-    const success = await resetPasswordWithSecurityAnswers(forgotForm)
-    if (!success) return
-    setForgotForm({ username: '', newPassword: '', securityAnswers: {} })
-    setAuthMode('login')
+    setAuthAction('forgot')
+    try {
+      const success = await resetPasswordWithSecurityAnswers(forgotForm)
+      if (!success) return
+      setForgotForm({ username: '', newPassword: '', securityAnswers: {} })
+      setAuthMode('login')
+    } finally {
+      setAuthAction('idle')
+    }
   }
 
   const handleLinkReset = async (e: React.FormEvent) => {
     e.preventDefault()
-    const success = await resetPasswordWithToken({ token: resetToken, newPassword: linkResetPassword })
-    if (!success) return
-    setLinkResetPassword('')
+    setAuthAction('reset-link')
+    try {
+      const success = await resetPasswordWithToken({ token: resetToken, newPassword: linkResetPassword })
+      if (!success) return
+      setLinkResetPassword('')
+    } finally {
+      setAuthAction('idle')
+    }
   }
 
   return (
@@ -295,11 +321,11 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                         </div>
                         <button
                           type="submit"
-                          disabled={!loginForm.username.trim() || !loginForm.password.trim()}
+                          disabled={!loginForm.username.trim() || !loginForm.password.trim() || authAction !== 'idle'}
                           className="app-button app-button-primary inline-flex w-full items-center justify-center gap-2"
                         >
                           <LogIn size={18} />
-                          Continue to Dashboard
+                          {authAction === 'login' ? 'Signing In...' : 'Continue to Dashboard'}
                         </button>
                         <button
                           type="button"
@@ -387,11 +413,11 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                         </div>
                         <button
                           type="submit"
-                          disabled={!forgotForm.username.trim() || !forgotForm.newPassword.trim() || forgotAnsweredCount < 3}
+                          disabled={!forgotForm.username.trim() || !forgotForm.newPassword.trim() || forgotAnsweredCount < 3 || authAction !== 'idle'}
                           className="app-button app-button-secondary inline-flex w-full items-center justify-center gap-2"
                         >
                           <RotateCcw size={18} />
-                          Reset Password
+                          {authAction === 'forgot' ? 'Resetting Password...' : 'Reset Password'}
                         </button>
                       </form>
                     )}
@@ -511,12 +537,18 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                             autoComplete="one-time-code"
                             required
                           />
+                          {authAction === 'verify-otp' && (
+                            <p className="app-muted mt-3 text-sm">
+                              Verifying your code and creating your account...
+                            </p>
+                          )}
                         </div>
                       )}
                       <div className="flex flex-col gap-3 sm:flex-row">
                         <button
                           type="submit"
                           disabled={
+                            authAction !== 'idle' || (
                             registerStep === 'form'
                               ? (
                                   !registerForm.name.trim() ||
@@ -526,11 +558,14 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                                   registerAnsweredCount < 3
                                 )
                               : registrationOtp.trim().length !== 6
+                            )
                           }
                           className="app-button app-button-secondary inline-flex w-full items-center justify-center gap-2"
                         >
                           <UserPlus size={18} />
-                          {registerStep === 'form' ? 'Send Verification Code' : 'Verify and Register'}
+                          {registerStep === 'form'
+                            ? (authAction === 'request-otp' ? 'Sending Code...' : 'Send Verification Code')
+                            : (authAction === 'verify-otp' ? 'Verifying...' : 'Verify and Register')}
                         </button>
                         {registerStep === 'otp' && (
                           <button
@@ -539,6 +574,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                               setRegisterStep('form')
                               setRegistrationOtp('')
                             }}
+                            disabled={authAction !== 'idle'}
                             className="app-button app-button-ghost inline-flex w-full items-center justify-center"
                           >
                             Edit Details
@@ -576,11 +612,11 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                 </div>
                 <button
                   type="submit"
-                  disabled={!linkResetPassword.trim()}
+                  disabled={!linkResetPassword.trim() || authAction !== 'idle'}
                   className="app-button app-button-primary inline-flex w-full items-center justify-center gap-2"
                 >
                   <RotateCcw size={18} />
-                  Set New Password
+                  {authAction === 'reset-link' ? 'Setting Password...' : 'Set New Password'}
                 </button>
               </form>
             )}
