@@ -64,7 +64,13 @@ interface DataContextType {
   addInventoryItem: (input: Omit<InventoryItem, 'id' | 'user' | 'userId'>) => Promise<void>
   updateInventoryItem: (input: InventoryItem) => Promise<void>
   deleteInventoryItem: (id: string) => Promise<void>
-  addNotification: (input: { title: string; message: string; category?: 'general' | 'menu' }) => Promise<void>
+  addNotification: (input: {
+    title: string
+    message: string
+    category?: 'general' | 'menu'
+    menuData?: Menu
+    emailImageDataUrl?: string
+  }) => Promise<void>
   updateNotification: (id: string, input: { title: string; message: string }) => Promise<void>
   deleteNotification: (id: string) => Promise<void>
   addMenuSuggestion: (input: { suggestion: string; preferredDay?: string; preferredMeal?: string }) => Promise<void>
@@ -717,7 +723,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const addNotification = async (input: { title: string; message: string; category?: 'general' | 'menu' }) => {
+  const addNotification = async (input: {
+    title: string
+    message: string
+    category?: 'general' | 'menu'
+    menuData?: Menu
+    emailImageDataUrl?: string
+  }) => {
     if (!currentUser) return
     try {
       setError(null)

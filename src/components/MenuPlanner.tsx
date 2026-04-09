@@ -211,7 +211,13 @@ export function MenuPlanner() {
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({ title: `Weekly Menu - ${menu.week}`, text: fallbackText, files: [file] })
-            await addNotification({ title: `Weekly Menu for ${menu.week}`, message: notificationMessage, category: 'menu' })
+            await addNotification({
+              title: `Weekly Menu for ${menu.week}`,
+              message: notificationMessage,
+              category: 'menu',
+              menuData: menu,
+              emailImageDataUrl: dataUrl,
+            })
             return
           } catch (err) {
             console.log('Share canceled', err)
@@ -222,7 +228,13 @@ export function MenuPlanner() {
         link.download = `menu-${menu.week}.jpg`
         link.href = dataUrl
         link.click()
-        await addNotification({ title: `Weekly Menu for ${menu.week}`, message: notificationMessage, category: 'menu' })
+        await addNotification({
+          title: `Weekly Menu for ${menu.week}`,
+          message: notificationMessage,
+          category: 'menu',
+          menuData: menu,
+          emailImageDataUrl: dataUrl,
+        })
       }, 'image/jpeg', 0.8)
     } catch (err) {
       tableContainer.style.overflowX = originalOverflow
