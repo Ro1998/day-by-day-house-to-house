@@ -33,6 +33,19 @@ model User {
   supplyReports SupplyReport[] @relation("SupplyReportCreator")
 }
 
+model RegistrationVerification {
+  id              String   @id @default(cuid())
+  name            String
+  username        String   @unique
+  email           String   @unique
+  phone           String?
+  passwordHash    String
+  securityAnswers String
+  otpHash         String
+  otpExpiresAt    DateTime
+  createdAt       DateTime @default(now())
+}
+
 model Expense {
   id          String   @id @default(cuid())
   date        String

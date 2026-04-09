@@ -44,14 +44,15 @@ interface DataContextType {
   updateMonthlyPayment: (input: Partial<MonthlyPayment> & { id: string }) => Promise<void>
   deleteMonthlyPayment: (id: string) => Promise<void>
   updateMenu: (menu: Menu) => Promise<void>
-  createUser: (input: {
+  requestRegistrationOtp: (input: {
     name: string
     username: string
     email: string
     phone?: string
     password: string
     securityAnswers: Record<string, string>
-  }) => Promise<User | null>
+  }) => Promise<boolean>
+  verifyRegistrationOtp: (input: { email: string; otp: string }) => Promise<User | null>
   resetPasswordWithSecurityAnswers: (input: {
     username: string
     newPassword: string
@@ -508,7 +509,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const createUser = async (input: {
+  const requestRegistrationOtp = async (input: {
     name: string
     username: string
     email: string
@@ -522,13 +523,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const trimmedPhone = input.phone?.trim() || ''
     if (!trimmedName || !trimmedUsername || !trimmedEmail || !input.password.trim()) {
       setError('Please fill in name, username, email, and password before creating a user.')
-      return null
+      return false
     }
 
     try {
       setError(null)
       setNotice(null)
-      const res = await fetch('/api/users', {
+      const res = await fetch('/api/auth/register/request-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -540,18 +541,44 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           securityAnswers: input.securityAnswers,
         }),
       })
-      const user = await readJson<User>(res, 'Failed to create user')
+      await readJson<{ success: boolean }>(res, 'Failed to send verification code')
+      setNotice(`We sent a verification code to ${trimmedEmail}. Enter it to finish your registration.`)
+      return true
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to send verification code')
+      return false
+    }
+  }
 
+  const verifyRegistrationOtp = async (input: { email: string; otp: string }) => {
+    const trimmedEmail = input.email.trim().toLowerCase()
+    if (!trimmedEmail || !input.otp.trim()) {
+      setError('Please enter your email and the verification code.')
+      return null
+    }
+
+    try {
+      setError(null)
+      setNotice(null)
+      const res = await fetch('/api/auth/register/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: trimmedEmail,
+          otp: input.otp.trim(),
+        }),
+      })
+      const user = await readJson<User>(res, 'Failed to verify registration code')
       if (user.approved) {
         setCurrentUser(user)
         setNotice('Your admin account is ready. You are now signed in.')
         return user
       }
 
-      setNotice('Account request submitted. Ask an admin to approve your access and assign your role.')
+      setNotice('Email verified. Your account request was sent to the admin for approval.')
       return null
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : 'Failed to create user')
+      setError(actionError instanceof Error ? actionError.message : 'Failed to verify registration code')
       return null
     }
   }
@@ -963,7 +990,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       updateMonthlyPayment,
       deleteMonthlyPayment,
       updateMenu,
-      createUser,
+      requestRegistrationOtp,
+      verifyRegistrationOtp,
       resetPasswordWithSecurityAnswers,
       createAdminResetLink,
       resetPasswordWithToken,

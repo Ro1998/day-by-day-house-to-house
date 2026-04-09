@@ -47,6 +47,8 @@ export const isEmailConfigured = () =>
   Boolean(transporter && process.env.EMAIL_FROM?.trim())
 
 const getFromAddress = () => process.env.EMAIL_FROM?.trim() || process.env.SMTP_USER?.trim() || ''
+const getAdminNotificationEmail = () =>
+  process.env.ADMIN_NOTIFICATION_EMAIL?.trim() || process.env.SMTP_USER?.trim() || ''
 
 const getAppBaseUrl = () =>
   process.env.NEXT_PUBLIC_APP_URL?.trim() ||
@@ -79,6 +81,99 @@ export async function sendEmail(input: {
     console.error('Failed to send email:', error)
     return false
   }
+}
+
+export async function sendRegistrationOtpEmail(input: {
+  email: string
+  name: string
+  otp: string
+}) {
+  const appUrl = getAppBaseUrl()
+  const logoUrl = `${appUrl.replace(/\/$/, '')}/icon.svg`
+  return sendEmail({
+    to: input.email,
+    subject: `${APP_NAME} verification code`,
+    html: `
+      <div style="margin: 0; padding: 32px 16px; background: #f4f7f1; font-family: Arial, sans-serif; color: #1f2937;">
+        <div style="max-width: 560px; margin: 0 auto; background: #ffffff; border: 1px solid #d9e2d0; border-radius: 20px; overflow: hidden;">
+          <div style="padding: 28px 32px; text-align: center; background: linear-gradient(135deg, #f2f7ea 0%, #e8f0df 100%); border-bottom: 1px solid #d9e2d0;">
+            <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(APP_NAME)}" style="width: 56px; height: 56px; margin-bottom: 12px;" />
+            <div style="font-size: 28px; font-weight: 700; color: #1f2937;">${escapeHtml(APP_NAME)}</div>
+            <div style="margin-top: 8px; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; color: #4b5563;">Email verification</div>
+          </div>
+          <div style="padding: 32px;">
+            <h1 style="margin: 0 0 14px; font-size: 28px; line-height: 1.2;">Verify your email</h1>
+            <p style="margin: 0 0 12px;">Hello ${escapeHtml(input.name)},</p>
+            <p style="margin: 0 0 20px;">Use the verification code below to complete your registration.</p>
+            <div style="margin: 24px 0; padding: 22px; text-align: center; border: 1px dashed #8aa06f; border-radius: 16px; background: #f8fbf5;">
+              <div style="font-size: 34px; font-weight: 700; letter-spacing: 8px; color: #111827;">${escapeHtml(input.otp)}</div>
+            </div>
+            <p style="margin: 0 0 8px;">This code expires in <strong>10 minutes</strong>.</p>
+            <p style="margin: 0; color: #6b7280;">If you did not request this, you can safely ignore this email.</p>
+          </div>
+          <div style="padding: 20px 32px; background: #f9fafb; border-top: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">
+            ${escapeHtml(APP_NAME)}<br />
+            <a href="${escapeHtml(appUrl)}" style="color: #2563eb; text-decoration: none;">Open website</a>
+          </div>
+        </div>
+      </div>
+    `,
+    text: [
+      `Hello ${input.name},`,
+      '',
+      `Use this verification code to complete your ${APP_NAME} registration:`,
+      input.otp,
+      '',
+      'This code expires in 10 minutes.',
+      'If you did not request this, you can safely ignore this email.',
+      '',
+      `Open website: ${appUrl}`,
+      '',
+      APP_NAME,
+    ].join('\n'),
+  })
+}
+
+export async function sendAdminRegistrationRequestEmail(input: {
+  name: string
+  username: string
+  email: string
+}) {
+  const adminEmail = getAdminNotificationEmail()
+  if (!adminEmail) return false
+
+  const dashboardUrl = getAppBaseUrl()
+  return sendEmail({
+    to: adminEmail,
+    subject: `New registration pending approval: ${input.name}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6;">
+        <h1 style="margin-bottom: 12px;">New registration request</h1>
+        <p>A new user has verified their email and is waiting for approval.</p>
+        <p><strong>Name:</strong> ${escapeHtml(input.name)}</p>
+        <p><strong>Username:</strong> ${escapeHtml(input.username)}</p>
+        <p><strong>Email:</strong> ${escapeHtml(input.email)}</p>
+        <p style="margin-top: 20px;">
+          Open the admin dashboard here:
+          <a href="${escapeHtml(dashboardUrl)}">${escapeHtml(dashboardUrl)}</a>
+        </p>
+        <p>Then go to <strong>User Access</strong> to approve or disapprove the request.</p>
+        <p style="margin-top: 24px;">${escapeHtml(APP_NAME)}</p>
+      </div>
+    `,
+    text: [
+      'New registration request',
+      '',
+      `Name: ${input.name}`,
+      `Username: ${input.username}`,
+      `Email: ${input.email}`,
+      '',
+      `Open the admin dashboard: ${dashboardUrl}`,
+      'Then go to User Access to approve or disapprove the request.',
+      '',
+      APP_NAME,
+    ].join('\n'),
+  })
 }
 
 const buildNotificationEmail = (name: string, title: string, message: string) => ({

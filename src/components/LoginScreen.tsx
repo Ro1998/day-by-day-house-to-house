@@ -14,7 +14,8 @@ interface LoginScreenProps {
 export function LoginScreen({ onContinue }: LoginScreenProps) {
   const {
     login,
-    createUser,
+    requestRegistrationOtp,
+    verifyRegistrationOtp,
     resetPasswordWithSecurityAnswers,
     resetPasswordWithToken,
     loading,
@@ -30,9 +31,12 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
     name: '',
     username: '',
     email: '',
+    phone: '',
     password: '',
     securityAnswers: {} as Record<string, string>,
   })
+  const [registrationOtp, setRegistrationOtp] = useState('')
+  const [registerStep, setRegisterStep] = useState<'form' | 'otp'>('form')
   const [forgotForm, setForgotForm] = useState({
     username: '',
     newPassword: '',
@@ -65,9 +69,19 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault()
-    const user = await createUser(registerForm)
+    const sent = await requestRegistrationOtp(registerForm)
+    if (!sent) return
+    setRegistrationOtp('')
+    setRegisterStep('otp')
+  }
+
+  const handleVerifyRegistration = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const user = await verifyRegistrationOtp({ email: registerForm.email, otp: registrationOtp })
     if (!user) return
-    setRegisterForm({ name: '', username: '', email: '', password: '', securityAnswers: {} })
+    setRegisterForm({ name: '', username: '', email: '', phone: '', password: '', securityAnswers: {} })
+    setRegistrationOtp('')
+    setRegisterStep('form')
     onContinue()
   }
 
@@ -355,7 +369,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                         : 'pointer-events-none absolute inset-0 translate-x-8 opacity-0'
                     }`}
                   >
-                    <form onSubmit={handleCreateUser} className="space-y-4">
+                    <form onSubmit={registerStep === 'form' ? handleCreateUser : handleVerifyRegistration} className="space-y-4">
                       <input
                         type="text"
                         value={registerForm.name}
@@ -363,6 +377,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                         className="app-input"
                         placeholder="Full name"
                         required
+                        disabled={registerStep === 'otp'}
                       />
                       <input
                         type="text"
@@ -372,6 +387,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                         placeholder="Username"
                         autoComplete="username"
                         required
+                        disabled={registerStep === 'otp'}
                       />
                       <input
                         type="email"
@@ -381,6 +397,16 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                         placeholder="Email address"
                         autoComplete="email"
                         required
+                        disabled={registerStep === 'otp'}
+                      />
+                      <input
+                        type="tel"
+                        value={registerForm.phone}
+                        onChange={(e) => setRegisterForm((prev) => ({ ...prev, phone: e.target.value }))}
+                        className="app-input"
+                        placeholder="Phone number (optional)"
+                        autoComplete="tel"
+                        disabled={registerStep === 'otp'}
                       />
                       <div className="relative">
                         <input
@@ -391,6 +417,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                           placeholder="Password"
                           autoComplete="new-password"
                           required
+                          disabled={registerStep === 'otp'}
                         />
                         <button
                           type="button"
@@ -424,6 +451,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                                 }))}
                                 className="app-input"
                                 placeholder="Your answer"
+                                disabled={registerStep === 'otp'}
                               />
                             </div>
                           ))}
@@ -432,20 +460,56 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                           Answered: {registerAnsweredCount} of 5
                         </p>
                       </div>
-                      <button
-                        type="submit"
-                        disabled={
-                          !registerForm.name.trim() ||
-                          !registerForm.username.trim() ||
-                          !registerForm.email.trim() ||
-                          !registerForm.password.trim() ||
-                          registerAnsweredCount < 3
-                        }
-                        className="app-button app-button-secondary inline-flex w-full items-center justify-center gap-2"
-                      >
-                        <UserPlus size={18} />
-                        Register Account
-                      </button>
+                      {registerStep === 'otp' && (
+                        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                          <div className="mb-2 text-sm font-semibold text-[var(--primary-strong)]">Email Verification</div>
+                          <p className="app-muted mb-3 text-sm">
+                            Enter the 6-digit code we sent to {registerForm.email}.
+                          </p>
+                          <input
+                            type="text"
+                            value={registrationOtp}
+                            onChange={(e) => setRegistrationOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            className="app-input"
+                            placeholder="6-digit code"
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                            required
+                          />
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-3 sm:flex-row">
+                        <button
+                          type="submit"
+                          disabled={
+                            registerStep === 'form'
+                              ? (
+                                  !registerForm.name.trim() ||
+                                  !registerForm.username.trim() ||
+                                  !registerForm.email.trim() ||
+                                  !registerForm.password.trim() ||
+                                  registerAnsweredCount < 3
+                                )
+                              : registrationOtp.trim().length !== 6
+                          }
+                          className="app-button app-button-secondary inline-flex w-full items-center justify-center gap-2"
+                        >
+                          <UserPlus size={18} />
+                          {registerStep === 'form' ? 'Send Verification Code' : 'Verify and Register'}
+                        </button>
+                        {registerStep === 'otp' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRegisterStep('form')
+                              setRegistrationOtp('')
+                            }}
+                            className="app-button app-button-ghost inline-flex w-full items-center justify-center"
+                          >
+                            Edit Details
+                          </button>
+                        )}
+                      </div>
                     </form>
                   </div>
                 </div>
