@@ -4,7 +4,7 @@ import type { Menu } from '@/types'
 
 type EmailRecipient = { email: string; name: string }
 
-const APP_NAME = 'Day by Day House to House'
+const APP_NAME = 'Day by Day'
 
 const escapeHtml = (value: string) =>
   value
