@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTheme } from './ThemeProvider'
 import { useData } from './DataProvider'
-import { BadgeCheck, Bell, Boxes, Download, Home, MenuSquare, Moon, Receipt, Settings2, Share, Smartphone, Sun, Wallet, Menu as MenuIcon, X, Wrench, RefreshCw } from 'lucide-react'
+import { BadgeCheck, Bell, Boxes, Download, Home, MenuSquare, Moon, Receipt, Settings2, Share, Smartphone, Sun, Wallet, Menu as MenuIcon, X, Wrench, RefreshCw, LogOut } from 'lucide-react'
 import { BrandLogo } from './BrandLogo'
 
 interface LayoutProps {
@@ -254,7 +254,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
                 </button>
 
                 {currentUser && (
-                  <div className="relative z-[60]" ref={profileMenuRef}>
+                  <div className="relative z-[60] hidden md:block" ref={profileMenuRef}>
                     <button
                       onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                       className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-[var(--primary)]/20 font-bold text-[var(--primary-strong)] transition-transform hover:scale-105"
@@ -306,10 +306,22 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
           <nav 
             className={`${
               isMobileMenuOpen 
-                ? 'fixed inset-0 z-40 flex flex-col overflow-y-auto bg-white dark:bg-[#121812] px-5 pb-6 pt-24 shadow-2xl' 
+                ? 'fixed inset-0 z-40 flex flex-col overflow-y-auto bg-white dark:bg-[#121812] px-5 pb-8 pt-24 shadow-2xl' 
                 : 'hidden'
             } gap-1.5 md:static md:z-auto md:flex md:flex-row md:flex-wrap md:overflow-visible md:bg-transparent md:p-0 md:pb-4`}
           >
+            {isMobileMenuOpen && currentUser && (
+              <div className="mb-6 flex items-center gap-4 rounded-2xl bg-[var(--surface-soft)] p-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--primary)]/20 text-xl font-bold text-[var(--primary-strong)]">
+                  {currentUser.name.slice(0, 1).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold truncate">{currentUser.name}</div>
+                  <div className="text-xs capitalize text-[var(--text-soft)]">{currentUser.role}</div>
+                </div>
+              </div>
+            )}
+
             {tabs.map(tab => (
               <button
                 key={tab.id}
@@ -332,6 +344,40 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
                 )}
               </button>
             ))}
+
+            {isMobileMenuOpen && (
+              <div className="mt-4 flex flex-col gap-2 border-t border-[var(--border)] pt-6">
+                {deferredPrompt && (
+                  <button
+                    onClick={() => void handleInstallClick()}
+                    className="app-button app-button-primary flex items-center justify-center gap-2 py-3 mb-2"
+                  >
+                    <Download size={18} />
+                    <span>Install Family App</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setIsEditProfileOpen(true)
+                    setIsMobileMenuOpen(false)
+                  }}
+                  className="app-button app-button-ghost flex items-center justify-start gap-2 py-3"
+                >
+                  <Settings2 size={18} />
+                  <span>Edit Profile</span>
+                </button>
+                <button
+                  onClick={() => {
+                    logout()
+                    setIsMobileMenuOpen(false)
+                  }}
+                  className="app-button flex items-center justify-start gap-2 py-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                >
+                  <LogOut size={18} />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            )}
           </nav>
         </div>
       </header>
