@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { apiError } from '@/lib/api-error'
 import { hashPassword, hashValue } from '@/lib/password'
+import { isPasswordStrongEnough, PASSWORD_RULE_HINT } from '@/lib/password-policy'
 
 export async function POST(request: Request) {
   try {
@@ -11,6 +12,10 @@ export async function POST(request: Request) {
 
     if (!token || !newPassword) {
       return NextResponse.json({ error: 'Reset token and new password are required.' }, { status: 400 })
+    }
+
+    if (!isPasswordStrongEnough(newPassword)) {
+      return NextResponse.json({ error: PASSWORD_RULE_HINT }, { status: 400 })
     }
 
     const tokenHash = hashValue(token)

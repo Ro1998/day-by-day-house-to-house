@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { apiError } from '@/lib/api-error'
 import { requireApprovedUser } from '@/lib/auth'
 import { hashPassword } from '@/lib/password'
+import { isPasswordStrongEnough, PASSWORD_RULE_HINT } from '@/lib/password-policy'
 import { SECURITY_QUESTIONS, type SecurityQuestionId } from '@/lib/security-questions'
 
 const normalizeAnswer = (value: string) => value.trim().toLowerCase()
@@ -102,6 +103,10 @@ export async function POST(request: Request) {
 
     if (!name || !username || !email || !password) {
       return NextResponse.json({ error: 'Name, username, email, and password are required.' }, { status: 400 })
+    }
+
+    if (!isPasswordStrongEnough(password)) {
+      return NextResponse.json({ error: PASSWORD_RULE_HINT }, { status: 400 })
     }
 
     if (answeredCount < SECURITY_QUESTIONS.length) {

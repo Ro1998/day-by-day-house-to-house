@@ -1,14 +1,20 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Eye, EyeOff, LogIn, Moon, RotateCcw, ShieldCheck, Sparkles, Sun, UserPlus } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import { useData } from '@/components/DataProvider'
 import { useTheme } from '@/components/ThemeProvider'
+import { getPasswordRuleState, PASSWORD_RULE_HINT } from '@/lib/password-policy'
 import { SECURITY_QUESTIONS } from '@/lib/security-questions'
 
 interface LoginScreenProps {
   onContinue: () => void
+}
+
+type RegistrationAvailability = {
+  usernameMessage: string | null
+  emailMessage: string | null
 }
 
 export function LoginScreen({ onContinue }: LoginScreenProps) {
@@ -54,6 +60,12 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
     forgot: false,
     linkReset: false,
   })
+  const [registrationAvailability, setRegistrationAvailability] = useState<RegistrationAvailability>({
+    usernameMessage: null,
+    emailMessage: null,
+  })
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false)
+  const availabilityRequestId = useRef(0)
   const showForgotPassword = authMode === 'forgot'
   const switchMode = showForgotPassword ? 'login' : authMode
 
@@ -63,11 +75,84 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
   const forgotAnsweredCount = SECURITY_QUESTIONS.filter(
     ({ id }) => forgotForm.securityAnswers[id]?.trim(),
   ).length
+  const registerPasswordRules = getPasswordRuleState(registerForm.password)
+  const isRegisterPasswordStrong = Object.values(registerPasswordRules).every(Boolean)
+  const hasRegistrationConflict = Boolean(
+    registrationAvailability.usernameMessage || registrationAvailability.emailMessage,
+  )
+  const canSubmitRegistration =
+    authAction === 'idle' &&
+    Boolean(registerForm.name.trim()) &&
+    Boolean(registerForm.username.trim()) &&
+    Boolean(registerForm.email.trim()) &&
+    Boolean(registerForm.password.trim()) &&
+    registerAnsweredCount >= SECURITY_QUESTIONS.length &&
+    isRegisterPasswordStrong &&
+    !hasRegistrationConflict &&
+    !isCheckingAvailability
+  const canVerifyRegistration =
+    authAction === 'idle' &&
+    registrationOtp.trim().length === 6 &&
+    isRegisterPasswordStrong &&
+    !hasRegistrationConflict
 
   const resetRegisterFlow = () => {
     setRegisterForm({ name: '', username: '', email: '', phone: '', password: '', securityAnswers: {} })
     setRegistrationOtp('')
     setRegisterStep('form')
+    setRegistrationAvailability({ usernameMessage: null, emailMessage: null })
+    availabilityRequestId.current += 1
+  }
+
+  const checkRegistrationAvailability = async (input: { username?: string; email?: string }) => {
+    const username = input.username?.trim().toLowerCase() ?? ''
+    const email = input.email?.trim().toLowerCase() ?? ''
+
+    if (!username && !email) {
+      setRegistrationAvailability({ usernameMessage: null, emailMessage: null })
+      return
+    }
+
+    const requestId = availabilityRequestId.current + 1
+    availabilityRequestId.current = requestId
+    setIsCheckingAvailability(true)
+
+    try {
+      const response = await fetch('/api/auth/register/check-availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email }),
+      })
+
+      let payload: RegistrationAvailability | { error?: string } | null = null
+      try {
+        payload = await response.json()
+      } catch {
+        payload = null
+      }
+
+      if (availabilityRequestId.current !== requestId) return
+
+      if (!response.ok) {
+        throw new Error(
+          payload && typeof payload === 'object' && 'error' in payload && payload.error
+            ? payload.error
+            : 'Failed to check whether that username or email is available.',
+        )
+      }
+
+      setRegistrationAvailability({
+        usernameMessage: payload && 'usernameMessage' in payload ? payload.usernameMessage : null,
+        emailMessage: payload && 'emailMessage' in payload ? payload.emailMessage : null,
+      })
+    } catch {
+      if (availabilityRequestId.current !== requestId) return
+      setRegistrationAvailability((prev) => prev)
+    } finally {
+      if (availabilityRequestId.current === requestId) {
+        setIsCheckingAvailability(false)
+      }
+    }
   }
 
   const showPendingApprovalPopup = (message: string) => {
@@ -85,12 +170,39 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
 
   useEffect(() => {
     if (authMode !== 'register') return
-    if (error !== 'This email is already in use. Please sign in instead.') return
+    if (
+      error !== 'This email is already in use. Please sign in instead.' &&
+      error !== 'This username is already taken. Please choose a different username.'
+    ) {
+      return
+    }
 
     setRegisterStep('form')
     setRegistrationOtp('')
-    setAuthMode('login')
+    setRegistrationAvailability((prev) => ({
+      usernameMessage: error.includes('username') ? error : prev.usernameMessage,
+      emailMessage: error.includes('email') ? error : prev.emailMessage,
+    }))
   }, [authMode, error])
+
+  useEffect(() => {
+    if (authMode !== 'register' || registerStep !== 'form') return
+
+    const username = registerForm.username.trim()
+    const email = registerForm.email.trim()
+
+    if (!username && !email) {
+      setRegistrationAvailability({ usernameMessage: null, emailMessage: null })
+      setIsCheckingAvailability(false)
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void checkRegistrationAvailability({ username, email })
+    }, 350)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [authMode, registerStep, registerForm.username, registerForm.email])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -468,20 +580,32 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                           type="text"
                           value={registerForm.username}
                           onChange={(e) => setRegisterForm((prev) => ({ ...prev, username: e.target.value }))}
+                          onBlur={() => void checkRegistrationAvailability({ username: registerForm.username, email: registerForm.email })}
                           className="app-input"
                           placeholder="Username"
                           autoComplete="username"
                           required
                         />
+                        {registrationAvailability.usernameMessage && (
+                          <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                            {registrationAvailability.usernameMessage}
+                          </p>
+                        )}
                         <input
                           type="email"
                           value={registerForm.email}
                           onChange={(e) => setRegisterForm((prev) => ({ ...prev, email: e.target.value }))}
+                          onBlur={() => void checkRegistrationAvailability({ username: registerForm.username, email: registerForm.email })}
                           className="app-input"
                           placeholder="Email address"
                           autoComplete="email"
                           required
                         />
+                        {registrationAvailability.emailMessage && (
+                          <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                            {registrationAvailability.emailMessage}
+                          </p>
+                        )}
                         <input
                           type="tel"
                           value={registerForm.phone}
@@ -508,6 +632,29 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                             {showPasswords.register ? <EyeOff size={18} /> : <Eye size={18} />}
                           </button>
                         </div>
+                        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                          <div className="mb-2 text-sm font-semibold text-[var(--primary-strong)]">Password Requirements</div>
+                          <p className="app-muted mb-3 text-sm">{PASSWORD_RULE_HINT}</p>
+                          <div className="grid gap-2 text-sm">
+                            <div className={registerPasswordRules.hasUppercase ? 'text-emerald-700' : 'text-[var(--text-soft)]'}>
+                              {registerPasswordRules.hasUppercase ? '✓' : '•'} 1 uppercase letter
+                            </div>
+                            <div className={registerPasswordRules.hasLowercase ? 'text-emerald-700' : 'text-[var(--text-soft)]'}>
+                              {registerPasswordRules.hasLowercase ? '✓' : '•'} 1 lowercase letter
+                            </div>
+                            <div className={registerPasswordRules.hasNumber ? 'text-emerald-700' : 'text-[var(--text-soft)]'}>
+                              {registerPasswordRules.hasNumber ? '✓' : '•'} 1 number
+                            </div>
+                            <div className={registerPasswordRules.hasSymbol ? 'text-emerald-700' : 'text-[var(--text-soft)]'}>
+                              {registerPasswordRules.hasSymbol ? '✓' : '•'} 1 symbol
+                            </div>
+                          </div>
+                        </div>
+                        {isCheckingAvailability && (
+                          <p className="app-muted text-sm">
+                            Checking username and email availability...
+                          </p>
+                        )}
                         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
                           <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--primary-strong)]">
                             <ShieldCheck size={16} />
@@ -542,14 +689,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                         </div>
                         <button
                           type="submit"
-                          disabled={
-                            authAction !== 'idle' ||
-                            !registerForm.name.trim() ||
-                            !registerForm.username.trim() ||
-                            !registerForm.email.trim() ||
-                            !registerForm.password.trim() ||
-                            registerAnsweredCount < SECURITY_QUESTIONS.length
-                          }
+                          disabled={!canSubmitRegistration}
                           className="app-button app-button-secondary inline-flex w-full items-center justify-center gap-2"
                         >
                           <UserPlus size={18} />
@@ -583,11 +723,21 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                           <div className="font-semibold text-[var(--text)]">{registerForm.name}</div>
                           <div className="app-muted mt-1">{registerForm.email}</div>
                           <div className="app-muted mt-2">Your details are ready. Enter the code to finish registration.</div>
+                          {!isRegisterPasswordStrong && (
+                            <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+                              {PASSWORD_RULE_HINT}
+                            </div>
+                          )}
+                          {hasRegistrationConflict && (
+                            <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+                              {registrationAvailability.emailMessage || registrationAvailability.usernameMessage}
+                            </div>
+                          )}
                         </div>
                         <div className="flex flex-col gap-3 sm:flex-row">
                           <button
                             type="submit"
-                            disabled={authAction !== 'idle' || registrationOtp.trim().length !== 6}
+                            disabled={!canVerifyRegistration}
                             className="app-button app-button-secondary inline-flex w-full items-center justify-center gap-2"
                           >
                             <UserPlus size={18} />

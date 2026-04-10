@@ -1,10 +1,12 @@
 import { randomInt } from 'crypto'
 import { NextResponse } from 'next/server'
 import { apiError } from '@/lib/api-error'
+import { isEmailConfigured, sendRegistrationOtpEmail } from '@/lib/email'
 import { prisma } from '@/lib/prisma'
 import { hashPassword, hashValue } from '@/lib/password'
+import { isPasswordStrongEnough, PASSWORD_RULE_HINT } from '@/lib/password-policy'
+import { getRegistrationConflictMessage } from '@/lib/registration'
 import { SECURITY_QUESTIONS, type SecurityQuestionId } from '@/lib/security-questions'
-import { isEmailConfigured, sendRegistrationOtpEmail } from '@/lib/email'
 
 const normalizeAnswer = (value: string) => value.trim().toLowerCase()
 
@@ -17,66 +19,6 @@ const serializeSecurityAnswers = (answers: Partial<Record<SecurityQuestionId, st
     ),
   )
 )
-
-const getRegistrationConflictMessage = async (input: {
-  username: string
-  email: string
-  phone?: string
-}) => {
-  const { username, email, phone } = input
-
-  const existingUsername = await prisma.user.findFirst({
-    where: { username },
-    select: { id: true },
-  })
-  if (existingUsername) {
-    return 'This username is already taken. Please choose a different username.'
-  }
-
-  const pendingUsername = await prisma.registrationVerification.findFirst({
-    where: { username },
-    select: { id: true },
-  })
-  if (pendingUsername) {
-    return 'This username is already taken. Please choose a different username.'
-  }
-
-  const existingEmail = await prisma.user.findFirst({
-    where: { email },
-    select: { id: true },
-  })
-  if (existingEmail) {
-    return 'This email is already in use. Please sign in instead.'
-  }
-
-  const pendingEmail = await prisma.registrationVerification.findFirst({
-    where: { email },
-    select: { id: true },
-  })
-  if (pendingEmail) {
-    return 'This email is already in use. Please sign in instead.'
-  }
-
-  if (phone) {
-    const existingPhone = await prisma.user.findFirst({
-      where: { phone },
-      select: { id: true },
-    })
-    if (existingPhone) {
-      return 'This phone number is already in use. Please use a different phone number.'
-    }
-
-    const pendingPhone = await prisma.registrationVerification.findFirst({
-      where: { phone },
-      select: { id: true },
-    })
-    if (pendingPhone) {
-      return 'This phone number is already in use. Please use a different phone number.'
-    }
-  }
-
-  return null
-}
 
 export async function POST(request: Request) {
   try {
@@ -99,6 +41,10 @@ export async function POST(request: Request) {
 
     if (answeredCount < SECURITY_QUESTIONS.length) {
       return NextResponse.json({ error: `Please answer all ${SECURITY_QUESTIONS.length} security questions.` }, { status: 400 })
+    }
+
+    if (!isPasswordStrongEnough(password)) {
+      return NextResponse.json({ error: PASSWORD_RULE_HINT }, { status: 400 })
     }
 
     const conflictMessage = await getRegistrationConflictMessage({
