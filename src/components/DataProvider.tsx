@@ -12,6 +12,7 @@ import {
   MonthlyPayment,
   Notification,
   SupplyReport,
+  CommunityEvent,
   User,
   UserRole,
 } from '@/types'
@@ -81,6 +82,8 @@ interface DataContextType {
   reviewAvailability: (ids: string[]) => Promise<void>
   addSupplyReport: (input: { title: string; category: 'grocery' | 'vegetable' | 'maintenance'; itemName?: string; message: string; status?: 'missing' | 'urgent' | 'resolved' | 'in-consideration' | 'will-take-time' }) => Promise<void>
   updateSupplyReport: (input: { id: string; status?: 'missing' | 'urgent' | 'resolved' | 'in-consideration' | 'will-take-time'; response?: string }) => Promise<void>
+  events: CommunityEvent[]
+  addEvent: (event: Omit<CommunityEvent, 'id' | 'createdBy'>) => Promise<void>
   login: (input: { username: string; password: string }) => Promise<{ success: boolean; pendingApproval: boolean }>
   logout: () => void
   logActivity: (action: string) => Promise<void>
@@ -105,6 +108,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [menuSuggestions, setMenuSuggestions] = useState<MenuSuggestion[]>([])
   const [availabilities, setAvailabilities] = useState<Availability[]>([])
   const [supplyReports, setSupplyReports] = useState<SupplyReport[]>([])
+  const [events, setEvents] = useState<CommunityEvent[]>([])
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [isSyncing, setIsSyncing] = useState(false)
@@ -210,7 +214,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setUsers([])
         }
 
-        const [expensesRes, paymentsRes, menusRes, activitiesRes, inventoryRes, notificationsRes, suggestionsRes, availabilitiesRes, supplyReportsRes] = await Promise.all([
+        const [expensesRes, paymentsRes, menusRes, activitiesRes, inventoryRes, notificationsRes, suggestionsRes, availabilitiesRes, supplyReportsRes, eventsRes] = await Promise.all([
           fetch('/api/expenses', { headers: authHeaders(), cache: 'no-store' }),
           fetch('/api/monthly-payments', { headers: authHeaders(), cache: 'no-store' }),
           fetch('/api/menus', { headers: authHeaders(), cache: 'no-store' }),
@@ -220,6 +224,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           fetch('/api/menu-suggestions', { headers: authHeaders(), cache: 'no-store' }),
           fetch('/api/availability', { headers: authHeaders(), cache: 'no-store' }),
           fetch('/api/supply-reports', { headers: authHeaders(), cache: 'no-store' }),
+          fetch('/api/events', { headers: authHeaders(), cache: 'no-store' }),
         ])
 
         const expensesData = await readJson<Expense[]>(expensesRes, 'Failed to load expenses')
@@ -231,6 +236,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         const suggestionsData = await readJson<MenuSuggestion[]>(suggestionsRes, 'Failed to load menu suggestions')
         const availabilitiesData = await readJson<Availability[]>(availabilitiesRes, 'Failed to load availability')
         const supplyReportsData = await readJson<SupplyReport[]>(supplyReportsRes, 'Failed to load supply reports')
+        const eventsData = await readJson<CommunityEvent[]>(eventsRes, 'Failed to load events')
 
         // Check for low stock and add notifications
         if (currentUser.role === 'admin') {
@@ -270,6 +276,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setMenuSuggestions(prev => JSON.stringify(prev) === JSON.stringify(suggestionsData) ? prev : suggestionsData)
           setAvailabilities(prev => JSON.stringify(prev) === JSON.stringify(availabilitiesData) ? prev : availabilitiesData)
           setSupplyReports(prev => JSON.stringify(prev) === JSON.stringify(supplyReportsData) ? prev : supplyReportsData)
+          setEvents(prev => JSON.stringify(prev) === JSON.stringify(eventsData) ? prev : eventsData)
           setLastSyncTime(new Date())
           setError(null)
         }
@@ -936,6 +943,31 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const addEvent = async (event: Omit<CommunityEvent, 'id' | 'createdBy'>) => {
+    if (!currentUser) return
+    try {
+      setError(null)
+      const res = await fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ ...event, createdBy: currentUser.name }),
+      })
+      const newEvent = await readJson<CommunityEvent>(res, 'Failed to create event')
+      setEvents((prev) => [...prev, newEvent].sort((a, b) => a.date.localeCompare(b.date)))
+      
+      // Auto-notify everyone about the new event
+      await addNotification({
+        title: `New Event: ${event.title}`,
+        message: `${event.title} scheduled for ${event.date} at ${event.time}. Location: ${event.location || event.venue || 'TBD'}`,
+        category: 'general'
+      })
+      
+      await logActivity(`Scheduled event: ${event.title} on ${event.date}`)
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to create event')
+    }
+  }
+
   const login = async (input: { username: string; password: string }) => {
     try {
       setError(null)
@@ -997,6 +1029,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       availabilities,
       supplyReports,
       currentUser,
+      events,
+      addEvent,
       balance,
       monthlyBalance,
       loading,

@@ -5,9 +5,9 @@ import { useData } from '@/components/DataProvider'
 import { Pie, Bar } from 'react-chartjs-2'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js'
 import { formatCurrency } from '@/lib/format'
-import { format, startOfWeek, addWeeks } from 'date-fns'
+import { format, startOfWeek, addWeeks, isToday, isTomorrow, parseISO, startOfDay } from 'date-fns'
 import { SupplyReportsBoard } from '@/components/SupplyReportsBoard'
-import { X } from 'lucide-react'
+import { X, Calendar as CalendarIcon, MapPin, Video, Clock, Plus } from 'lucide-react'
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement)
 
@@ -37,11 +37,15 @@ export function Dashboard() {
     reviewAvailability,
     updateMenuSuggestionStatus,
     supplyReports,
+    events,
+    addEvent,
   } = useData()
   const [suggestionForm, setSuggestionForm] = useState({ suggestion: '', preferredDay: '', preferredMeal: '' })
   const [availabilityForm, setAvailabilityForm] = useState({ days: ["Lord's Day"], meals: ['lunch'] as ('lunch' | 'dinner')[], available: true, note: '' })
   const [reviewedAvailabilityIds, setReviewedAvailabilityIds] = useState<string[]>([])
-
+  const [showEventForm, setShowEventForm] = useState(false)
+  const [eventForm, setEventForm] = useState({ title: '', date: '', time: '', type: 'offline' as 'online' | 'offline', location: '', venue: '', description: '' })
+  
   const toggleDay = (day: string) => setAvailabilityForm(prev => prev.days.includes(day) ? { ...prev, days: prev.days.filter(d => d !== day) } : { ...prev, days: [...prev.days, day] })
   const toggleMeal = (meal: 'lunch' | 'dinner') => setAvailabilityForm(prev => prev.meals.includes(meal) ? { ...prev, meals: prev.meals.filter(m => m !== meal) } : { ...prev, meals: [...prev.meals, meal] })
 
@@ -113,6 +117,12 @@ export function Dashboard() {
         ? "Next Week's Menu" 
         : `Menu for ${displayMenu.week}`
     : "Weekly Menu"
+
+  // Filter events to show only today and future events
+  const todayStart = startOfDay(new Date())
+  const upcomingEvents = events
+    .filter(e => startOfDay(parseISO(e.date)) >= todayStart)
+    .sort((a, b) => a.date.localeCompare(b.date))
 
   const currentWeekAvailabilities = availabilities.filter((entry) => (
     entry.week === currentWeek && !reviewedAvailabilityIds.includes(entry.id)
@@ -193,6 +203,13 @@ export function Dashboard() {
     await reviewAvailability(ids)
   }
 
+  const handleEventSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await addEvent(eventForm)
+    setEventForm({ title: '', date: '', time: '', type: 'offline', location: '', venue: '', description: '' })
+    setShowEventForm(false)
+  }
+
   if (currentUser?.role === 'user' || currentUser?.role === 'overseer') {
     return (
       <div className="space-y-6">
@@ -242,6 +259,51 @@ export function Dashboard() {
         {/* Income information is intentionally hidden from general users */}
         {/* Only admin users can see income-related data */}
 
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 app-panel rounded-3xl p-6">
+            <h3 className="mb-4 text-lg font-semibold">{displayWeekLabel}</h3>
+            <div className="space-y-3">
+              {displayMenu?.items?.map((item) => (
+                <div key={item.day} className="rounded-2xl bg-[var(--surface-soft)] p-4">
+                  <div className="font-semibold">{item.day === 'Sunday' ? "Lord's Day" : item.day}</div>
+                  <div className="app-muted text-sm">Lunch: {item.lunch || 'Not set'} | Dinner: {item.dinner || 'Not set'}</div>
+                  <div className="app-muted text-sm">Cooking: {[...(item.lunchCooks || []), ...(item.dinnerCooks || [])].join(', ') || 'Not assigned'}</div>
+                </div>
+              ))}
+              {!displayMenu && <p className="app-muted text-sm">No menu published yet.</p>}
+            </div>
+          </div>
+
+          <div className="app-panel rounded-3xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <CalendarIcon size={20} className="text-[var(--primary-strong)]" />
+                Events & Meetings
+              </h3>
+            </div>
+            <div className="space-y-4">
+              {upcomingEvents.map((event) => (
+                <div key={event.id} className="border-l-2 border-[var(--primary)] pl-4 py-1">
+                  <div className="text-xs font-bold text-[var(--primary-strong)] uppercase tracking-wider">
+                    {isToday(parseISO(event.date)) ? 'Today' : isTomorrow(parseISO(event.date)) ? 'Tomorrow' : format(parseISO(event.date), 'EEE, MMM d')}
+                  </div>
+                  <div className="font-semibold text-sm">{event.title}</div>
+                  <div className="flex items-center gap-3 mt-1 text-[11px] app-muted">
+                    <span className="flex items-center gap-1"><Clock size={12} /> {event.time}</span>
+                    <span className="flex items-center gap-1">
+                      {event.type === 'online' ? <Video size={12} /> : <MapPin size={12} />}
+                      {event.location || event.venue}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {upcomingEvents.length === 0 && (
+                <p className="app-muted text-sm">No upcoming meetings or events scheduled.</p>
+              )}
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="app-panel rounded-3xl p-6">
             <h3 className="mb-4 text-lg font-semibold">Eating This Month</h3>
@@ -272,20 +334,6 @@ export function Dashboard() {
             {generalActivities.length === 0 && (
               <div className="app-muted text-sm">No recent visible activities.</div>
             )}
-          </div>
-        </div>
-
-        <div className="app-panel rounded-3xl p-6">
-          <h3 className="mb-4 text-lg font-semibold">{displayWeekLabel}</h3>
-          <div className="space-y-3">
-            {displayMenu?.items?.map((item) => (
-              <div key={item.day} className="rounded-2xl bg-[var(--surface-soft)] p-4">
-                <div className="font-semibold">{item.day === 'Sunday' ? "Lord's Day" : item.day}</div>
-                <div className="app-muted text-sm">Lunch: {item.lunch || 'Not set'} | Dinner: {item.dinner || 'Not set'}</div>
-                <div className="app-muted text-sm">Cooking: {[...(item.lunchCooks || []), ...(item.dinnerCooks || [])].join(', ') || 'Not assigned'}</div>
-              </div>
-            ))}
-            {!displayMenu && <p className="app-muted text-sm">No menu published yet.</p>}
           </div>
         </div>
 
@@ -468,6 +516,101 @@ export function Dashboard() {
         </div>
       </div>
       
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 app-panel rounded-3xl p-6">
+          <h3 className="mb-4 text-lg font-semibold">{displayWeekLabel}</h3>
+          <div className="space-y-3">
+            {displayMenu?.items?.map((item) => (
+              <div key={item.day} className="rounded-2xl bg-[var(--surface-soft)] p-4">
+                <div className="font-semibold">{item.day === 'Sunday' ? "Lord's Day" : item.day}</div>
+                <div className="app-muted text-sm">Lunch: {item.lunch || 'Not set'} | Dinner: {item.dinner || 'Not set'}</div>
+                <div className="app-muted text-sm">Cooking: {[...(item.lunchCooks || []), ...(item.dinnerCooks || [])].join(', ') || 'Not assigned'}</div>
+              </div>
+            ))}
+            {!displayMenu && <p className="app-muted text-sm">No menu published yet.</p>}
+          </div>
+        </div>
+
+        <div className="app-panel rounded-3xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <CalendarIcon size={20} className="text-[var(--primary-strong)]" />
+              Community Calendar
+            </h3>
+            {(currentUser?.role === 'admin' || currentUser?.role === 'overseer') && (
+              <button 
+                onClick={() => setShowEventForm(!showEventForm)}
+                className="p-2 rounded-full hover:bg-[var(--surface-soft)] text-[var(--primary-strong)]"
+              >
+                {showEventForm ? <X size={20} /> : <Plus size={20} />}
+              </button>
+            )}
+          </div>
+
+          {showEventForm && (
+            <form onSubmit={handleEventSubmit} className="mb-6 space-y-3 p-4 bg-[var(--surface-soft)] rounded-2xl border border-[var(--border)]">
+              <input 
+                className="app-input text-sm" 
+                placeholder="Event Title" 
+                value={eventForm.title}
+                onChange={e => setEventForm({...eventForm, title: e.target.value})}
+                required 
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <input 
+                  type="date" 
+                  className="app-input text-xs" 
+                  value={eventForm.date}
+                  onChange={e => setEventForm({...eventForm, date: e.target.value})}
+                  required 
+                />
+                <input 
+                  type="time" 
+                  className="app-input text-xs" 
+                  value={eventForm.time}
+                  onChange={e => setEventForm({...eventForm, time: e.target.value})}
+                  required 
+                />
+              </div>
+              <select 
+                className="app-input text-sm"
+                value={eventForm.type}
+                onChange={e => setEventForm({...eventForm, type: e.target.value as any})}
+              >
+                <option value="offline">In-person (Offline)</option>
+                <option value="online">Online Meeting</option>
+              </select>
+              <input 
+                className="app-input text-sm" 
+                placeholder={eventForm.type === 'online' ? 'Link / ID' : 'Venue / Location'} 
+                value={eventForm.type === 'online' ? eventForm.location : eventForm.venue}
+                onChange={e => setEventForm(prev => eventForm.type === 'online' ? {...prev, location: e.target.value} : {...prev, venue: e.target.value})}
+              />
+              <button type="submit" className="app-button app-button-primary w-full text-xs py-2">Add Event</button>
+            </form>
+          )}
+
+          <div className="space-y-4">
+            {upcomingEvents.map((event) => (
+              <div key={event.id} className="border-l-2 border-[var(--primary)] pl-4 py-1">
+                <div className="text-xs font-bold text-[var(--primary-strong)] uppercase tracking-wider">
+                  {isToday(parseISO(event.date)) ? 'Today' : isTomorrow(parseISO(event.date)) ? 'Tomorrow' : format(parseISO(event.date), 'EEE, MMM d')}
+                </div>
+                <div className="font-semibold text-sm">{event.title}</div>
+                <div className="flex items-center gap-3 mt-1 text-[11px] app-muted">
+                  <span className="flex items-center gap-1"><Clock size={12} /> {event.time}</span>
+                  <span className="flex items-center gap-1">
+                    {event.type === 'online' ? <Video size={12} /> : <MapPin size={12} />}
+                    {event.location || event.venue}
+                  </span>
+                </div>
+              </div>
+            ))}
+            {upcomingEvents.length === 0 && <p className="app-muted text-sm">No upcoming meetings scheduled.</p>}
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div className="app-panel rounded-3xl p-6">
           <h3 className="text-lg font-semibold mb-2">Eating This Month</h3>
@@ -524,20 +667,6 @@ export function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="app-panel rounded-3xl p-6">
-          <h3 className="mb-4 text-lg font-semibold">{displayWeekLabel}</h3>
-          <div className="space-y-3">
-            {displayMenu?.items?.map((item) => (
-              <div key={item.day} className="rounded-2xl bg-[var(--surface-soft)] p-4">
-                <div className="font-semibold">{item.day === 'Sunday' ? "Lord's Day" : item.day}</div>
-                <div className="app-muted text-sm">Lunch: {item.lunch || 'Not set'} | Dinner: {item.dinner || 'Not set'}</div>
-                <div className="app-muted text-sm">Cooking: {[...(item.lunchCooks || []), ...(item.dinnerCooks || [])].join(', ') || 'Not assigned'}</div>
-              </div>
-            ))}
-            {!displayMenu && <p className="app-muted text-sm">No menu published yet.</p>}
-          </div>
-        </div>
-
         <div className="app-panel rounded-3xl p-6">
           <h3 className="text-lg font-semibold mb-4">Recent Activities</h3>
           <div className="space-y-2">
