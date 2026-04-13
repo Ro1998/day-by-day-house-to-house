@@ -217,12 +217,24 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
                     <Smartphone size={20} className="text-[var(--primary-strong)]" />
                     <span className="font-semibold">iPhone/iPad Installation</span>
                   </div>
-                  <p>1. Tap the <span className="font-semibold">Share</span> button <span className="text-[var(--primary-strong)]">⎋</span> at the bottom of Safari.</p>
-                  <p>2. Scroll down and tap <span className="font-semibold">Add to Home Screen</span>.</p>
-                  <p>3. Tap <span className="font-semibold">Add</span> to install the Family App on your home screen.</p>
+                  <div className="space-y-2">
+                    <p>1. In Safari, tap the <span className="font-semibold">Share</span> button <span className="text-[var(--primary-strong)]">⎋</span> at the bottom of screen.</p>
+                    <p>2. Scroll down and find <span className="font-semibold">Add to Home Screen</span> option.</p>
+                    <p>3. Tap <span className="font-semibold">Add</span> to install Family App on your home screen.</p>
+                  </div>
+                  <div className="mt-3 p-3 rounded-xl bg-blue-50 border border-blue-200">
+                    <p className="text-xs text-blue-800">
+                      <strong>📱 iOS Benefits:</strong> Works offline, full screen, no Safari bars
+                    </p>
+                  </div>
                   <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-[var(--surface)] px-3 py-2 font-semibold text-[var(--primary-strong)]">
                     <Share size={14} />
                     Add to Home Screen
+                  </div>
+                  <div className="mt-2 p-2 rounded-lg bg-amber-50 border border-amber-200">
+                    <p className="text-xs text-amber-800">
+                      <strong>💡 Pro Tip:</strong> Look for the Family icon on your home screen after installation!
+                    </p>
                   </div>
                 </div>
               ) : (
