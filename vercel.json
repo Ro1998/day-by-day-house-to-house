@@ -1,0 +1,16 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "git": {
+    "deploymentEnabled": true,
+    "productionBranch": "master"
+  },
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_APP_URL": "https://your-vercel-app.vercel.app"
+    }
+  }
+}
