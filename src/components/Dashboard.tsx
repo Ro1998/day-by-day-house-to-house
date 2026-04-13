@@ -84,11 +84,28 @@ export function Dashboard() {
       .map((payment) => payment.memberName),
   )].filter(n => n !== 'Hidden').sort((a, b) => a.localeCompare(b))
   const eatingPeopleCount = monthlyPayments.filter((payment) => payment.month === currentMonth && payment.paid).length
-  
-  const currentWeekMenu = menus.find((menu) => menu.week === currentWeek)
-  const nextWeekMenu = menus.find((menu) => menu.week === nextWeek)
-  
-  const displayMenu = currentWeekMenu || nextWeekMenu || [...menus].sort((a, b) => b.week.localeCompare(a.week))[0]
+
+  const isMenuPopulated = (m: any) => m?.items?.some((i: any) => i.lunch || i.dinner)
+  const currentWeekMenu = menus.find((m) => m.week === currentWeek)
+  const nextWeekMenu = menus.find((m) => m.week === nextWeek)
+
+  const today = new Date().getDay() // 0=Sun, 1=Mon, 2=Tue...
+  const isTransitionPeriod = today === 0 || today === 1 // Sunday or Monday
+
+  // Logic: Prioritize the menu the user likely wants to see right now.
+  let displayMenu = currentWeekMenu
+  if (isTransitionPeriod && isMenuPopulated(nextWeekMenu)) {
+    // On Sun/Mon, if the upcoming menu is already posted, show it.
+    displayMenu = nextWeekMenu
+  } else if (!isMenuPopulated(currentWeekMenu) && isMenuPopulated(nextWeekMenu)) {
+    // If current week hasn't been planned but next week has, show next.
+    displayMenu = nextWeekMenu
+  } else if (!isMenuPopulated(displayMenu)) {
+    // Otherwise, show the latest menu that actually has content.
+    displayMenu = [...menus].filter(isMenuPopulated).sort((a, b) => b.week.localeCompare(a.week))[0] || currentWeekMenu || nextWeekMenu
+  }
+
+  const isNextWeek = displayMenu?.week === nextWeek
   const displayWeekLabel = displayMenu 
     ? displayMenu.week === currentWeek 
       ? "This Week's Menu" 
@@ -217,7 +234,7 @@ export function Dashboard() {
             </p>
           </div>
           <div className="app-panel rounded-3xl p-6">
-            <h3 className="mb-2 text-lg font-semibold">Cooking This Week</h3>
+            <h3 className="mb-2 text-lg font-semibold">Cooking {isNextWeek ? 'Next Week' : 'This Week'}</h3>
             <p className="text-2xl font-bold text-[var(--accent-strong)]">{cookingPeople.length}</p>
           </div>
         </div>
@@ -231,8 +248,8 @@ export function Dashboard() {
             <p className="app-muted mb-3 text-sm">{eatingPeopleCount} people marked as paid</p>
           </div>
           <div className="app-panel rounded-3xl p-6">
-            <h3 className="mb-4 text-lg font-semibold">Cooking Team This Week</h3>
-            <p className="app-muted mb-3 text-sm">{cookingPeople.length} people participating</p>
+            <h3 className="mb-4 text-lg font-semibold">Cooking Team {isNextWeek ? 'Next Week' : 'This Week'}</h3>
+            <p className="app-muted mb-3 text-sm">{cookingPeople.length} people {isNextWeek ? 'assigned' : 'participating'}</p>
             <div className="flex flex-wrap gap-2">
               {cookingPeople.map((name) => (
                 <span key={name} className="rounded-full bg-[var(--primary)]/15 px-3 py-2 text-sm text-[var(--primary-strong)]">
@@ -457,7 +474,7 @@ export function Dashboard() {
           <p className="text-2xl font-bold text-[var(--accent-strong)]">{eatingPeopleCount}</p>
         </div>
         <div className="app-panel rounded-3xl p-6">
-          <h3 className="text-lg font-semibold mb-2">Cooking This Week</h3>
+          <h3 className="text-lg font-semibold mb-2">Cooking {isNextWeek ? 'Next Week' : 'This Week'}</h3>
           <p className="text-2xl font-bold text-[var(--primary)]">{cookingPeople.length}</p>
         </div>
       </div>
@@ -492,7 +509,7 @@ export function Dashboard() {
           </div>
         </div>
         <div className="app-panel rounded-3xl p-6">
-          <h3 className="mb-4 text-lg font-semibold">People Cooking This Week</h3>
+          <h3 className="mb-4 text-lg font-semibold">People Cooking {isNextWeek ? 'Next Week' : 'This Week'}</h3>
           <div className="flex flex-wrap gap-2">
             {cookingPeople.map((name) => (
               <span key={name} className="rounded-full bg-[var(--primary)]/15 px-3 py-2 text-sm text-[var(--primary-strong)]">
