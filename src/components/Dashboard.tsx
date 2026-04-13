@@ -192,14 +192,10 @@ export function Dashboard() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           <div className="app-panel rounded-3xl p-6">
             <h3 className="mb-2 text-lg font-semibold">This Month&apos;s Expenses</h3>
             <p className="text-2xl font-bold text-[var(--primary-strong)]">{formatCurrency(monthSpend)}</p>
-          </div>
-          <div className="app-panel rounded-3xl p-6">
-            <h3 className="mb-2 text-lg font-semibold">This Month&apos;s Income</h3>
-            <p className="text-2xl font-bold text-[var(--accent-strong)]">{formatCurrency(monthIncome)}</p>
           </div>
           <div className="app-panel rounded-3xl p-6">
             <h3 className="mb-2 text-lg font-semibold">Visible Entries</h3>
@@ -212,6 +208,9 @@ export function Dashboard() {
             <p className="text-2xl font-bold text-[var(--accent-strong)]">{cookingPeople.length}</p>
           </div>
         </div>
+        
+        {/* Income information is intentionally hidden from general users */}
+        {/* Only admin users can see income-related data */}
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="app-panel rounded-3xl p-6">
@@ -419,9 +418,17 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
         <div className="app-panel rounded-3xl p-6">
+          <h3 className="text-lg font-semibold mb-2">This Month&apos;s Income</h3>
+          <p className="text-2xl font-bold text-green-600">{formatCurrency(monthIncome)}</p>
+        </div>
+        <div className="app-panel rounded-3xl p-6">
+          <h3 className="text-lg font-semibold mb-2">This Month&apos;s Expenses</h3>
+          <p className="text-2xl font-bold text-red-600">{formatCurrency(monthSpend)}</p>
+        </div>
+        <div className="app-panel rounded-3xl p-6">
           <h3 className="text-lg font-semibold mb-2">Remaining Balance</h3>
           <p className="text-2xl font-bold text-[var(--primary)]">{formatCurrency(monthlyBalance)}</p>
-          <p className="app-muted mt-2 text-sm">This month&apos;s income minus this month&apos;s expenses.</p>
+          <p className="app-muted mt-2 text-sm">Income minus expenses.</p>
         </div>
         <div className="app-panel rounded-3xl p-6">
           <h3 className="text-lg font-semibold mb-2">Status</h3>
@@ -429,6 +436,9 @@ export function Dashboard() {
             {lowBalance ? 'Low Balance Warning!' : 'Good'}
           </p>
         </div>
+      </div>
+      
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div className="app-panel rounded-3xl p-6">
           <h3 className="text-lg font-semibold mb-2">Eating This Month</h3>
           <p className="text-2xl font-bold text-[var(--accent-strong)]">{eatingPeopleCount}</p>

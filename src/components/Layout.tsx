@@ -202,12 +202,13 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
               <button onClick={dismissInstallPrompt} className="app-button app-button-ghost">
                 Later
               </button>
-              {installPromptMode === 'native' && (
-                <button onClick={() => void handleInstallClick()} className="app-button app-button-primary inline-flex items-center gap-2">
-                  <Download size={16} />
-                  Install
-                </button>
-              )}
+              <button 
+                onClick={() => installPromptMode === 'native' ? void handleInstallClick() : dismissInstallPrompt()} 
+                className="app-button app-button-primary inline-flex items-center gap-2"
+              >
+                <Download size={16} />
+                {installPromptMode === 'native' ? 'Install' : 'Got it'}
+              </button>
             </div>
           </div>
         </div>
@@ -347,15 +348,13 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
 
             {isMobileMenuOpen && (
               <div className="mt-4 flex flex-col gap-2 border-t border-[var(--border)] pt-6">
-                {deferredPrompt && (
-                  <button
-                    onClick={() => void handleInstallClick()}
-                    className="app-button app-button-primary flex items-center justify-center gap-2 py-3 mb-2"
-                  >
-                    <Download size={18} />
-                    <span>Install Family App</span>
-                  </button>
-                )}
+                <button
+                  onClick={() => deferredPrompt ? void handleInstallClick() : setShowInstallPrompt(true)}
+                  className="app-button app-button-primary flex items-center justify-center gap-2 py-3 mb-2"
+                >
+                  <Download size={18} />
+                  <span>Install Family App</span>
+                </button>
                 <button
                   onClick={() => {
                     setIsEditProfileOpen(true)
