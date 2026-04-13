@@ -28,7 +28,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   const canViewMonthly = currentUser?.role === 'admin' || currentUser?.role === 'overseer'
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
-  const [installPromptMode, setInstallPromptMode] = useState<'native' | 'ios' | 'manual' | null>(null)
+  const [installPromptMode, setInstallPromptMode] = useState<'native' | 'ios' | 'android' | 'manual' | null>(null)
   const profileMenuRef = useRef<HTMLDivElement | null>(null)
   const pendingAccessCount = users.filter((user) => !user.approved).length
 
@@ -69,14 +69,20 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   useEffect(() => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as Navigator & { standalone?: boolean }).standalone === true
     const isIOS = /iPhone|iPad|iPod/i.test(window.navigator.userAgent)
+    const isAndroid = /Android/i.test(window.navigator.userAgent)
     const isMobile = /Android|iPhone|iPad|iPod/i.test(window.navigator.userAgent)
-    const installDismissed = window.sessionStorage.getItem('install_prompt_seen_v2') === 'true'
+    const installDismissed = window.sessionStorage.getItem('install_prompt_seen_v3') === 'true'
+    const lastPromptTime = window.sessionStorage.getItem('install_prompt_time')
+    const now = Date.now()
+    const daysSinceLastPrompt = lastPromptTime ? Math.floor((now - parseInt(lastPromptTime)) / (1000 * 60 * 60 * 24)) : 30
 
-    if (!isStandalone && !installDismissed && isMobile) {
+    // Show install prompt if not installed and not recently dismissed
+    if (!isStandalone && !installDismissed && isMobile && daysSinceLastPrompt >= 7) {
       window.setTimeout(() => {
-        setInstallPromptMode(isIOS ? 'ios' : 'manual')
+        setInstallPromptMode(isIOS ? 'ios' : isAndroid ? 'android' : 'manual')
         setShowInstallPrompt(true)
-      }, 1200)
+        window.sessionStorage.setItem('install_prompt_time', now.toString())
+      }, 2000)
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -85,10 +91,42 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
       setDeferredPrompt(e as BeforeInstallPromptEvent)
       setInstallPromptMode('native')
       setShowInstallPrompt(true)
+      console.log('[PWA] Install prompt event received')
+    }
+
+    const handleAppInstalled = () => {
+      console.log('[PWA] App was successfully installed')
+      setShowInstallPrompt(false)
+      window.sessionStorage.setItem('app_installed', 'true')
+      window.sessionStorage.setItem('install_prompt_seen_v3', 'true')
+    }
+
+    const handleOnlineStatus = () => {
+      const isOnline = navigator.onLine
+      console.log('[PWA] Network status:', isOnline ? 'online' : 'offline')
+      
+      // Show offline indicator if needed
+      if (!isOnline) {
+        document.body.classList.add('offline-mode')
+      } else {
+        document.body.classList.remove('offline-mode')
+      }
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    window.addEventListener('appinstalled', handleAppInstalled)
+    window.addEventListener('online', handleOnlineStatus)
+    window.addEventListener('offline', handleOnlineStatus)
+    
+    // Initial online status check
+    handleOnlineStatus()
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+      window.removeEventListener('appinstalled', handleAppInstalled)
+      window.removeEventListener('online', handleOnlineStatus)
+      window.removeEventListener('offline', handleOnlineStatus)
+    }
   }, [])
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -195,20 +233,42 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
                   </div>
                   {installPromptMode === 'native' ? (
                     <>
-                      <p>Tap the <span className="font-semibold">Install</span> button below to add the Family App to your home screen.</p>
-                      <p className="app-muted text-xs">This will create an app icon on your phone for easy access.</p>
+                      <p>🎉 Tap <span className="font-semibold">Install</span> button below to add Family App to your home screen.</p>
+                      <p className="app-muted text-xs">This creates an app icon that works just like a native app!</p>
+                      <div className="mt-3 p-3 rounded-xl bg-green-50 border border-green-200">
+                        <p className="text-xs text-green-800">
+                          <strong>✅ Benefits:</strong> Offline access, faster loading, no browser bars
+                        </p>
+                      </div>
                     </>
                   ) : (
                     <>
-                      <p>Look for the <span className="font-semibold">Install app</span> or <span className="font-semibold">Add to Home Screen</span> option in your browser menu.</p>
-                      <p className="app-muted text-xs">
-                        If you don't see the install option yet, browse the app a bit more and it should appear. This is a normal browser behavior.
-                      </p>
+                      <p>1. Tap <span className="font-semibold">⋮</span> menu button in your browser.</p>
+                      <p>2. Look for <span className="font-semibold">Install app</span> or <span className="font-semibold">Add to Home Screen</span>.</p>
+                      <p>3. Follow the prompts to install Family App.</p>
+                      <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200">
+                        <p className="text-xs text-amber-800">
+                          <strong>💡 Tip:</strong> Visit a few pages first, then check the menu again
+                        </p>
+                      </div>
                     </>
                   )}
                 </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Download size={20} className="text-[var(--primary-strong)]" />
+                    <span className="font-semibold">Desktop Installation</span>
+                  </div>
+                  <p>Install Family App on your computer for quick access.</p>
+                  <p className="app-muted text-xs">
+                    Look for install option in your browser menu or address bar.
+                  </p>
+                </div>
               )}
-            </div>
+            <button onClick={dismissInstallPrompt} className="text-[var(--text-soft)] transition hover:text-[var(--text)]" aria-label="Dismiss install prompt">
+              <X size={18} />
+            </button>
 
             <div className="mt-6 flex justify-end gap-3">
               <button onClick={dismissInstallPrompt} className="app-button app-button-ghost">
