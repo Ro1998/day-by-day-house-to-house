@@ -36,9 +36,8 @@ export function Expenses() {
       return dateMatch && categoryMatch
     })
 
-    const currentMonthKey = getCurrentMonthKey()
     return isGeneralUser
-      ? filteredExpenses.filter((expense) => expense.date.startsWith(currentMonthKey) && expense.type === 'out')
+      ? filteredExpenses.filter((expense) => expense.type === 'out')
       : filteredExpenses
   }
 
@@ -56,7 +55,7 @@ export function Expenses() {
     setForm({ type: 'out', category: '', amount: '', description: '' })
   }
 
-  const isGeneralUser = currentUser?.role === 'user'
+  const isGeneralUser = currentUser?.role === 'user' || currentUser?.role === 'overseer'
   const canManageEntries = currentUser?.role === 'admin' || currentUser?.role === 'coordinator'
   const currentMonthKey = getCurrentMonthKey()
   const visibleExpenses = getVisibleExpenses(filter)
@@ -278,13 +277,6 @@ export function Expenses() {
       {!currentUser && (
         <div className="app-panel rounded-2xl px-4 py-3 text-sm">
           Log in first to add or delete expenses.
-        </div>
-      )}
-      {isGeneralUser && (
-        <div className="app-panel rounded-3xl p-6">
-          <h2 className="mb-2 text-xl font-semibold">This Month&apos;s Income</h2>
-          <p className="text-2xl font-bold text-[var(--accent-strong)]">{formatCurrency(visibleIncomeTotal)}</p>
-          <p className="app-muted mt-2 text-sm">Income details stay hidden for general users.</p>
         </div>
       )}
       {canManageEntries && (
