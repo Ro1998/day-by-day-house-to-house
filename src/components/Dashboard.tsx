@@ -5,7 +5,7 @@ import { useData } from '@/components/DataProvider'
 import { Pie, Bar } from 'react-chartjs-2'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js'
 import { formatCurrency } from '@/lib/format'
-import { format, startOfWeek } from 'date-fns'
+import { format, startOfWeek, addWeeks } from 'date-fns'
 import { SupplyReportsBoard } from '@/components/SupplyReportsBoard'
 import { X } from 'lucide-react'
 
@@ -72,6 +72,7 @@ export function Dashboard() {
 
   const currentMonth = new Date().toISOString().slice(0, 7)
   const currentWeek = format(startOfWeek(new Date(), { weekStartsOn: 2 }), 'yyyy-MM-dd')
+  const nextWeek = format(startOfWeek(addWeeks(new Date(), 1), { weekStartsOn: 2 }), 'yyyy-MM-dd')
   const monthExpenses = expenses.filter((expense) => expense.date.startsWith(currentMonth))
   const monthIncome = monthExpenses.filter((expense) => expense.type === 'in').reduce((sum, expense) => sum + expense.amount, 0)
   const monthSpend = monthExpenses.filter((expense) => expense.type === 'out').reduce((sum, expense) => sum + expense.amount, 0)
@@ -83,7 +84,19 @@ export function Dashboard() {
       .map((payment) => payment.memberName),
   )].filter(n => n !== 'Hidden').sort((a, b) => a.localeCompare(b))
   const eatingPeopleCount = monthlyPayments.filter((payment) => payment.month === currentMonth && payment.paid).length
+  
   const currentWeekMenu = menus.find((menu) => menu.week === currentWeek)
+  const nextWeekMenu = menus.find((menu) => menu.week === nextWeek)
+  
+  const displayMenu = currentWeekMenu || nextWeekMenu || [...menus].sort((a, b) => b.week.localeCompare(a.week))[0]
+  const displayWeekLabel = displayMenu 
+    ? displayMenu.week === currentWeek 
+      ? "This Week's Menu" 
+      : displayMenu.week === nextWeek 
+        ? "Next Week's Menu" 
+        : `Menu for ${displayMenu.week}`
+    : "Weekly Menu"
+
   const currentWeekAvailabilities = availabilities.filter((entry) => (
     entry.week === currentWeek && !reviewedAvailabilityIds.includes(entry.id)
   ))
@@ -122,7 +135,7 @@ export function Dashboard() {
   }>())
   const pendingSuggestions = menuSuggestions.filter((suggestion) => suggestion.status === 'pending')
   const cookingPeople = [...new Set(
-    currentWeekMenu?.items?.flatMap((item) => [...(item.lunchCooks || []), ...(item.dinnerCooks || [])]) ?? [],
+    displayMenu?.items?.flatMap((item) => [...(item.lunchCooks || []), ...(item.dinnerCooks || [])]) ?? [],
   )].sort((a, b) => a.localeCompare(b))
   const dashboardReports = supplyReports.filter((report) => (
     report.category === 'maintenance' || report.category === 'grocery' || report.category === 'vegetable'
@@ -226,7 +239,7 @@ export function Dashboard() {
                   {name}
                 </span>
               ))}
-              {cookingPeople.length === 0 && <span className="app-muted text-sm">No cooking team names added for this week yet.</span>}
+              {cookingPeople.length === 0 && <span className="app-muted text-sm">No cooking team names added for {displayMenu?.week || 'this week'} yet.</span>}
             </div>
           </div>
         </div>
@@ -246,16 +259,16 @@ export function Dashboard() {
         </div>
 
         <div className="app-panel rounded-3xl p-6">
-          <h3 className="mb-4 text-lg font-semibold">This Week&apos;s Menu</h3>
+          <h3 className="mb-4 text-lg font-semibold">{displayWeekLabel}</h3>
           <div className="space-y-3">
-            {currentWeekMenu?.items?.map((item) => (
+            {displayMenu?.items?.map((item) => (
               <div key={item.day} className="rounded-2xl bg-[var(--surface-soft)] p-4">
                 <div className="font-semibold">{item.day === 'Sunday' ? "Lord's Day" : item.day}</div>
                 <div className="app-muted text-sm">Lunch: {item.lunch || 'Not set'} | Dinner: {item.dinner || 'Not set'}</div>
                 <div className="app-muted text-sm">Cooking: {[...(item.lunchCooks || []), ...(item.dinnerCooks || [])].join(', ') || 'Not assigned'}</div>
               </div>
             ))}
-            {!currentWeekMenu && <p className="app-muted text-sm">No menu published for this week yet.</p>}
+            {!displayMenu && <p className="app-muted text-sm">No menu published yet.</p>}
           </div>
         </div>
 
@@ -487,7 +500,7 @@ export function Dashboard() {
               </span>
             ))}
             {cookingPeople.length === 0 && (
-              <p className="app-muted text-sm">No cooking names added for the week of {currentWeek} yet.</p>
+              <p className="app-muted text-sm">No cooking names added for the week of {displayMenu?.week || 'the current week'} yet.</p>
             )}
           </div>
         </div>
@@ -495,16 +508,16 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="app-panel rounded-3xl p-6">
-          <h3 className="mb-4 text-lg font-semibold">This Week&apos;s Menu</h3>
+          <h3 className="mb-4 text-lg font-semibold">{displayWeekLabel}</h3>
           <div className="space-y-3">
-            {currentWeekMenu?.items?.map((item) => (
+            {displayMenu?.items?.map((item) => (
               <div key={item.day} className="rounded-2xl bg-[var(--surface-soft)] p-4">
                 <div className="font-semibold">{item.day === 'Sunday' ? "Lord's Day" : item.day}</div>
                 <div className="app-muted text-sm">Lunch: {item.lunch || 'Not set'} | Dinner: {item.dinner || 'Not set'}</div>
                 <div className="app-muted text-sm">Cooking: {[...(item.lunchCooks || []), ...(item.dinnerCooks || [])].join(', ') || 'Not assigned'}</div>
               </div>
             ))}
-            {!currentWeekMenu && <p className="app-muted text-sm">No menu published for this week yet.</p>}
+            {!displayMenu && <p className="app-muted text-sm">No menu published yet.</p>}
           </div>
         </div>
 

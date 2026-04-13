@@ -157,7 +157,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
       const { outcome } = await deferredPrompt.userChoice
       if (outcome === 'accepted') {
         setShowInstallPrompt(false)
-        window.sessionStorage.setItem('install_prompt_seen_v2', 'true')
+        window.sessionStorage.setItem('install_prompt_seen_v3', 'true')
       }
       setDeferredPrompt(null)
     }
@@ -165,7 +165,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
 
   const dismissInstallPrompt = () => {
     setShowInstallPrompt(false)
-    window.sessionStorage.setItem('install_prompt_seen_v2', 'true')
+    window.sessionStorage.setItem('install_prompt_seen_v3', 'true')
   }
 
   const syncLabel = loading || isSyncing ? 'Syncing' : 'Synced'
@@ -237,7 +237,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
                     </p>
                   </div>
                 </div>
-              ) : (
+              ) : (installPromptMode === 'android' || installPromptMode === 'native' || installPromptMode === 'manual') ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 mb-3">
                     <Download size={20} className="text-[var(--primary-strong)]" />
@@ -270,18 +270,16 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 mb-3">
                     <Download size={20} className="text-[var(--primary-strong)]" />
-                    <span className="font-semibold">Desktop Installation</span>
+                    <span className="font-semibold">Generic Installation</span>
                   </div>
-                  <p>Install Family App on your computer for quick access.</p>
+                  <p>Follow your browser's prompts to install Family App on this device.</p>
                   <p className="app-muted text-xs">
-                    Look for install option in your browser menu or address bar.
+                    This allows you to access the workspace directly from your home screen or desktop.
                   </p>
                 </div>
               )}
-            <button onClick={dismissInstallPrompt} className="text-[var(--text-soft)] transition hover:text-[var(--text)]" aria-label="Dismiss install prompt">
-              <X size={18} />
-            </button>
-
+            </div>
+            
             <div className="mt-6 flex justify-end gap-3">
               <button onClick={dismissInstallPrompt} className="app-button app-button-ghost">
                 Later
