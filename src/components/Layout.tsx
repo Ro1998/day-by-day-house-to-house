@@ -175,24 +175,36 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
             <div className="mt-5 rounded-2xl bg-[var(--surface-soft)] p-4 text-sm">
               {installPromptMode === 'ios' ? (
                 <div className="space-y-3">
-                  <p>1. Tap the <span className="font-semibold">Share</span> button in Safari.</p>
-                  <p>2. Choose <span className="font-semibold">Add to Home Screen</span>.</p>
-                  <div className="inline-flex items-center gap-2 rounded-full bg-[var(--surface)] px-3 py-2 font-semibold text-[var(--primary-strong)]">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Smartphone size={20} className="text-[var(--primary-strong)]" />
+                    <span className="font-semibold">iPhone/iPad Installation</span>
+                  </div>
+                  <p>1. Tap the <span className="font-semibold">Share</span> button <span className="text-[var(--primary-strong)]">⎋</span> at the bottom of Safari.</p>
+                  <p>2. Scroll down and tap <span className="font-semibold">Add to Home Screen</span>.</p>
+                  <p>3. Tap <span className="font-semibold">Add</span> to install the Family App on your home screen.</p>
+                  <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-[var(--surface)] px-3 py-2 font-semibold text-[var(--primary-strong)]">
                     <Share size={14} />
                     Add to Home Screen
                   </div>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <p>
-                    {installPromptMode === 'native'
-                      ? 'Tap install below to add it to the home screen.'
-                      : 'Use your browser menu and choose Install app or Add to Home Screen.'}
-                  </p>
-                  {installPromptMode === 'manual' && (
-                    <p className="app-muted text-xs">
-                      If your browser does not show the install choice yet, open the site again after a little use and it should become available.
-                    </p>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Download size={20} className="text-[var(--primary-strong)]" />
+                    <span className="font-semibold">Android Installation</span>
+                  </div>
+                  {installPromptMode === 'native' ? (
+                    <>
+                      <p>Tap the <span className="font-semibold">Install</span> button below to add the Family App to your home screen.</p>
+                      <p className="app-muted text-xs">This will create an app icon on your phone for easy access.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p>Look for the <span className="font-semibold">Install app</span> or <span className="font-semibold">Add to Home Screen</span> option in your browser menu.</p>
+                      <p className="app-muted text-xs">
+                        If you don't see the install option yet, browse the app a bit more and it should appear. This is a normal browser behavior.
+                      </p>
+                    </>
                   )}
                 </div>
               )}
@@ -346,15 +358,17 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
               </button>
             ))}
 
+            {/* Install Family App Button - Visible on both mobile and desktop */}
+            <button
+              onClick={() => deferredPrompt ? void handleInstallClick() : setShowInstallPrompt(true)}
+              className="app-button app-button-primary relative inline-flex w-full items-center justify-start gap-2 md:w-auto md:justify-center px-3 py-2 text-sm md:px-3 md:py-1.5"
+            >
+              <Download size={16} />
+              <span>Install Family App</span>
+            </button>
+
             {isMobileMenuOpen && (
               <div className="mt-4 flex flex-col gap-2 border-t border-[var(--border)] pt-6">
-                <button
-                  onClick={() => deferredPrompt ? void handleInstallClick() : setShowInstallPrompt(true)}
-                  className="app-button app-button-primary flex items-center justify-center gap-2 py-3 mb-2"
-                >
-                  <Download size={18} />
-                  <span>Install Family App</span>
-                </button>
                 <button
                   onClick={() => {
                     setIsEditProfileOpen(true)
