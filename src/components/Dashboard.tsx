@@ -553,7 +553,7 @@ export function Dashboard() {
               <CalendarIcon size={20} className="text-[var(--primary-strong)]" />
               Community Calendar
             </h3>
-            {(currentUser?.role === 'admin' || currentUser?.role === 'coordinator') && (
+            {(currentUser?.role === 'admin' || currentUser?.role === 'coordinator' || currentUser?.role === 'overseer') && (
               <button 
                 onClick={() => setShowEventForm(!showEventForm)}
                 className="p-2 rounded-full hover:bg-[var(--surface-soft)] text-[var(--primary-strong)]"
