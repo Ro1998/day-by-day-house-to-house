@@ -1,7 +1,10 @@
 import { PrismaClient } from '@prisma/client';
+import * as dotenv from 'dotenv';
 
-const NEON_DATABASE_URL = 'postgresql://neondb_owner:npg_nZFi7esA1xbQ@ep-silent-bar-anf7lc3q-pooler.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
-const SUPABASE_DATABASE_URL = 'postgresql://postgres.fuhhnfdbepnxwjcgzdpg:Sovereign%4020541126@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?sslmode=require';
+dotenv.config({ path: '.env.local' });
+
+const NEON_DATABASE_URL = process.env.NEON_DATABASE_URL;
+const SUPABASE_DATABASE_URL = process.env.DATABASE_URL; // Using standard name from README
 
 const neonPrisma = new PrismaClient({
   datasources: {
@@ -10,6 +13,11 @@ const neonPrisma = new PrismaClient({
     },
   },
 });
+
+if (!NEON_DATABASE_URL || !SUPABASE_DATABASE_URL) {
+  console.error('Error: Database URLs not found in environment variables.');
+  process.exit(1);
+}
 
 const supabasePrisma = new PrismaClient({
   datasources: {

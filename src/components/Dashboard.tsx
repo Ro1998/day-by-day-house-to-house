@@ -306,6 +306,11 @@ export function Dashboard() {
               {upcomingEvents.length === 0 && (
                 <p className="app-muted text-sm">No upcoming meetings or events scheduled.</p>
               )}
+            {activities.length > activitiesLimit && (
+              <button onClick={() => setActivitiesLimit(prev => prev + 10)} className="text-[var(--primary)] text-sm font-medium mt-2 hover:underline">
+                Show More
+              </button>
+            )}
             </div>
           </div>
         </div>

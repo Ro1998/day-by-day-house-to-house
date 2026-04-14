@@ -11,8 +11,8 @@ A meal planner website with expense tracking, menu planning, user authentication
 5. Run `npm run db:seed` to add initial users.
 
 ### Migrating from Neon to Supabase
-1. **Export and Clean**: `pg_dump -d "NEON_URL" --clean --if-exists | grep -vE '^\\(un)?restrict' > neon_backup.sql`
-2. **Restore to Supabase**: `psql -h db.fuhhnfdbepnxwjcgzdpg.supabase.co -p 5432 -U postgres -d postgres -f neon_backup.sql`
+1. **Export Data**: `pg_dump -d "NEON_URL" --clean --if-exists -f neon_backup.sql`
+2. **Restore to Supabase**: Paste the contents of `neon_backup.sql` into the Supabase SQL Editor, ensuring you remove any `\restrict` commands.
 
 ## Performance Optimization
 
