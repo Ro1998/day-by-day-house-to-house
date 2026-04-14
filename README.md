@@ -2,13 +2,41 @@
 
 A meal planner website with expense tracking, menu planning, user authentication, and dashboard.
 
-## Setup Database
+## Database Setup (Supabase)
 
-1. Create a Neon database at neon.tech.
-2. Copy the connection string.
-3. Create .env.local with DATABASE_URL="your_connection_string"
+1. Create a new project at supabase.com.
+2. Go to **Project Settings > Database** and copy the connection string.
+3. Create `.env.local` with `DATABASE_URL="postgresql://postgres:[YOUR-PASSWORD]@db.fuhhnfdbepnxwjcgzdpg.supabase.co:5432/postgres"`.
 4. Run `npm run db:push` to create tables.
 5. Run `npm run db:seed` to add initial users.
+
+### Migrating from Neon to Supabase
+1. **Export and Clean**: `pg_dump -d "NEON_URL" --clean --if-exists | grep -vE '^\\(un)?restrict' > neon_backup.sql`
+2. **Restore to Supabase**: `psql -h db.fuhhnfdbepnxwjcgzdpg.supabase.co -p 5432 -U postgres -d postgres -f neon_backup.sql`
+
+## Performance Optimization
+
+### 1. Server-Side Pagination (Prisma)
+In your API routes, fetch data in chunks to reduce DB load:
+```typescript
+const activities = await prisma.activity.findMany({
+  take: 10,
+  skip: page * 10,
+  orderBy: { timestamp: 'desc' },
+});
+```
+
+### 2. Caching (Next.js unstable_cache)
+Cache expensive aggregate queries (like monthly balances):
+```typescript
+import { unstable_cache } from 'next/cache';
+
+const getCachedBalance = unstable_cache(
+  async () => prisma.expense.aggregate({ ... }),
+  ['monthly-balance'],
+  { revalidate: 3600, tags: ['expenses'] }
+);
+```
 
 ## Getting Started
 

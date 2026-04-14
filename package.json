@@ -10,7 +10,11 @@
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "migrate:test-connections": "tsx scripts/test-connections.ts",
+    "migrate:neon-to-supabase": "tsx scripts/migrate-neon-to-supabase.ts",
+    "vercel-build": "prisma generate && next build --webpack",
+    "deploy:vercel": "vercel --prod"
   },
   "dependencies": {
     "@prisma/client": "^5.0.0",

@@ -1,0 +1,65 @@
+[
+  {
+    "id": "cmno7r4ft0000jkjjzjkkr984",
+    "name": "Ronald",
+    "username": "ronaldthapa98",
+    "email": null,
+    "role": "admin",
+    "approved": true,
+    "phone": "8851589380"
+  },
+  {
+    "id": "cmnoj0o8z0000q8gx9fo3lnl8",
+    "name": "Benjamin",
+    "username": "ben2304",
+    "email": "ganeshsatuluri2005@gmail.com",
+    "role": "user",
+    "approved": true,
+    "phone": null
+  },
+  {
+    "id": "cmnoe90nj0000reu70a8ztrpw",
+    "name": "Ronald Thapa",
+    "username": "ronaldthapa",
+    "email": "ronald.thapa98@gmail.com",
+    "role": "user",
+    "approved": true,
+    "phone": null
+  },
+  {
+    "id": "cmnq1vn3a0000ehwncn88epud",
+    "name": "Pranadeep",
+    "username": "deepu_0718",
+    "email": "alladipranadeepcheguveera@gmail.com",
+    "role": "user",
+    "approved": true,
+    "phone": null
+  },
+  {
+    "id": "cmnq1wzbo0001ehwnw9u1f8pz",
+    "name": "Melgwin.C",
+    "username": "a.mc",
+    "email": "mcalladi22@gmail.com",
+    "role": "user",
+    "approved": true,
+    "phone": null
+  },
+  {
+    "id": "cmnxg347j0001pwc46tws30la",
+    "name": "Rajesh jain",
+    "username": "rajesh",
+    "email": "jain17327@gmail.com",
+    "role": "user",
+    "approved": true,
+    "phone": "8860796193"
+  },
+  {
+    "id": "cmnxj1m9w0001ayuon01zx10o",
+    "name": "Harsha",
+    "username": "harsha",
+    "email": "harshainfo78@gmail.com",
+    "role": "coordinator",
+    "approved": true,
+    "phone": "9618373361"
+  }
+]

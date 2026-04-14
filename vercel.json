@@ -8,9 +8,21 @@
     "deploymentEnabled": true,
     "productionBranch": "master"
   },
+  "env": {
+    "DATABASE_URL": "@database_url",
+    "NEXT_PUBLIC_APP_URL": "@next_public_app_url",
+    "APP_URL": "@app_url",
+    "SMTP_HOST": "@smtp_host",
+    "SMTP_PORT": "@smtp_port",
+    "SMTP_USER": "@smtp_user",
+    "SMTP_PASS": "@smtp_pass",
+    "EMAIL_FROM": "@email_from",
+    "ADMIN_NOTIFICATION_EMAIL": "@admin_notification_email"
+  },
   "build": {
     "env": {
-      "NEXT_PUBLIC_APP_URL": "https://your-vercel-app.vercel.app"
+      "DATABASE_URL": "@database_url",
+      "NEXT_PUBLIC_APP_URL": "@next_public_app_url"
     }
   }
 }

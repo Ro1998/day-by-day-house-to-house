@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useData } from '@/components/DataProvider'
 import { Pie, Bar } from 'react-chartjs-2'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js'
@@ -49,30 +49,30 @@ export function Dashboard() {
   const toggleDay = (day: string) => setAvailabilityForm(prev => prev.days.includes(day) ? { ...prev, days: prev.days.filter(d => d !== day) } : { ...prev, days: [...prev.days, day] })
   const toggleMeal = (meal: 'lunch' | 'dinner') => setAvailabilityForm(prev => prev.meals.includes(meal) ? { ...prev, meals: prev.meals.filter(m => m !== meal) } : { ...prev, meals: [...prev.meals, meal] })
 
-  const cashIn = expenses.filter(e => e.type === 'in').reduce((sum, e) => sum + e.amount, 0)
-  const cashOut = expenses.filter(e => e.type === 'out').reduce((sum, e) => sum + e.amount, 0)
+  const cashIn = useMemo(() => expenses.filter(e => e.type === 'in').reduce((sum, e) => sum + e.amount, 0), [expenses])
+  const cashOut = useMemo(() => expenses.filter(e => e.type === 'out').reduce((sum, e) => sum + e.amount, 0), [expenses])
 
-  const categoryData = expenses.reduce((acc, exp) => {
+  const categoryData = useMemo(() => expenses.reduce((acc, exp) => {
     acc[exp.category] = (acc[exp.category] || 0) + exp.amount
     return acc
-  }, {} as Record<string, number>)
+  }, {} as Record<string, number>), [expenses])
 
-  const pieData = {
+  const pieData = useMemo(() => ({
     labels: Object.keys(categoryData),
     datasets: [{
       data: Object.values(categoryData),
       backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
     }],
-  }
+  }), [categoryData])
 
-  const barData = {
+  const barData = useMemo(() => ({
     labels: ['Cash In', 'Cash Out', 'Balance'],
     datasets: [{
       label: 'Amount',
       data: [cashIn, cashOut, monthlyBalance],
       backgroundColor: ['#4CAF50', '#F44336', '#2196F3'],
     }],
-  }
+  }), [cashIn, cashOut, monthlyBalance])
 
   const currentMonth = new Date().toISOString().slice(0, 7)
   const currentWeek = format(startOfWeek(new Date(), { weekStartsOn: 2 }), 'yyyy-MM-dd')
@@ -81,7 +81,13 @@ export function Dashboard() {
   const monthIncome = monthExpenses.filter((expense) => expense.type === 'in').reduce((sum, expense) => sum + expense.amount, 0)
   const monthSpend = monthExpenses.filter((expense) => expense.type === 'out').reduce((sum, expense) => sum + expense.amount, 0)
   const lowBalance = monthIncome > 0 ? monthlyBalance < monthIncome * 0.2 : monthlyBalance < 0
-  const generalActivities = activities.filter((activity) => !/income|cash in|paid/i.test(activity.action)).slice(0, 5)
+  
+  const [activitiesLimit, setActivitiesLimit] = useState(5)
+  const generalActivities = useMemo(() => 
+    activities.filter((activity) => !/income|cash in|paid/i.test(activity.action)).slice(0, activitiesLimit),
+    [activities, activitiesLimit]
+  )
+
   const eatingPeople = [...new Set(
     monthlyPayments
       .filter((payment) => payment.month === currentMonth && payment.paid)
@@ -210,7 +216,7 @@ export function Dashboard() {
     setShowEventForm(false)
   }
 
-  if (currentUser?.role === 'user' || currentUser?.role === 'overseer') {
+  if (currentUser?.role === 'user') {
     return (
       <div className="space-y-6">
         {unreadNotifications.length > 0 && (
@@ -333,6 +339,11 @@ export function Dashboard() {
             ))}
             {generalActivities.length === 0 && (
               <div className="app-muted text-sm">No recent visible activities.</div>
+            )}
+            {activities.length > activitiesLimit && (
+              <button onClick={() => setActivitiesLimit(prev => prev + 10)} className="text-[var(--primary)] text-sm font-medium mt-2 hover:underline">
+                Show More
+              </button>
             )}
           </div>
         </div>
@@ -537,7 +548,7 @@ export function Dashboard() {
               <CalendarIcon size={20} className="text-[var(--primary-strong)]" />
               Community Calendar
             </h3>
-            {(currentUser?.role === 'admin' || currentUser?.role === 'overseer') && (
+            {(currentUser?.role === 'admin' || currentUser?.role === 'coordinator') && (
               <button 
                 onClick={() => setShowEventForm(!showEventForm)}
                 className="p-2 rounded-full hover:bg-[var(--surface-soft)] text-[var(--primary-strong)]"
@@ -672,11 +683,16 @@ export function Dashboard() {
           <div className="space-y-2">
             {activities
               .filter((a) => currentUser?.role === 'admin' || !/income|cash in|paid/i.test(a.action))
-              .slice(-5).reverse().map(activity => (
+              .slice().reverse().slice(0, activitiesLimit).map(activity => (
               <div key={activity.id} className="app-muted text-sm">
                 <span className="font-medium">{activity.user}</span> {activity.action} at {new Date(activity.timestamp).toLocaleString()}
               </div>
             ))}
+            {activities.length > activitiesLimit && (
+              <button onClick={() => setActivitiesLimit(prev => prev + 10)} className="text-[var(--primary)] text-sm font-medium mt-2 hover:underline">
+                Show More
+              </button>
+            )}
           </div>
         </div>
       </div>
