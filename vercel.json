@@ -6,7 +6,7 @@
   "framework": "nextjs",
   "git": {
     "deploymentEnabled": true,
-    "productionBranch": "master"
+    "productionBranch": "main"
   },
   "env": {
     "DATABASE_URL": "@database_url",
