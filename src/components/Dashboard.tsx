@@ -7,7 +7,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearSca
 import { formatCurrency } from '@/lib/format'
 import { format, startOfWeek, addWeeks, isToday, isTomorrow, parseISO, startOfDay } from 'date-fns'
 import { SupplyReportsBoard } from '@/components/SupplyReportsBoard'
-import { X, Calendar as CalendarIcon, MapPin, Video, Clock, Plus, ExternalLink, Loader2 } from 'lucide-react'
+import { X, Calendar as CalendarIcon, MapPin, Video, Clock, Plus, ExternalLink, Loader2, Pencil, Trash2, Eye } from 'lucide-react'
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement)
 
@@ -39,13 +39,20 @@ export function Dashboard() {
     supplyReports,
     events,
     addEvent,
+    updateEvent,
+    deleteEvent,
   } = useData()
   const [suggestionForm, setSuggestionForm] = useState({ suggestion: '', preferredDay: '', preferredMeal: '' })
   const [availabilityForm, setAvailabilityForm] = useState({ days: ["Lord's Day"], meals: ['lunch'] as ('lunch' | 'dinner')[], available: true, note: '' })
   const [reviewedAvailabilityIds, setReviewedAvailabilityIds] = useState<string[]>([])
   const [showEventForm, setShowEventForm] = useState(false)
   const [eventForm, setEventForm] = useState({ title: '', date: '', time: '', type: 'offline' as 'online' | 'offline', location: '', venue: '', description: '' })
+  const [editingEventId, setEditingEventId] = useState<string | null>(null)
   const [isCreatingEvent, setIsCreatingEvent] = useState(false)
+  const [showFullMenu, setShowFullMenu] = useState(false)
+  const canSeeFullCashInDetails = currentUser?.role === 'admin' || currentUser?.role === 'overseer'
+  const isGeneralUser = currentUser?.role === 'user'
+  const canManageEvents = currentUser?.role === 'admin' || currentUser?.role === 'overseer'
   
   const toggleDay = (day: string) => setAvailabilityForm(prev => prev.days.includes(day) ? { ...prev, days: prev.days.filter(d => d !== day) } : { ...prev, days: [...prev.days, day] })
   const toggleMeal = (meal: 'lunch' | 'dinner') => setAvailabilityForm(prev => prev.meals.includes(meal) ? { ...prev, meals: prev.meals.filter(m => m !== meal) } : { ...prev, meals: [...prev.meals, meal] })
@@ -210,19 +217,51 @@ export function Dashboard() {
     await reviewAvailability(ids)
   }
 
+  const resetEventForm = () => {
+    setEventForm({ title: '', date: '', time: '', type: 'offline', location: '', venue: '', description: '' })
+    setEditingEventId(null)
+    setShowEventForm(false)
+  }
+
   const handleEventSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
       setIsCreatingEvent(true)
-      await addEvent(eventForm)
-      setEventForm({ title: '', date: '', time: '', type: 'offline', location: '', venue: '', description: '' })
-      setShowEventForm(false)
+      if (editingEventId) {
+        await updateEvent({ id: editingEventId, ...eventForm })
+      } else {
+        await addEvent(eventForm)
+      }
+      resetEventForm()
     } finally {
       setIsCreatingEvent(false)
     }
   }
 
-  if (currentUser?.role === 'user') {
+  const startEditingEvent = (event: typeof upcomingEvents[number]) => {
+    setEditingEventId(event.id)
+    setEventForm({
+      title: event.title,
+      date: event.date,
+      time: event.time,
+      type: event.type,
+      location: event.location || '',
+      venue: event.venue || '',
+      description: event.description || '',
+    })
+    setShowEventForm(true)
+  }
+
+  const handleDeleteEvent = async (event: typeof upcomingEvents[number]) => {
+    const confirmed = window.confirm(`Delete "${event.title}" on ${event.date}?`)
+    if (!confirmed) return
+    await deleteEvent(event.id)
+    if (editingEventId === event.id) {
+      resetEventForm()
+    }
+  }
+
+  if (isGeneralUser) {
     return (
       <div className="space-y-6">
         {unreadNotifications.length > 0 && (
@@ -251,29 +290,24 @@ export function Dashboard() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6">
           <div className="app-panel rounded-3xl p-6">
-            <h3 className="mb-2 text-lg font-semibold">This Month&apos;s Expenses</h3>
-            <p className="text-2xl font-bold text-[var(--primary-strong)]">{formatCurrency(monthSpend)}</p>
-          </div>
-          <div className="app-panel rounded-3xl p-6">
-            <h3 className="mb-2 text-lg font-semibold">Visible Entries</h3>
-            <p className="text-2xl font-bold text-[var(--primary)]">
-              {monthExpenses.filter((expense) => expense.type === 'out').length}
-            </p>
-          </div>
-          <div className="app-panel rounded-3xl p-6">
-            <h3 className="mb-2 text-lg font-semibold">Cooking {isNextWeek ? 'Next Week' : 'This Week'}</h3>
-            <p className="text-2xl font-bold text-[var(--accent-strong)]">{cookingPeople.length}</p>
+            <h3 className="mb-2 text-lg font-semibold">Remaining Balance This Month</h3>
+            <p className="text-2xl font-bold text-[var(--primary)]">{formatCurrency(monthlyBalance)}</p>
           </div>
         </div>
         
-        {/* Income information is intentionally hidden from general users */}
-        {/* Only admin users can see income-related data */}
-
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 app-panel rounded-3xl p-6">
-            <h3 className="mb-4 text-lg font-semibold">{displayWeekLabel}</h3>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h3 className="text-lg font-semibold">{displayWeekLabel}</h3>
+              {displayMenu && (
+                <button type="button" onClick={() => setShowFullMenu(true)} className="app-button app-button-ghost px-3 py-2 text-sm">
+                  <Eye size={16} />
+                  <span>Open Full Menu</span>
+                </button>
+              )}
+            </div>
             <div className="space-y-3">
               {displayMenu?.items?.map((item) => (
                 <div key={item.day} className="rounded-2xl bg-[var(--surface-soft)] p-4">
@@ -495,12 +529,56 @@ export function Dashboard() {
         </div>
 
         <SupplyReportsBoard />
+
+        {showFullMenu && displayMenu && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(18,24,18,0.42)] px-4 py-6 backdrop-blur-sm overflow-y-auto">
+            <div className="app-panel w-full max-w-6xl rounded-3xl p-6 shadow-2xl my-auto">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-xl font-semibold">{displayWeekLabel}</h3>
+                  <p className="app-muted mt-1 text-sm">Open the table in a larger view and use browser zoom if you want it even bigger.</p>
+                </div>
+                <button type="button" onClick={() => setShowFullMenu(false)} className="app-button app-button-ghost p-2 rounded-full">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="mb-4 rounded-2xl bg-[var(--surface-soft)] px-4 py-3 text-sm">
+                <span className="font-semibold">Vegetable Purchasers: </span>
+                {displayMenu.purchasers?.join(', ') || 'Not assigned'}
+              </div>
+              <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+                <table className="min-w-[1050px] w-full table-auto text-left">
+                  <thead>
+                    <tr className="bg-[var(--surface-soft)] text-base">
+                      <th className="border-b border-[var(--border)] p-4 font-semibold">Day</th>
+                      <th className="border-b border-[var(--border)] p-4 font-semibold">Lunch</th>
+                      <th className="border-b border-[var(--border)] p-4 font-semibold">Cooking Team</th>
+                      <th className="border-b border-[var(--border)] p-4 font-semibold">Dinner</th>
+                      <th className="border-b border-[var(--border)] p-4 font-semibold">Dinner Team</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayMenu.items?.map((item) => (
+                      <tr key={item.day} className="align-top border-b border-[var(--border)] last:border-0 text-[15px]">
+                        <td className="border-r border-[var(--border)] p-4 font-semibold">{item.day}</td>
+                        <td className="border-r border-[var(--border)] p-4 whitespace-pre-wrap">{item.lunch || '-'}</td>
+                        <td className="border-r border-[var(--border)] p-4 text-[var(--primary-strong)] font-medium">{item.lunchCooks?.join(', ') || '-'}</td>
+                        <td className="border-r border-[var(--border)] p-4 whitespace-pre-wrap">{item.dinner || '-'}</td>
+                        <td className="p-4 text-[var(--primary-strong)] font-medium">{item.dinnerCooks?.join(', ') || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+      <div className="space-y-6">
       {unreadNotifications.length > 0 && (
         <div className="space-y-3">
           {unreadNotifications.map((notification) => (
@@ -527,11 +605,13 @@ export function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
-        <div className="app-panel rounded-3xl p-6">
-          <h3 className="text-lg font-semibold mb-2">This Month&apos;s Income</h3>
-          <p className="text-2xl font-bold text-green-600">{formatCurrency(monthIncome)}</p>
-        </div>
+      <div className={`grid grid-cols-1 gap-6 ${canSeeFullCashInDetails ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
+        {canSeeFullCashInDetails && (
+          <div className="app-panel rounded-3xl p-6">
+            <h3 className="text-lg font-semibold mb-2">This Month&apos;s Income</h3>
+            <p className="text-2xl font-bold text-green-600">{formatCurrency(monthIncome)}</p>
+          </div>
+        )}
         <div className="app-panel rounded-3xl p-6">
           <h3 className="text-lg font-semibold mb-2">This Month&apos;s Expenses</h3>
           <p className="text-2xl font-bold text-red-600">{formatCurrency(monthSpend)}</p>
@@ -551,7 +631,15 @@ export function Dashboard() {
       
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 app-panel rounded-3xl p-6">
-          <h3 className="mb-4 text-lg font-semibold">{displayWeekLabel}</h3>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h3 className="text-lg font-semibold">{displayWeekLabel}</h3>
+            {displayMenu && (
+              <button type="button" onClick={() => setShowFullMenu(true)} className="app-button app-button-ghost px-3 py-2 text-sm">
+                <Eye size={16} />
+                <span>Open Full Menu</span>
+              </button>
+            )}
+          </div>
           <div className="space-y-3">
             {displayMenu?.items?.map((item) => (
               <div key={item.day} className="rounded-2xl bg-[var(--surface-soft)] p-4">
@@ -570,9 +658,15 @@ export function Dashboard() {
               <CalendarIcon size={20} className="text-[var(--primary-strong)]" />
               Community Calendar
             </h3>
-            {(currentUser?.role === 'admin' || currentUser?.role === 'coordinator' || currentUser?.role === 'overseer') && (
+            {canManageEvents && (
               <button 
-                onClick={() => setShowEventForm(!showEventForm)}
+                onClick={() => {
+                  if (showEventForm) {
+                    resetEventForm()
+                    return
+                  }
+                  setShowEventForm(true)
+                }}
                 className="p-2 rounded-full hover:bg-[var(--surface-soft)] text-[var(--primary-strong)]"
               >
                 {showEventForm ? <X size={20} /> : <Plus size={20} />}
@@ -626,16 +720,30 @@ export function Dashboard() {
                 onChange={(e) => setEventForm((prev) => ({ ...prev, description: e.target.value }))}
               />
               <div className="rounded-2xl border border-[var(--border)] bg-white/70 px-3 py-2 text-xs app-muted">
-                Creating an event will email approved users, include an Add to Google Calendar link, and open Google Calendar for the admin.
+                {editingEventId
+                  ? 'Saving changes will update the calendar item for everyone. Only admin and overseer can edit or delete events.'
+                  : 'Creating an event will email approved users, include an Add to Google Calendar link, and open Google Calendar for the admin.'}
               </div>
-              <button type="submit" disabled={isCreatingEvent} className="app-button app-button-primary w-full text-xs py-2 disabled:cursor-not-allowed disabled:opacity-70">
+              <div className="flex gap-3">
+                {editingEventId && (
+                  <button
+                    type="button"
+                    onClick={resetEventForm}
+                    disabled={isCreatingEvent}
+                    className="app-button app-button-ghost w-full text-xs py-2 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    Cancel Edit
+                  </button>
+                )}
+                <button type="submit" disabled={isCreatingEvent} className="app-button app-button-primary w-full text-xs py-2 disabled:cursor-not-allowed disabled:opacity-70">
                 {isCreatingEvent ? (
                   <span className="inline-flex items-center gap-2">
                     <Loader2 size={14} className="animate-spin" />
-                    Creating Event...
+                    {editingEventId ? 'Saving Event...' : 'Creating Event...'}
                   </span>
-                ) : 'Add Event'}
-              </button>
+                ) : editingEventId ? 'Save Event Changes' : 'Add Event'}
+                </button>
+              </div>
             </form>
           )}
 
@@ -667,6 +775,26 @@ export function Dashboard() {
                     Add to Google Calendar
                   </a>
                 )}
+                {canManageEvents && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => startEditingEvent(event)}
+                      className="app-button app-button-ghost px-3 py-1.5 text-xs"
+                    >
+                      <Pencil size={14} />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteEvent(event)}
+                      className="app-button border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700 hover:bg-red-100"
+                    >
+                      <Trash2 size={14} />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
             {upcomingEvents.length === 0 && <p className="app-muted text-sm">No upcoming meetings scheduled.</p>}
@@ -685,16 +813,25 @@ export function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="app-panel rounded-3xl p-6">
-          <h3 className="text-lg font-semibold mb-4">Expenses by Category</h3>
-          <Pie data={pieData} />
+      {canSeeFullCashInDetails ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="app-panel rounded-3xl p-6">
+            <h3 className="text-lg font-semibold mb-4">Expenses by Category</h3>
+            <Pie data={pieData} />
+          </div>
+          <div className="app-panel rounded-3xl p-6">
+            <h3 className="text-lg font-semibold mb-4">Cash Flow</h3>
+            <Bar data={barData} />
+          </div>
         </div>
+      ) : (
         <div className="app-panel rounded-3xl p-6">
-          <h3 className="text-lg font-semibold mb-4">Cash Flow</h3>
-          <Bar data={barData} />
+          <h3 className="text-lg font-semibold mb-2">Cash Flow Access</h3>
+          <p className="app-muted text-sm">
+            Cash-in details are hidden for your role. You can still see the monthly remaining balance and outgoing expenses.
+          </p>
         </div>
-      </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="app-panel rounded-3xl p-6">
@@ -863,6 +1000,50 @@ export function Dashboard() {
       </div>
 
       <SupplyReportsBoard />
+
+      {showFullMenu && displayMenu && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(18,24,18,0.42)] px-4 py-6 backdrop-blur-sm overflow-y-auto">
+          <div className="app-panel w-full max-w-6xl rounded-3xl p-6 shadow-2xl my-auto">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-xl font-semibold">{displayWeekLabel}</h3>
+                <p className="app-muted mt-1 text-sm">Open the table in a larger view and use browser zoom if you want it even bigger.</p>
+              </div>
+              <button type="button" onClick={() => setShowFullMenu(false)} className="app-button app-button-ghost p-2 rounded-full">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="mb-4 rounded-2xl bg-[var(--surface-soft)] px-4 py-3 text-sm">
+              <span className="font-semibold">Vegetable Purchasers: </span>
+              {displayMenu.purchasers?.join(', ') || 'Not assigned'}
+            </div>
+            <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+              <table className="min-w-[1050px] w-full table-auto text-left">
+                <thead>
+                  <tr className="bg-[var(--surface-soft)] text-base">
+                    <th className="border-b border-[var(--border)] p-4 font-semibold">Day</th>
+                    <th className="border-b border-[var(--border)] p-4 font-semibold">Lunch</th>
+                    <th className="border-b border-[var(--border)] p-4 font-semibold">Cooking Team</th>
+                    <th className="border-b border-[var(--border)] p-4 font-semibold">Dinner</th>
+                    <th className="border-b border-[var(--border)] p-4 font-semibold">Dinner Team</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayMenu.items?.map((item) => (
+                    <tr key={item.day} className="align-top border-b border-[var(--border)] last:border-0 text-[15px]">
+                      <td className="border-r border-[var(--border)] p-4 font-semibold">{item.day}</td>
+                      <td className="border-r border-[var(--border)] p-4 whitespace-pre-wrap">{item.lunch || '-'}</td>
+                      <td className="border-r border-[var(--border)] p-4 text-[var(--primary-strong)] font-medium">{item.lunchCooks?.join(', ') || '-'}</td>
+                      <td className="border-r border-[var(--border)] p-4 whitespace-pre-wrap">{item.dinner || '-'}</td>
+                      <td className="p-4 text-[var(--primary-strong)] font-medium">{item.dinnerCooks?.join(', ') || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

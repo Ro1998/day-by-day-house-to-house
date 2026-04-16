@@ -29,6 +29,33 @@ export function Expenses() {
 
   const categories = ['grocery', 'vegetables', 'gas', 'others', 'food money', 'offering', 'separate meal']
   const formatCategoryLabel = (category: string) => category.replace(/\b\w/g, (char) => char.toUpperCase())
+  const canSeeFullCashInDetails = currentUser?.role === 'admin' || currentUser?.role === 'overseer'
+  const isGeneralUser = currentUser?.role === 'user'
+  const canManageEntries = currentUser?.role === 'admin' || currentUser?.role === 'coordinator'
+
+  const getExpenseCategoryLabel = (expense: typeof expenses[number]) => (
+    expense.type === 'in' && !canSeeFullCashInDetails
+      ? 'Cash In'
+      : formatCategoryLabel(expense.category)
+  )
+
+  const getExpenseAmountLabel = (expense: typeof expenses[number]) => (
+    expense.type === 'in' && !canSeeFullCashInDetails
+      ? 'Hidden'
+      : formatCurrency(expense.amount)
+  )
+
+  const getExpenseDescriptionLabel = (expense: typeof expenses[number]) => (
+    expense.type === 'in' && !canSeeFullCashInDetails
+      ? 'Hidden for your role'
+      : expense.description
+  )
+
+  const getExpenseUserLabel = (expense: typeof expenses[number]) => (
+    expense.type === 'in' && !canSeeFullCashInDetails
+      ? 'Restricted'
+      : expense.user
+  )
 
   const getVisibleExpenses = (filters: typeof filter) => {
     const filteredExpenses = expenses.filter(exp => {
@@ -62,8 +89,6 @@ export function Expenses() {
     }
   }
 
-  const isGeneralUser = currentUser?.role === 'user' || currentUser?.role === 'overseer'
-  const canManageEntries = currentUser?.role === 'admin' || currentUser?.role === 'coordinator'
   const currentMonthKey = getCurrentMonthKey()
   const visibleExpenses = getVisibleExpenses(filter)
   const visibleIncomeTotal = expenses
@@ -172,15 +197,15 @@ export function Expenses() {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-sm font-semibold">{exp.description}</div>
-              <div className="app-muted mt-1 text-xs">{exp.date} | {formatCategoryLabel(exp.category)}</div>
+              <div className="app-muted mt-1 text-xs">{exp.date} | {getExpenseCategoryLabel(exp)}</div>
             </div>
             <div className="text-right">
-              <div className="text-sm font-semibold">{formatCurrency(exp.amount)}</div>
+              <div className="text-sm font-semibold">{getExpenseAmountLabel(exp)}</div>
               <div className="app-muted text-[11px] uppercase">{exp.type}</div>
             </div>
           </div>
           <div className="mt-2 flex items-center justify-between gap-3">
-            <div className="app-muted text-xs">{exp.user}</div>
+            <div className="app-muted text-xs">{getExpenseUserLabel(exp)}</div>
             {canManageEntries && (
               <button
                 type="button"
@@ -433,10 +458,10 @@ export function Expenses() {
                 <tr key={exp.id} className="border-b border-[var(--border)] transition-all duration-200 ease-out">
                   <td className="p-2">{exp.date}</td>
                   <td className="p-2">{exp.type}</td>
-                  <td className="p-2">{exp.category}</td>
-                  <td className="p-2">{formatCurrency(exp.amount)}</td>
-                  <td className="p-2">{exp.description}</td>
-                  <td className="p-2">{exp.user}</td>
+                  <td className="p-2">{getExpenseCategoryLabel(exp)}</td>
+                  <td className="p-2">{getExpenseAmountLabel(exp)}</td>
+                  <td className="p-2">{getExpenseDescriptionLabel(exp)}</td>
+                  <td className="p-2">{getExpenseUserLabel(exp)}</td>
                   <td className="p-2">
                     {canManageEntries && (
                       <button

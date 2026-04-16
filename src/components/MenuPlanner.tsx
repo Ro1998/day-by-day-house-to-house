@@ -63,6 +63,7 @@ export function MenuPlanner() {
   const [menu, setMenu] = useState<Menu | null>(null)
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [viewingMenu, setViewingMenu] = useState<Menu | null>(null)
+  const [isRenderingExport, setIsRenderingExport] = useState(false)
   const canManageMenu = currentUser?.role === 'admin'
   const lastSavedSnapshot = useRef('')
 
@@ -156,57 +157,56 @@ export function MenuPlanner() {
     })()
   }
 
-  const exportPNG = async () => {
+  const renderMenuImage = async () => {
     const wrapper = document.getElementById('menu-export-area')
     const tableContainer = document.getElementById('menu-table-container')
-    if (wrapper && tableContainer && menu) {
-      const originalOverflow = tableContainer.style.overflowX
-      const originalWidth = tableContainer.style.width
-      tableContainer.style.overflowX = 'visible'
-      tableContainer.style.width = `${tableContainer.scrollWidth}px`
-
-      const originalWrapperWidth = wrapper.style.width
-      wrapper.style.width = `${tableContainer.scrollWidth + 32}px`
-
-      const canvas = await html2canvas(wrapper, { scale: 2, backgroundColor: '#ffffff' })
-
-      tableContainer.style.overflowX = originalOverflow
-      tableContainer.style.width = originalWidth
-      wrapper.style.width = originalWrapperWidth
-
-      const link = document.createElement('a')
-      link.download = `menu-${menu.week}.png`
-      link.href = canvas.toDataURL()
-      link.click()
-    }
-  }
-
-  const sendWeeklyMenu = async () => {
-    const wrapper = document.getElementById('menu-export-area')
-    const tableContainer = document.getElementById('menu-table-container')
-    if (!wrapper || !tableContainer || !menu) return
+    if (!wrapper || !tableContainer || !menu) return null
 
     const originalOverflow = tableContainer.style.overflowX
     const originalWidth = tableContainer.style.width
+    const originalWrapperWidth = wrapper.style.width
+
+    setIsRenderingExport(true)
+    await new Promise((resolve) => window.requestAnimationFrame(() => resolve(null)))
+
     tableContainer.style.overflowX = 'visible'
     tableContainer.style.width = `${tableContainer.scrollWidth}px`
-
-    const originalWrapperWidth = wrapper.style.width
     wrapper.style.width = `${tableContainer.scrollWidth + 32}px`
 
     try {
-      const canvas = await html2canvas(wrapper, { scale: 2, backgroundColor: '#ffffff' })
+      return await html2canvas(wrapper, { scale: 2.5, backgroundColor: '#ffffff' })
+    } finally {
       tableContainer.style.overflowX = originalOverflow
       tableContainer.style.width = originalWidth
       wrapper.style.width = originalWrapperWidth
+      setIsRenderingExport(false)
+    }
+  }
 
+  const exportPNG = async () => {
+    if (!menu) return
+    const canvas = await renderMenuImage()
+    if (!canvas) return
+
+    const link = document.createElement('a')
+    link.download = `menu-${menu.week}.png`
+    link.href = canvas.toDataURL()
+    link.click()
+  }
+
+  const sendWeeklyMenu = async () => {
+    if (!menu) return
+
+    try {
+      const canvas = await renderMenuImage()
+      if (!canvas) return
       const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
 
       canvas.toBlob(async (blob) => {
         if (!blob) return
         const file = new File([blob], `menu-${menu.week}.jpg`, { type: 'image/jpeg' })
-        const fallbackText = `The menu for the week of ${menu.week} is ready.`
-        const notificationMessage = `[MENU_IMAGE]${dataUrl}`
+        const fallbackText = `This week's menu has been updated. Please check the dashboard.`
+        const notificationMessage = `This week's menu has been updated. Please check the dashboard for the latest weekly menu.`
 
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
@@ -236,11 +236,7 @@ export function MenuPlanner() {
           emailImageDataUrl: dataUrl,
         })
       }, 'image/jpeg', 0.8)
-    } catch (err) {
-      tableContainer.style.overflowX = originalOverflow
-      tableContainer.style.width = originalWidth
-      wrapper.style.width = originalWrapperWidth
-    }
+    } catch {}
   }
 
   if (!menu) return <div>Loading...</div>
@@ -330,13 +326,16 @@ export function MenuPlanner() {
           </div>
         </div>
 
-        <div id="menu-export-area" className="bg-[var(--surface)] p-4 -mx-4 rounded-2xl">
+        <div
+          id="menu-export-area"
+          className={`bg-[var(--surface)] p-4 -mx-4 rounded-2xl ${isRenderingExport ? 'shadow-none' : ''}`}
+        >
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Vegetable Purchasers (2 people)</label>
+            <label className={`block font-medium mb-2 ${isRenderingExport ? 'text-base' : 'text-sm'}`}>Vegetable Purchasers (2 people)</label>
             <ArrayInput
               values={menu.purchasers || []}
               onChange={(purchasers) => setMenu({ ...menu, purchasers })}
-              className="app-input"
+              className={`app-input ${isRenderingExport ? 'text-base leading-7 min-h-[108px]' : ''}`}
               placeholder="Enter purchaser names separated by commas"
               disabled={!canManageMenu}
               title="List the people responsible for buying vegetables this week."
@@ -344,57 +343,57 @@ export function MenuPlanner() {
           </div>
 
           <div id="menu-table-container" className="overflow-x-auto bg-[var(--surface)] p-2 -mx-2 rounded-xl">
-            <table className="w-full table-auto border-collapse border border-[var(--border)] min-w-[1000px]">
+            <table className={`w-full table-auto border-collapse border border-[var(--border)] min-w-[1000px] ${isRenderingExport ? 'text-[17px]' : ''}`}>
             <thead>
               <tr className="bg-[var(--surface-soft)]">
-                <th className="border border-[var(--border)] p-2">Day</th>
-                <th className="border border-[var(--border)] p-2">Lunch</th>
-                <th className="border border-[var(--border)] p-2">Cooking Team</th>
-                <th className="border border-[var(--border)] p-2">Dinner</th>
-                <th className="border border-[var(--border)] p-2">Dinner Cooking Team</th>
+                <th className={`border border-[var(--border)] ${isRenderingExport ? 'p-4 text-lg' : 'p-2'}`}>Day</th>
+                <th className={`border border-[var(--border)] ${isRenderingExport ? 'p-4 text-lg' : 'p-2'}`}>Lunch</th>
+                <th className={`border border-[var(--border)] ${isRenderingExport ? 'p-4 text-lg' : 'p-2'}`}>Cooking Team</th>
+                <th className={`border border-[var(--border)] ${isRenderingExport ? 'p-4 text-lg' : 'p-2'}`}>Dinner</th>
+                <th className={`border border-[var(--border)] ${isRenderingExport ? 'p-4 text-lg' : 'p-2'}`}>Dinner Cooking Team</th>
               </tr>
             </thead>
             <tbody>
               {(menu.items || []).map((item, index) => (
                 <tr key={item.day} className="border-b border-[var(--border)]">
-                  <td className="border border-[var(--border)] p-2 font-medium">
+                  <td className={`border border-[var(--border)] font-medium align-top ${isRenderingExport ? 'p-4 text-lg' : 'p-2'}`}>
                     {item.day === 'Sunday' ? "Lord's Day" : item.day}
                   </td>
-                  <td className="border border-[var(--border)] p-2">
+                  <td className={`border border-[var(--border)] ${isRenderingExport ? 'p-4' : 'p-2'}`}>
                     <textarea
                       value={item.lunch || ''}
                       onChange={(e) => updateMenuItem(index, 'lunch', e.target.value)}
-                      className="app-input min-h-[80px] resize-y w-full"
+                      className={`app-input resize-y w-full ${isRenderingExport ? 'min-h-[120px] text-base leading-7' : 'min-h-[80px]'}`}
                       placeholder="Lunch menu"
                       disabled={!canManageMenu}
                       title={`Enter the lunch menu for ${item.day}.`}
                     />
                   </td>
-                  <td className="border border-[var(--border)] p-2">
+                  <td className={`border border-[var(--border)] ${isRenderingExport ? 'p-4' : 'p-2'}`}>
                     <ArrayInput
                       values={item.lunchCooks || []}
                       onChange={(cooks) => updateMenuItem(index, 'lunchCooks', cooks)}
-                      className="app-input"
+                      className={`app-input ${isRenderingExport ? 'text-base leading-7 min-h-[120px]' : ''}`}
                       placeholder="Enter cooking team names"
                       disabled={!canManageMenu}
                       title={`Enter the lunch cooking team names for ${item.day}.`}
                     />
                   </td>
-                  <td className="border border-[var(--border)] p-2">
+                  <td className={`border border-[var(--border)] ${isRenderingExport ? 'p-4' : 'p-2'}`}>
                     <textarea
                       value={item.dinner || ''}
                       onChange={(e) => updateMenuItem(index, 'dinner', e.target.value)}
-                      className="app-input min-h-[80px] resize-y w-full"
+                      className={`app-input resize-y w-full ${isRenderingExport ? 'min-h-[120px] text-base leading-7' : 'min-h-[80px]'}`}
                       placeholder="Dinner menu"
                       disabled={!canManageMenu}
                       title={`Enter the dinner menu for ${item.day}.`}
                     />
                   </td>
-                  <td className="border border-[var(--border)] p-2">
+                  <td className={`border border-[var(--border)] ${isRenderingExport ? 'p-4' : 'p-2'}`}>
                     <ArrayInput
                       values={item.dinnerCooks || []}
                       onChange={(cooks) => updateMenuItem(index, 'dinnerCooks', cooks)}
-                      className="app-input"
+                      className={`app-input ${isRenderingExport ? 'text-base leading-7 min-h-[120px]' : ''}`}
                       placeholder="Enter dinner cooking team names"
                       disabled={!canManageMenu}
                       title={`Enter the dinner cooking team names for ${item.day}.`}

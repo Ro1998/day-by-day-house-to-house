@@ -13,6 +13,7 @@ import {
   Notification,
   SupplyReport,
   CommunityEvent,
+  CommunityEventInput,
   User,
   UserRole,
 } from '@/types'
@@ -84,7 +85,9 @@ interface DataContextType {
   addSupplyReport: (input: { title: string; category: 'grocery' | 'vegetable' | 'maintenance'; itemName?: string; message: string; status?: 'missing' | 'urgent' | 'resolved' | 'in-consideration' | 'will-take-time' }) => Promise<void>
   updateSupplyReport: (input: { id: string; status?: 'missing' | 'urgent' | 'resolved' | 'in-consideration' | 'will-take-time'; response?: string }) => Promise<void>
   events: CommunityEvent[]
-  addEvent: (event: Omit<CommunityEvent, 'id' | 'createdBy'>) => Promise<void>
+  addEvent: (event: CommunityEventInput) => Promise<void>
+  updateEvent: (input: CommunityEventInput & { id: string }) => Promise<void>
+  deleteEvent: (id: string) => Promise<void>
   login: (input: { username: string; password: string }) => Promise<{ success: boolean; pendingApproval: boolean }>
   logout: () => void
   logActivity: (action: string) => Promise<void>
@@ -982,7 +985,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const addEvent = async (event: Omit<CommunityEvent, 'id' | 'createdBy'>) => {
+  const addEvent = async (event: CommunityEventInput) => {
     if (!currentUser) return
     try {
       setError(null)
@@ -1012,6 +1015,52 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       ])
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Failed to create event')
+    }
+  }
+
+  const updateEvent = async (input: CommunityEventInput & { id: string }) => {
+    if (!currentUser) return
+    try {
+      setError(null)
+      setNotice(null)
+      const res = await fetch('/api/events', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(input),
+      })
+      const updatedEvent = await readJson<CommunityEvent>(res, 'Failed to update event')
+      startTransition(() => {
+        setEvents((prev) => prev
+          .map((entry) => entry.id === updatedEvent.id ? updatedEvent : entry)
+          .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)))
+      })
+      await logActivity(`Updated event: ${updatedEvent.title} on ${updatedEvent.date}`)
+      setNotice(`Updated "${updatedEvent.title}".`)
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to update event')
+    }
+  }
+
+  const deleteEvent = async (id: string) => {
+    if (!currentUser) return
+    try {
+      setError(null)
+      setNotice(null)
+      const event = events.find((entry) => entry.id === id)
+      const res = await fetch(`/api/events?id=${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      })
+      await readJson<{ success: boolean }>(res, 'Failed to delete event')
+      startTransition(() => {
+        setEvents((prev) => prev.filter((entry) => entry.id !== id))
+      })
+      if (event) {
+        await logActivity(`Deleted event: ${event.title} on ${event.date}`)
+        setNotice(`Deleted "${event.title}".`)
+      }
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to delete event')
     }
   }
 
@@ -1078,6 +1127,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       currentUser,
       events,
       addEvent,
+      updateEvent,
+      deleteEvent,
       balance,
       monthlyBalance,
       loading,

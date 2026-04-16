@@ -133,6 +133,16 @@ export interface CommunityEvent {
   googleCalendarUrl?: string
 }
 
+export interface CommunityEventInput {
+  title: string
+  date: string
+  time: string
+  type: 'online' | 'offline'
+  location?: string | null
+  venue?: string | null
+  description?: string | null
+}
+
 export interface Activity {
   id: string
   user: string

@@ -64,7 +64,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const auth = await requireApprovedUser(request, ['admin', 'coordinator', 'overseer'])
+    const auth = await requireApprovedUser(request, ['admin', 'overseer'])
     if (auth.error) return auth.error
 
     const body = await request.json()
@@ -131,5 +131,84 @@ export async function POST(request: Request) {
     }
 
     return apiError('events.POST', error, 'Failed to create event')
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const auth = await requireApprovedUser(request, ['admin', 'overseer'])
+    if (auth.error) return auth.error
+
+    const body = await request.json()
+    const id = String(body.id ?? '').trim()
+    const type = body.type === 'online' ? 'online' : 'offline'
+    const title = String(body.title ?? '').trim()
+    const date = String(body.date ?? '').trim()
+    const time = String(body.time ?? '').trim()
+    const location = typeof body.location === 'string' ? body.location.trim() : ''
+    const venue = typeof body.venue === 'string' ? body.venue.trim() : ''
+    const description = typeof body.description === 'string' ? body.description.trim() : ''
+
+    if (!id) {
+      return NextResponse.json({ error: 'Missing event ID.' }, { status: 400 })
+    }
+
+    if (!title || !date || !time) {
+      return NextResponse.json({ error: 'Title, date, and time are required.' }, { status: 400 })
+    }
+
+    const event = await prisma.communityEvent.update({
+      where: { id },
+      data: {
+        title,
+        date,
+        time,
+        type,
+        location: location || null,
+        venue: venue || null,
+        description: description || null,
+      },
+      include: { createdBy: true },
+    })
+
+    return NextResponse.json(serializeEvent(event))
+  } catch (error) {
+    if (isMissingCommunityEventTable(error)) {
+      return NextResponse.json(
+        { error: 'The community events table has not been created in Supabase yet.' },
+        { status: 503 },
+      )
+    }
+
+    return apiError('events.PATCH', error, 'Failed to update event')
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const auth = await requireApprovedUser(request, ['admin', 'overseer'])
+    if (auth.error) return auth.error
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')?.trim()
+
+    if (!id) {
+      return NextResponse.json({ error: 'Missing event ID.' }, { status: 400 })
+    }
+
+    await prisma.communityEvent.delete({
+      where: { id },
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    if (isMissingCommunityEventTable(error)) {
+      return NextResponse.json(
+        { error: 'The community events table has not been created in Supabase yet.' },
+        { status: 503 },
+      )
+    }
+
+    return apiError('events.DELETE', error, 'Failed to delete event')
   }
 }
