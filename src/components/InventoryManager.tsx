@@ -21,6 +21,8 @@ export function InventoryManager() {
   const { inventoryItems, addInventoryItem, updateInventoryItem, deleteInventoryItem } = useData()
   const [form, setForm] = useState(blankForm)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null)
 
   const grouped = useMemo(() => ({
     grocery: inventoryItems.filter((item) => item.category === 'grocery'),
@@ -40,18 +42,23 @@ export function InventoryManager() {
       note: form.note || null,
     }
 
-    if (editingId) {
-      await updateInventoryItem({
-        id: editingId,
-        ...payload,
-        user: '',
-      } as InventoryItem)
-    } else {
-      await addInventoryItem(payload)
-    }
+    try {
+      setIsSubmitting(true)
+      if (editingId) {
+        await updateInventoryItem({
+          id: editingId,
+          ...payload,
+          user: '',
+        } as InventoryItem)
+      } else {
+        await addInventoryItem(payload)
+      }
 
-    setEditingId(null)
-    setForm(blankForm)
+      setEditingId(null)
+      setForm(blankForm)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const startEdit = (item: InventoryItem) => {
@@ -75,7 +82,7 @@ export function InventoryManager() {
         {items.map((item) => {
           const lowStock = item.quantity <= item.lowStockThreshold
           return (
-            <div key={item.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+            <div key={item.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 transition-all duration-200 ease-out">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
                   <div className="flex items-center gap-2">
@@ -100,10 +107,18 @@ export function InventoryManager() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => void deleteInventoryItem(item.id)}
-                    className="app-button bg-red-50 px-3 py-2 text-red-700 hover:bg-red-100 hover:text-red-800"
+                    onClick={async () => {
+                      try {
+                        setDeletingItemId(item.id)
+                        await deleteInventoryItem(item.id)
+                      } finally {
+                        setDeletingItemId(null)
+                      }
+                    }}
+                    disabled={deletingItemId === item.id}
+                    className="app-button bg-red-50 px-3 py-2 text-red-700 hover:bg-red-100 hover:text-red-800 disabled:cursor-not-allowed disabled:opacity-70"
                   >
-                    Delete
+                    {deletingItemId === item.id ? 'Deleting...' : 'Delete'}
                   </button>
                 </div>
               </div>
@@ -134,11 +149,11 @@ export function InventoryManager() {
             <input value={form.note} onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))} className="app-input" placeholder="Storage note or reminder" />
           </div>
           <div className="flex gap-3">
-            <button type="submit" className="app-button app-button-primary">
-              {editingId ? 'Save Changes' : 'Add Item'}
+            <button type="submit" disabled={isSubmitting} className="app-button app-button-primary disabled:cursor-not-allowed disabled:opacity-70">
+              {isSubmitting ? 'Saving...' : editingId ? 'Save Changes' : 'Add Item'}
             </button>
             {editingId && (
-              <button type="button" onClick={() => { setEditingId(null); setForm(blankForm) }} className="app-button app-button-ghost">
+              <button type="button" disabled={isSubmitting} onClick={() => { setEditingId(null); setForm(blankForm) }} className="app-button app-button-ghost disabled:cursor-not-allowed disabled:opacity-70">
                 Cancel
               </button>
             )}

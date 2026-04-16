@@ -130,6 +130,7 @@ export interface CommunityEvent {
   createdBy: string
   createdById?: string
   createdAt?: string
+  googleCalendarUrl?: string
 }
 
 export interface Activity {

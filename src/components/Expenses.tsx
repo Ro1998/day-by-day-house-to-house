@@ -19,6 +19,8 @@ export function Expenses() {
   const [filter, setFilter] = useState({ dateFrom: '', dateTo: '', category: '' })
   const [pendingDelete, setPendingDelete] = useState<{ id: string; description: string } | null>(null)
   const [isExportOpen, setIsExportOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [exportConfig, setExportConfig] = useState({
     dateFrom: '',
     dateTo: '',
@@ -41,18 +43,23 @@ export function Expenses() {
       : filteredExpenses
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!currentUser) return
-    addExpense({
-      date: new Date().toISOString().split('T')[0],
-      type: form.type,
-      category: form.category,
-      amount: parseFloat(form.amount),
-      description: form.description,
-      user: currentUser.name,
-    })
-    setForm({ type: 'out', category: '', amount: '', description: '' })
+    try {
+      setIsSubmitting(true)
+      await addExpense({
+        date: new Date().toISOString().split('T')[0],
+        type: form.type,
+        category: form.category,
+        amount: parseFloat(form.amount),
+        description: form.description,
+        user: currentUser.name,
+      })
+      setForm({ type: 'out', category: '', amount: '', description: '' })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const isGeneralUser = currentUser?.role === 'user' || currentUser?.role === 'overseer'
@@ -133,8 +140,13 @@ export function Expenses() {
 
   const confirmDelete = async () => {
     if (!pendingDelete) return
-    await deleteExpense(pendingDelete.id)
-    setPendingDelete(null)
+    try {
+      setIsDeleting(true)
+      await deleteExpense(pendingDelete.id)
+      setPendingDelete(null)
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const handleExport = async () => {
@@ -156,7 +168,7 @@ export function Expenses() {
   const renderExpenseCards = () => (
     <div className="space-y-3 md:hidden">
       {visibleExpenses.map((exp) => (
-        <div key={exp.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+        <div key={exp.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-3 transition-all duration-200 ease-out">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-sm font-semibold">{exp.description}</div>
@@ -204,17 +216,19 @@ export function Expenses() {
               <button
                 type="button"
                 onClick={() => setPendingDelete(null)}
-                className="app-button app-button-ghost"
+                disabled={isDeleting}
+                className="app-button app-button-ghost disabled:cursor-not-allowed disabled:opacity-70"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={() => void confirmDelete()}
-                className="app-button inline-flex items-center gap-2 bg-red-600 text-white hover:bg-red-700"
+                disabled={isDeleting}
+                className="app-button inline-flex items-center gap-2 bg-red-600 text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 <Trash2 size={16} />
-                Yes, Delete
+                {isDeleting ? 'Deleting...' : 'Yes, Delete'}
               </button>
             </div>
           </div>
@@ -325,11 +339,11 @@ export function Expenses() {
           </div>
           <button
             type="submit"
-            disabled={!canManageEntries}
-            className="app-button app-button-primary w-full sm:w-auto"
+            disabled={!canManageEntries || isSubmitting}
+            className="app-button app-button-primary w-full sm:w-auto disabled:cursor-not-allowed disabled:opacity-70"
             title="Save this new cash flow entry to the list."
           >
-            Add Expense
+            {isSubmitting ? 'Saving...' : 'Add Expense'}
           </button>
         </form>
       </div>
@@ -416,7 +430,7 @@ export function Expenses() {
             </thead>
             <tbody>
               {visibleExpenses.map(exp => (
-                <tr key={exp.id} className="border-b border-[var(--border)]">
+                <tr key={exp.id} className="border-b border-[var(--border)] transition-all duration-200 ease-out">
                   <td className="p-2">{exp.date}</td>
                   <td className="p-2">{exp.type}</td>
                   <td className="p-2">{exp.category}</td>

@@ -9,6 +9,7 @@ export function UserManagement() {
   const [drafts, setDrafts] = useState<Record<string, { role: UserRole; approved: boolean; phone?: string }>>({})
   const [resetLinks, setResetLinks] = useState<Record<string, { resetLink: string; expiresAt: string }>>({})
   const [pendingDeleteUser, setPendingDeleteUser] = useState<{ id: string; name: string } | null>(null)
+  const [busyUserId, setBusyUserId] = useState<string | null>(null)
 
   const getDraft = (id: string, role: UserRole, approved: boolean, phone?: string | null) =>
     drafts[id] ?? { role, approved, phone: phone ?? '' }
@@ -29,19 +30,26 @@ export function UserManagement() {
               <button
                 type="button"
                 onClick={() => setPendingDeleteUser(null)}
-                className="app-button app-button-ghost"
+                disabled={busyUserId === pendingDeleteUser.id}
+                className="app-button app-button-ghost disabled:cursor-not-allowed disabled:opacity-70"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={async () => {
-                  await deleteUser(pendingDeleteUser.id)
-                  setPendingDeleteUser(null)
+                  try {
+                    setBusyUserId(pendingDeleteUser.id)
+                    await deleteUser(pendingDeleteUser.id)
+                    setPendingDeleteUser(null)
+                  } finally {
+                    setBusyUserId(null)
+                  }
                 }}
-                className="app-button bg-red-600 text-white hover:bg-red-700"
+                disabled={busyUserId === pendingDeleteUser.id}
+                className="app-button bg-red-600 text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                Yes, Archive
+                {busyUserId === pendingDeleteUser.id ? 'Archiving...' : 'Yes, Archive'}
               </button>
             </div>
           </div>
@@ -93,14 +101,23 @@ export function UserManagement() {
                         <option value="admin">Admin</option>
                       </select>
                       <button
-                        onClick={() => updateUserAccess({ id: user.id, role: draft.role, approved: true, phone: draft.phone })}
+                        onClick={async () => {
+                          try {
+                            setBusyUserId(user.id)
+                            await updateUserAccess({ id: user.id, role: draft.role, approved: true, phone: draft.phone })
+                          } finally {
+                            setBusyUserId(null)
+                          }
+                        }}
+                        disabled={busyUserId === user.id}
                     className="app-button app-button-primary flex-1 justify-center px-4 py-1.5 text-sm shadow-sm sm:flex-none"
                       >
-                        Approve User
+                        {busyUserId === user.id ? 'Saving...' : 'Approve User'}
                       </button>
                       <button
                         type="button"
                         onClick={() => setPendingDeleteUser({ id: user.id, name: user.name })}
+                        disabled={busyUserId === user.id}
                     className="app-button flex-1 justify-center border border-red-200 bg-red-50 px-4 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-100 hover:text-red-800 sm:flex-none"
                       >
                         Delete User
@@ -201,16 +218,32 @@ export function UserManagement() {
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                       <button
                         type="button"
-                        onClick={() => updateUserAccess({ id: user.id, role: draft.role, approved: true, phone: draft.phone })}
+                        onClick={async () => {
+                          try {
+                            setBusyUserId(user.id)
+                            await updateUserAccess({ id: user.id, role: draft.role, approved: true, phone: draft.phone })
+                          } finally {
+                            setBusyUserId(null)
+                          }
+                        }}
+                        disabled={busyUserId === user.id}
                     className="app-button app-button-ghost flex-1 justify-center px-3 py-1.5 text-sm sm:flex-none"
                       >
-                    Save
+                    {busyUserId === user.id ? 'Saving...' : 'Save'}
                       </button>
                       {currentUser?.id !== user.id && (
                         <>
                           <button
                             type="button"
-                            onClick={() => updateUserAccess({ id: user.id, role: user.role, approved: false, phone: draft.phone })}
+                            onClick={async () => {
+                              try {
+                                setBusyUserId(user.id)
+                                await updateUserAccess({ id: user.id, role: user.role, approved: false, phone: draft.phone })
+                              } finally {
+                                setBusyUserId(null)
+                              }
+                            }}
+                            disabled={busyUserId === user.id}
                         className="app-button flex-1 justify-center border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-800 hover:bg-amber-100 sm:flex-none"
                           >
                             Disapprove
@@ -218,6 +251,7 @@ export function UserManagement() {
                           <button
                             type="button"
                             onClick={() => setPendingDeleteUser({ id: user.id, name: user.name })}
+                            disabled={busyUserId === user.id}
                         className="app-button flex-1 justify-center border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-100 hover:text-red-800 sm:flex-none"
                           >
                             Delete

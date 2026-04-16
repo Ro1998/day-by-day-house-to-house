@@ -69,6 +69,9 @@ export function MonthlyFoodMoney() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [editingPayment, setEditingPayment] = useState<MonthlyPayment & { amountStr: string; mealCountStr: string } | null>(null)
   const [pendingDelete, setPendingDelete] = useState<MonthlyPayment | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
+  const [actionPaymentId, setActionPaymentId] = useState<string | null>(null)
 
   const monthEntries = useMemo(
     () => monthlyPayments
@@ -104,40 +107,50 @@ export function MonthlyFoodMoney() {
     e.preventDefault()
     if (!currentUser || !form.memberName) return
 
-    await addMonthlyPayment({
-      month: form.month,
-      memberName: form.memberName,
-      paymentType: form.paymentType,
-      note: form.note.trim() || null,
-      paid: false,
-      amount: parseFloat(form.amount) || 0,
-      user: currentUser.name,
-    })
+    try {
+      setIsSubmitting(true)
+      await addMonthlyPayment({
+        month: form.month,
+        memberName: form.memberName,
+        paymentType: form.paymentType,
+        note: form.note.trim() || null,
+        paid: false,
+        amount: parseFloat(form.amount) || 0,
+        user: currentUser.name,
+      })
 
-    setSelectedMonth(form.month)
-    setForm({
-      month: currentMonth,
-      memberName: '',
-      paymentType: 'both-meals',
-      mealCount: '',
-      amount: '2500',
-      note: '',
-    })
+      setSelectedMonth(form.month)
+      setForm({
+        month: currentMonth,
+        memberName: '',
+        paymentType: 'both-meals',
+        mealCount: '',
+        amount: '2500',
+        note: '',
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const markAsPaid = async (paymentId: string) => {
     const payment = monthlyPayments.find((entry) => entry.id === paymentId)
     if (!payment || !currentUser) return
 
-    await addMonthlyPayment({
-      month: payment.month,
-      memberName: payment.memberName,
-      paymentType: payment.paymentType ?? 'custom',
-      note: payment.note ?? null,
-      paid: true,
-      amount: payment.amount,
-      user: currentUser.name,
-    })
+    try {
+      setActionPaymentId(paymentId)
+      await addMonthlyPayment({
+        month: payment.month,
+        memberName: payment.memberName,
+        paymentType: payment.paymentType ?? 'custom',
+        note: payment.note ?? null,
+        paid: true,
+        amount: payment.amount,
+        user: currentUser.name,
+      })
+    } finally {
+      setActionPaymentId(null)
+    }
   }
 
   const paidCount = monthlyList.filter((payment) => payment.paid).length
@@ -161,13 +174,19 @@ export function MonthlyFoodMoney() {
               <button
                 type="button"
                 onClick={async () => {
-                  await deleteMonthlyPayment(pendingDelete.id)
-                  setPendingDelete(null)
+                  try {
+                    setActionPaymentId(pendingDelete.id)
+                    await deleteMonthlyPayment(pendingDelete.id)
+                    setPendingDelete(null)
+                  } finally {
+                    setActionPaymentId(null)
+                  }
                 }}
-                className="app-button inline-flex items-center gap-2 bg-red-600 text-white hover:bg-red-700"
+                disabled={actionPaymentId === pendingDelete.id}
+                className="app-button inline-flex items-center gap-2 bg-red-600 text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 <Trash2 size={16} />
-                Yes, Delete
+                {actionPaymentId === pendingDelete.id ? 'Deleting...' : 'Yes, Delete'}
               </button>
             </div>
           </div>
@@ -181,16 +200,21 @@ export function MonthlyFoodMoney() {
             <form
               onSubmit={async (e) => {
                 e.preventDefault()
-                await updateMonthlyPayment({
-                  id: editingPayment.id,
-                  month: editingPayment.month,
-                  memberName: editingPayment.memberName,
-                  paymentType: editingPayment.paymentType,
-                  amount: parseFloat(editingPayment.amountStr) || 0,
-                  note: editingPayment.note?.trim() || null,
-                  paid: editingPayment.paid,
-                })
-                setEditingPayment(null)
+                try {
+                  setIsSavingEdit(true)
+                  await updateMonthlyPayment({
+                    id: editingPayment.id,
+                    month: editingPayment.month,
+                    memberName: editingPayment.memberName,
+                    paymentType: editingPayment.paymentType,
+                    amount: parseFloat(editingPayment.amountStr) || 0,
+                    note: editingPayment.note?.trim() || null,
+                    paid: editingPayment.paid,
+                  })
+                  setEditingPayment(null)
+                } finally {
+                  setIsSavingEdit(false)
+                }
               }}
               className="space-y-4"
             >
@@ -225,8 +249,8 @@ export function MonthlyFoodMoney() {
                 <input type="text" value={editingPayment.note || ''} onChange={(e) => setEditingPayment({ ...editingPayment, note: e.target.value })} className="app-input" placeholder="Optional note" />
               </div>
               <div className="mt-6 flex justify-end gap-3">
-                <button type="button" onClick={() => setEditingPayment(null)} className="app-button app-button-ghost">Cancel</button>
-                <button type="submit" className="app-button app-button-primary">Save Changes</button>
+                <button type="button" onClick={() => setEditingPayment(null)} disabled={isSavingEdit} className="app-button app-button-ghost disabled:cursor-not-allowed disabled:opacity-70">Cancel</button>
+                <button type="submit" disabled={isSavingEdit} className="app-button app-button-primary disabled:cursor-not-allowed disabled:opacity-70">{isSavingEdit ? 'Saving...' : 'Save Changes'}</button>
               </div>
             </form>
           </div>
@@ -311,10 +335,10 @@ export function MonthlyFoodMoney() {
             </div>
             <button
               type="submit"
-              disabled={!canManageEntries}
-              className="app-button app-button-primary"
+              disabled={!canManageEntries || isSubmitting}
+              className="app-button app-button-primary disabled:cursor-not-allowed disabled:opacity-70"
             >
-              Add To Monthly List
+              {isSubmitting ? 'Adding...' : 'Add To Monthly List'}
             </button>
           </form>
         </div>
@@ -402,7 +426,7 @@ export function MonthlyFoodMoney() {
             </thead>
             <tbody>
               {monthlyList.map((payment) => (
-                <tr key={payment.id} className="border-b border-[var(--border)]">
+                <tr key={payment.id} className="border-b border-[var(--border)] transition-all duration-200 ease-out">
                   <td className="p-2">{payment.month}</td>
                   <td className="p-2 font-medium">{payment.memberName}</td>
                   <td className="p-2">{getPaymentTypeLabel(payment.paymentType)}</td>
@@ -425,9 +449,10 @@ export function MonthlyFoodMoney() {
                       <button
                         type="button"
                         onClick={() => markAsPaid(payment.id)}
-                        className="app-button app-button-primary px-4 py-2"
+                        disabled={actionPaymentId === payment.id}
+                        className="app-button app-button-primary px-4 py-2 disabled:cursor-not-allowed disabled:opacity-70"
                       >
-                        Mark Paid
+                        {actionPaymentId === payment.id ? 'Updating...' : 'Mark Paid'}
                       </button>
                     ) : (
                       <span className="app-muted text-sm">

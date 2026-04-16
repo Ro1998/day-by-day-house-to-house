@@ -7,7 +7,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearSca
 import { formatCurrency } from '@/lib/format'
 import { format, startOfWeek, addWeeks, isToday, isTomorrow, parseISO, startOfDay } from 'date-fns'
 import { SupplyReportsBoard } from '@/components/SupplyReportsBoard'
-import { X, Calendar as CalendarIcon, MapPin, Video, Clock, Plus } from 'lucide-react'
+import { X, Calendar as CalendarIcon, MapPin, Video, Clock, Plus, ExternalLink, Loader2 } from 'lucide-react'
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement)
 
@@ -45,6 +45,7 @@ export function Dashboard() {
   const [reviewedAvailabilityIds, setReviewedAvailabilityIds] = useState<string[]>([])
   const [showEventForm, setShowEventForm] = useState(false)
   const [eventForm, setEventForm] = useState({ title: '', date: '', time: '', type: 'offline' as 'online' | 'offline', location: '', venue: '', description: '' })
+  const [isCreatingEvent, setIsCreatingEvent] = useState(false)
   
   const toggleDay = (day: string) => setAvailabilityForm(prev => prev.days.includes(day) ? { ...prev, days: prev.days.filter(d => d !== day) } : { ...prev, days: [...prev.days, day] })
   const toggleMeal = (meal: 'lunch' | 'dinner') => setAvailabilityForm(prev => prev.meals.includes(meal) ? { ...prev, meals: prev.meals.filter(m => m !== meal) } : { ...prev, meals: [...prev.meals, meal] })
@@ -211,9 +212,14 @@ export function Dashboard() {
 
   const handleEventSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    await addEvent(eventForm)
-    setEventForm({ title: '', date: '', time: '', type: 'offline', location: '', venue: '', description: '' })
-    setShowEventForm(false)
+    try {
+      setIsCreatingEvent(true)
+      await addEvent(eventForm)
+      setEventForm({ title: '', date: '', time: '', type: 'offline', location: '', venue: '', description: '' })
+      setShowEventForm(false)
+    } finally {
+      setIsCreatingEvent(false)
+    }
   }
 
   if (currentUser?.role === 'user') {
@@ -301,6 +307,17 @@ export function Dashboard() {
                       {event.location || event.venue}
                     </span>
                   </div>
+                  {event.googleCalendarUrl && (
+                    <a
+                      href={event.googleCalendarUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--primary-strong)] hover:underline"
+                    >
+                      <ExternalLink size={12} />
+                      Add to Google Calendar
+                    </a>
+                  )}
                 </div>
               ))}
               {upcomingEvents.length === 0 && (
@@ -602,13 +619,29 @@ export function Dashboard() {
                 value={eventForm.type === 'online' ? eventForm.location : eventForm.venue}
                 onChange={e => setEventForm(prev => eventForm.type === 'online' ? {...prev, location: e.target.value} : {...prev, venue: e.target.value})}
               />
-              <button type="submit" className="app-button app-button-primary w-full text-xs py-2">Add Event</button>
+              <textarea
+                className="app-input min-h-[96px] text-sm"
+                placeholder="Optional details for the email and calendar invite"
+                value={eventForm.description}
+                onChange={(e) => setEventForm((prev) => ({ ...prev, description: e.target.value }))}
+              />
+              <div className="rounded-2xl border border-[var(--border)] bg-white/70 px-3 py-2 text-xs app-muted">
+                Creating an event will email approved users, include an Add to Google Calendar link, and open Google Calendar for the admin.
+              </div>
+              <button type="submit" disabled={isCreatingEvent} className="app-button app-button-primary w-full text-xs py-2 disabled:cursor-not-allowed disabled:opacity-70">
+                {isCreatingEvent ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 size={14} className="animate-spin" />
+                    Creating Event...
+                  </span>
+                ) : 'Add Event'}
+              </button>
             </form>
           )}
 
           <div className="space-y-4">
             {upcomingEvents.map((event) => (
-              <div key={event.id} className="border-l-2 border-[var(--primary)] pl-4 py-1">
+              <div key={event.id} className="border-l-2 border-[var(--primary)] pl-4 py-1 transition-all duration-200 ease-out">
                 <div className="text-xs font-bold text-[var(--primary-strong)] uppercase tracking-wider">
                   {isToday(parseISO(event.date)) ? 'Today' : isTomorrow(parseISO(event.date)) ? 'Tomorrow' : format(parseISO(event.date), 'EEE, MMM d')}
                 </div>
@@ -620,6 +653,20 @@ export function Dashboard() {
                     {event.location || event.venue}
                   </span>
                 </div>
+                {event.description && (
+                  <div className="mt-2 text-xs app-muted">{event.description}</div>
+                )}
+                {event.googleCalendarUrl && (
+                  <a
+                    href={event.googleCalendarUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--primary-strong)] hover:underline"
+                  >
+                    <ExternalLink size={12} />
+                    Add to Google Calendar
+                  </a>
+                )}
               </div>
             ))}
             {upcomingEvents.length === 0 && <p className="app-muted text-sm">No upcoming meetings scheduled.</p>}

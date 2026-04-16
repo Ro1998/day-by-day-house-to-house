@@ -60,12 +60,13 @@ export async function POST(request: Request) {
       where: {
         email: { not: null },
         approved: true,
+        isArchived: false,
         ...(recipientUserIds.length > 0 ? { id: { in: recipientUserIds } } : {}),
       },
       select: { id: true, email: true, name: true },
     })
     const usersWithEmail = users.filter(u => u.email) as Array<{ id: string; email: string; name: string }>
-    if (usersWithEmail.length > 0) {
+    if (usersWithEmail.length > 0 && body.skipEmail !== true) {
       const menuData = body.menuData as Menu | undefined
       const imageDataUrl = typeof body.emailImageDataUrl === 'string' ? body.emailImageDataUrl : undefined
 

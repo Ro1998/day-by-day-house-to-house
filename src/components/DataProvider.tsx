@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, startTransition, useContext, useEffect, useState } from 'react'
 import {
   Activity,
   ApiError,
@@ -73,6 +73,7 @@ interface DataContextType {
     menuData?: Menu
     emailImageDataUrl?: string
     recipientUserIds?: string[]
+    skipEmail?: boolean
   }) => Promise<void>
   updateNotification: (id: string, input: { title: string; message: string }) => Promise<void>
   deleteNotification: (id: string) => Promise<void>
@@ -795,6 +796,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     menuData?: Menu
     emailImageDataUrl?: string
     recipientUserIds?: string[]
+    skipEmail?: boolean
   }) => {
     if (!currentUser) return
     try {
@@ -805,7 +807,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ ...input, userId: currentUser.id }),
       })
       const notification = await readJson<Notification>(res, 'Failed to create notification')
-      setNotifications((prev) => [notification, ...prev])
+      startTransition(() => {
+        setNotifications((prev) => [notification, ...prev])
+      })
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Failed to create notification')
     }
@@ -821,7 +825,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ id, ...input }),
       })
       const updated = await readJson<Notification>(res, 'Failed to update notification')
-      setNotifications((prev) => prev.map((n) => n.id === id ? updated : n))
+      startTransition(() => {
+        setNotifications((prev) => prev.map((n) => n.id === id ? updated : n))
+      })
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Failed to update notification')
     }
@@ -836,7 +842,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         headers: authHeaders(),
       })
       await readJson<{ success: boolean }>(res, 'Failed to delete notification')
-      setNotifications((prev) => prev.filter((n) => n.id !== id))
+      startTransition(() => {
+        setNotifications((prev) => prev.filter((n) => n.id !== id))
+      })
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Failed to delete notification')
     }
@@ -977,14 +985,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ ...event, createdBy: currentUser.name }),
       })
       const newEvent = await readJson<CommunityEvent>(res, 'Failed to create event')
-      setEvents((prev) => [...prev, newEvent].sort((a, b) => a.date.localeCompare(b.date)))
+      startTransition(() => {
+        setEvents((prev) => [...prev, newEvent].sort((a, b) => a.date.localeCompare(b.date)))
+      })
       
       // Auto-notify everyone about the new event
       await addNotification({
         title: `New Event: ${event.title}`,
         message: `${event.title} scheduled for ${event.date} at ${event.time}. Location: ${event.location || event.venue || 'TBD'}`,
-        category: 'general'
+        category: 'general',
+        skipEmail: true,
       })
+
+      if (currentUser.role === 'admin' && newEvent.googleCalendarUrl && typeof window !== 'undefined') {
+        window.open(newEvent.googleCalendarUrl, '_blank', 'noopener,noreferrer')
+        setNotice('Event created. Google Calendar opened in a new tab for the admin.')
+      }
       
       await logActivity(`Scheduled event: ${event.title} on ${event.date}`)
     } catch (actionError) {

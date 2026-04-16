@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer'
 import type { Attachment } from 'nodemailer/lib/mailer'
 import type { Menu } from '@/types'
+import { buildEventIcsContent, buildGoogleCalendarUrl } from '@/lib/calendar'
 
 type EmailRecipient = { email: string; name: string }
 
@@ -312,5 +313,92 @@ export async function sendMenuEmails(
         attachments: imageAttachment ? [imageAttachment] : undefined,
       })
     }),
+  )
+}
+
+export async function sendEventEmails(
+  users: EmailRecipient[],
+  event: {
+    id: string
+    title: string
+    date: string
+    time: string
+    type: 'online' | 'offline'
+    location?: string | null
+    venue?: string | null
+    description?: string | null
+    createdBy: string
+  },
+) {
+  const recipients = normalizeRecipients(users)
+  if (recipients.length === 0 || !isEmailConfigured()) return
+
+  const eventLocation = (event.location || event.venue || '').trim()
+  const googleCalendarUrl = buildGoogleCalendarUrl({
+    title: event.title,
+    date: event.date,
+    time: event.time,
+    description: event.description,
+    location: eventLocation,
+  })
+  const dashboardUrl = getAppBaseUrl()
+  const icsAttachment = {
+    filename: `${event.title.toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'event'}.ics`,
+    content: buildEventIcsContent({
+      id: event.id,
+      title: event.title,
+      date: event.date,
+      time: event.time,
+      description: event.description,
+      location: eventLocation,
+    }),
+    contentType: 'text/calendar; charset=utf-8',
+  } satisfies Attachment
+
+  await Promise.allSettled(
+    recipients.map((user) => sendEmail({
+      to: user.email,
+      subject: `Event: ${event.title}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6;">
+          <h1 style="margin-bottom: 12px;">${escapeHtml(event.title)}</h1>
+          <p>Hello ${escapeHtml(user.name)},</p>
+          <p>A new community event has been scheduled by ${escapeHtml(event.createdBy)}.</p>
+          <p><strong>Date:</strong> ${escapeHtml(event.date)}</p>
+          <p><strong>Time:</strong> ${escapeHtml(event.time)}</p>
+          <p><strong>Type:</strong> ${escapeHtml(event.type === 'online' ? 'Online meeting' : 'In-person event')}</p>
+          <p><strong>${event.type === 'online' ? 'Link / Meeting details' : 'Location'}:</strong> ${escapeHtml(eventLocation || 'To be announced')}</p>
+          ${event.description ? `<p><strong>Details:</strong><br />${formatMultiline(event.description)}</p>` : ''}
+          <p style="margin-top: 20px;">
+            <a href="${escapeHtml(googleCalendarUrl)}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:700;">
+              Add To Google Calendar
+            </a>
+          </p>
+          <p style="margin-top: 16px;">An .ics calendar file is also attached for Apple Calendar, Outlook, or other calendar apps.</p>
+          <p style="margin-top: 16px;">
+            View it in the dashboard:
+            <a href="${escapeHtml(dashboardUrl)}">${escapeHtml(dashboardUrl)}</a>
+          </p>
+          <p style="margin-top: 24px;">${escapeHtml(APP_NAME)}</p>
+        </div>
+      `,
+      text: [
+        `Hello ${user.name},`,
+        '',
+        `${event.createdBy} scheduled a new community event.`,
+        `Title: ${event.title}`,
+        `Date: ${event.date}`,
+        `Time: ${event.time}`,
+        `Type: ${event.type === 'online' ? 'Online meeting' : 'In-person event'}`,
+        `${event.type === 'online' ? 'Link / Meeting details' : 'Location'}: ${eventLocation || 'To be announced'}`,
+        ...(event.description ? ['', `Details: ${event.description}`] : []),
+        '',
+        `Add to Google Calendar: ${googleCalendarUrl}`,
+        `Dashboard: ${dashboardUrl}`,
+        '',
+        APP_NAME,
+      ].join('\n'),
+      attachments: [icsAttachment],
+    })),
   )
 }

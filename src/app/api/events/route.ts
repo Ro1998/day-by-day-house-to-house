@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { apiError } from '@/lib/api-error'
 import { prisma } from '@/lib/prisma'
 import { requireApprovedUser } from '@/lib/auth'
+import { buildGoogleCalendarUrl } from '@/lib/calendar'
+import { sendEventEmails } from '@/lib/email'
 
 const isMissingCommunityEventTable = (error: unknown) => {
   if (!(error instanceof Error)) return false
@@ -31,6 +33,13 @@ const serializeEvent = (
   createdBy: event.createdBy.name,
   createdById: event.createdById,
   createdAt: event.createdAt.toISOString(),
+  googleCalendarUrl: buildGoogleCalendarUrl({
+    title: event.title,
+    date: event.date,
+    time: event.time,
+    description: event.description,
+    location: event.location || event.venue,
+  }),
 })
 
 export async function GET(request: Request) {
@@ -84,6 +93,33 @@ export async function POST(request: Request) {
       },
       include: { createdBy: true },
     })
+
+    const recipients = await prisma.user.findMany({
+      where: {
+        approved: true,
+        isArchived: false,
+        email: { not: null },
+      },
+      select: {
+        email: true,
+        name: true,
+      },
+    })
+
+    const usersWithEmail = recipients.filter((user) => user.email) as Array<{ email: string; name: string }>
+    if (usersWithEmail.length > 0) {
+      sendEventEmails(usersWithEmail, {
+        id: event.id,
+        title,
+        date,
+        time,
+        type,
+        location: location || null,
+        venue: venue || null,
+        description: description || null,
+        createdBy: event.createdBy.name,
+      }).catch(console.error)
+    }
 
     return NextResponse.json(serializeEvent(event))
   } catch (error) {

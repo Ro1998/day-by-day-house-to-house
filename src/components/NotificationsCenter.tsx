@@ -9,19 +9,27 @@ export function NotificationsCenter() {
   const [form, setForm] = useState({ title: '', message: '', recipientMode: 'everyone' as 'everyone' | 'specific', recipientUserIds: [] as string[] })
   const [editingNotification, setEditingNotification] = useState<{ id: string; title: string; message: string } | null>(null)
   const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
+  const [actionNotificationId, setActionNotificationId] = useState<string | null>(null)
   const canSend = currentUser?.role === 'admin' || currentUser?.role === 'overseer'
   const canManageNotifications = currentUser?.role === 'admin'
   const approvedRecipients = users.filter((user) => user.approved)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    await addNotification({
-      title: form.title,
-      message: form.message,
-      category: 'general',
-      recipientUserIds: form.recipientMode === 'specific' ? form.recipientUserIds : undefined,
-    })
-    setForm({ title: '', message: '', recipientMode: 'everyone', recipientUserIds: [] })
+    try {
+      setIsSubmitting(true)
+      await addNotification({
+        title: form.title,
+        message: form.message,
+        category: 'general',
+        recipientUserIds: form.recipientMode === 'specific' ? form.recipientUserIds : undefined,
+      })
+      setForm({ title: '', message: '', recipientMode: 'everyone', recipientUserIds: [] })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -37,20 +45,27 @@ export function NotificationsCenter() {
               <button
                 type="button"
                 onClick={() => setPendingDelete(null)}
-                className="app-button app-button-ghost"
+                disabled={actionNotificationId === pendingDelete.id}
+                className="app-button app-button-ghost disabled:cursor-not-allowed disabled:opacity-70"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={async () => {
-                  await deleteNotification(pendingDelete.id)
-                  setPendingDelete(null)
+                  try {
+                    setActionNotificationId(pendingDelete.id)
+                    await deleteNotification(pendingDelete.id)
+                    setPendingDelete(null)
+                  } finally {
+                    setActionNotificationId(null)
+                  }
                 }}
-                className="app-button inline-flex items-center gap-2 bg-red-600 text-white hover:bg-red-700"
+                disabled={actionNotificationId === pendingDelete.id}
+                className="app-button inline-flex items-center gap-2 bg-red-600 text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 <Trash2 size={16} />
-                Yes, Delete
+                {actionNotificationId === pendingDelete.id ? 'Deleting...' : 'Yes, Delete'}
               </button>
             </div>
           </div>
@@ -64,11 +79,16 @@ export function NotificationsCenter() {
             <form
               onSubmit={async (e) => {
                 e.preventDefault()
-                await updateNotification(editingNotification.id, {
-                  title: editingNotification.title,
-                  message: editingNotification.message,
-                })
-                setEditingNotification(null)
+                try {
+                  setIsSavingEdit(true)
+                  await updateNotification(editingNotification.id, {
+                    title: editingNotification.title,
+                    message: editingNotification.message,
+                  })
+                  setEditingNotification(null)
+                } finally {
+                  setIsSavingEdit(false)
+                }
               }}
               className="space-y-4"
             >
@@ -95,12 +115,13 @@ export function NotificationsCenter() {
                 <button
                   type="button"
                   onClick={() => setEditingNotification(null)}
-                  className="app-button app-button-ghost"
+                  disabled={isSavingEdit}
+                  className="app-button app-button-ghost disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   Cancel
                 </button>
-                <button type="submit" className="app-button app-button-primary">
-                  Save Changes
+                <button type="submit" disabled={isSavingEdit} className="app-button app-button-primary disabled:cursor-not-allowed disabled:opacity-70">
+                  {isSavingEdit ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>
@@ -163,10 +184,14 @@ export function NotificationsCenter() {
             <div className="flex gap-3">
               <button
                 type="submit"
-                disabled={form.recipientMode === 'specific' && form.recipientUserIds.length === 0}
-                className="app-button app-button-primary"
+                disabled={isSubmitting || (form.recipientMode === 'specific' && form.recipientUserIds.length === 0)}
+                className="app-button app-button-primary disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {form.recipientMode === 'everyone' ? 'Send To Everyone' : 'Send To Selected People'}
+                {isSubmitting
+                  ? 'Sending...'
+                  : form.recipientMode === 'everyone'
+                    ? 'Send To Everyone'
+                    : 'Send To Selected People'}
               </button>
             </div>
           </form>
@@ -181,7 +206,7 @@ export function NotificationsCenter() {
             return (
             <div 
               key={notification.id} 
-              className={`rounded-2xl border ${isUnread ? 'border-[var(--primary)] bg-[var(--primary)]/5 cursor-pointer' : 'border-[var(--border)] bg-[var(--surface-soft)]'} p-4`}
+              className={`rounded-2xl border transition-all duration-200 ease-out ${isUnread ? 'border-[var(--primary)] bg-[var(--primary)]/5 cursor-pointer' : 'border-[var(--border)] bg-[var(--surface-soft)]'} p-4`}
               onClick={() => isUnread && markNotificationAsRead(notification.id)}
             >
               <div className="flex items-center justify-between gap-3">
