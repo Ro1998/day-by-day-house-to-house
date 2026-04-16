@@ -308,28 +308,21 @@ export function Dashboard() {
                 </button>
               )}
             </div>
-            <div className="space-y-3">
-              {displayMenu?.items?.map((item) => (
-                <div key={item.day} className="rounded-2xl bg-[var(--surface-soft)] p-4">
-                  <div className="font-semibold">{item.day === 'Sunday' ? "Lord's Day" : item.day}</div>
-                  <div className="app-muted text-sm">Lunch: {item.lunch || 'Not set'} | Dinner: {item.dinner || 'Not set'}</div>
-                  <div className="app-muted text-sm">Cooking: {[...(item.lunchCooks || []), ...(item.dinnerCooks || [])].join(', ') || 'Not assigned'}</div>
-                </div>
-              ))}
-              {!displayMenu && <p className="app-muted text-sm">No menu published yet.</p>}
-            </div>
-            {showFullMenu && displayMenu && (
-              <div className="mt-5 rounded-3xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 md:p-5">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <div>
-                    <h4 className="text-lg font-semibold">{displayWeekLabel}</h4>
-                    <p className="app-muted mt-1 text-sm">Expanded weekly menu view inside the dashboard.</p>
+            {!showFullMenu && (
+              <div className="space-y-3">
+                {displayMenu?.items?.map((item) => (
+                  <div key={item.day} className="rounded-2xl bg-[var(--surface-soft)] p-4">
+                    <div className="font-semibold">{item.day === 'Sunday' ? "Lord's Day" : item.day}</div>
+                    <div className="app-muted text-sm">Lunch: {item.lunch || 'Not set'} | Dinner: {item.dinner || 'Not set'}</div>
+                    <div className="app-muted text-sm">Cooking: {[...(item.lunchCooks || []), ...(item.dinnerCooks || [])].join(', ') || 'Not assigned'}</div>
                   </div>
-                  <button type="button" onClick={() => setShowFullMenu(false)} className="app-button app-button-ghost px-3 py-2 text-sm">
-                    Close
-                  </button>
-                </div>
-                <div className="mb-4 rounded-2xl bg-[var(--surface)] px-4 py-3 text-sm">
+                ))}
+                {!displayMenu && <p className="app-muted text-sm">No menu published yet.</p>}
+              </div>
+            )}
+            {showFullMenu && displayMenu && (
+              <div className="space-y-4">
+                <div className="rounded-2xl bg-[var(--surface-soft)] px-4 py-3 text-sm">
                   <span className="font-semibold">Vegetable Purchasers: </span>
                   {displayMenu.purchasers?.join(', ') || 'Not assigned'}
                 </div>
@@ -638,28 +631,21 @@ export function Dashboard() {
               </button>
             )}
           </div>
-          <div className="space-y-3">
-            {displayMenu?.items?.map((item) => (
-              <div key={item.day} className="rounded-2xl bg-[var(--surface-soft)] p-4">
-                <div className="font-semibold">{item.day === 'Sunday' ? "Lord's Day" : item.day}</div>
-                <div className="app-muted text-sm">Lunch: {item.lunch || 'Not set'} | Dinner: {item.dinner || 'Not set'}</div>
-                <div className="app-muted text-sm">Cooking: {[...(item.lunchCooks || []), ...(item.dinnerCooks || [])].join(', ') || 'Not assigned'}</div>
-              </div>
-            ))}
-            {!displayMenu && <p className="app-muted text-sm">No menu published yet.</p>}
-          </div>
-          {showFullMenu && displayMenu && (
-            <div className="mt-5 rounded-3xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 md:p-5">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <h4 className="text-lg font-semibold">{displayWeekLabel}</h4>
-                  <p className="app-muted mt-1 text-sm">Expanded weekly menu view inside the dashboard.</p>
+          {!showFullMenu && (
+            <div className="space-y-3">
+              {displayMenu?.items?.map((item) => (
+                <div key={item.day} className="rounded-2xl bg-[var(--surface-soft)] p-4">
+                  <div className="font-semibold">{item.day === 'Sunday' ? "Lord's Day" : item.day}</div>
+                  <div className="app-muted text-sm">Lunch: {item.lunch || 'Not set'} | Dinner: {item.dinner || 'Not set'}</div>
+                  <div className="app-muted text-sm">Cooking: {[...(item.lunchCooks || []), ...(item.dinnerCooks || [])].join(', ') || 'Not assigned'}</div>
                 </div>
-                <button type="button" onClick={() => setShowFullMenu(false)} className="app-button app-button-ghost px-3 py-2 text-sm">
-                  Close
-                </button>
-              </div>
-              <div className="mb-4 rounded-2xl bg-[var(--surface)] px-4 py-3 text-sm">
+              ))}
+              {!displayMenu && <p className="app-muted text-sm">No menu published yet.</p>}
+            </div>
+          )}
+          {showFullMenu && displayMenu && (
+            <div className="space-y-4">
+              <div className="rounded-2xl bg-[var(--surface-soft)] px-4 py-3 text-sm">
                 <span className="font-semibold">Vegetable Purchasers: </span>
                 {displayMenu.purchasers?.join(', ') || 'Not assigned'}
               </div>

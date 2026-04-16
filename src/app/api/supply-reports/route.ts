@@ -3,6 +3,8 @@ import { apiError } from '@/lib/api-error'
 import { prisma } from '@/lib/prisma'
 import { requireApprovedUser } from '@/lib/auth'
 
+const RESOLVED_REPORT_RETENTION_DAYS = 7
+
 const serializeReport = (report: Awaited<ReturnType<typeof prisma.supplyReport.findFirstOrThrow>> & { createdBy: { name: string } }) => ({
   id: report.id,
   title: report.title,
@@ -21,6 +23,18 @@ export async function GET(request: Request) {
   try {
     const auth = await requireApprovedUser(request)
     if (auth.error) return auth.error
+
+    const retentionCutoff = new Date(Date.now() - RESOLVED_REPORT_RETENTION_DAYS * 24 * 60 * 60 * 1000)
+
+    await prisma.supplyReport.deleteMany({
+      where: {
+        status: 'resolved',
+        updatedAt: {
+          lt: retentionCutoff,
+        },
+      },
+    })
+
     const reports = await prisma.supplyReport.findMany({
       include: { createdBy: true },
       orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
