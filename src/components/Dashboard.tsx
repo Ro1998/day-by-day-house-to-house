@@ -302,9 +302,9 @@ export function Dashboard() {
             <div className="mb-4 flex items-center justify-between gap-3">
               <h3 className="text-lg font-semibold">{displayWeekLabel}</h3>
               {displayMenu && (
-                <button type="button" onClick={() => setShowFullMenu(true)} className="app-button app-button-ghost px-3 py-2 text-sm">
+                <button type="button" onClick={() => setShowFullMenu((prev) => !prev)} className="app-button app-button-ghost px-3 py-2 text-sm">
                   <Eye size={16} />
-                  <span>Open Full Menu</span>
+                  <span>{showFullMenu ? 'Hide Full Menu' : 'Open Full Menu'}</span>
                 </button>
               )}
             </div>
@@ -318,6 +318,47 @@ export function Dashboard() {
               ))}
               {!displayMenu && <p className="app-muted text-sm">No menu published yet.</p>}
             </div>
+            {showFullMenu && displayMenu && (
+              <div className="mt-5 rounded-3xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 md:p-5">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-lg font-semibold">{displayWeekLabel}</h4>
+                    <p className="app-muted mt-1 text-sm">Expanded weekly menu view inside the dashboard.</p>
+                  </div>
+                  <button type="button" onClick={() => setShowFullMenu(false)} className="app-button app-button-ghost px-3 py-2 text-sm">
+                    Close
+                  </button>
+                </div>
+                <div className="mb-4 rounded-2xl bg-[var(--surface)] px-4 py-3 text-sm">
+                  <span className="font-semibold">Vegetable Purchasers: </span>
+                  {displayMenu.purchasers?.join(', ') || 'Not assigned'}
+                </div>
+                <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+                  <table className="min-w-[1050px] w-full table-auto text-left">
+                    <thead>
+                      <tr className="bg-[var(--surface-soft)] text-base">
+                        <th className="border-b border-[var(--border)] p-4 font-semibold">Day</th>
+                        <th className="border-b border-[var(--border)] p-4 font-semibold">Lunch</th>
+                        <th className="border-b border-[var(--border)] p-4 font-semibold">Cooking Team</th>
+                        <th className="border-b border-[var(--border)] p-4 font-semibold">Dinner</th>
+                        <th className="border-b border-[var(--border)] p-4 font-semibold">Dinner Team</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {displayMenu.items?.map((item) => (
+                        <tr key={item.day} className="align-top border-b border-[var(--border)] last:border-0 text-[15px]">
+                          <td className="border-r border-[var(--border)] p-4 font-semibold">{item.day}</td>
+                          <td className="border-r border-[var(--border)] p-4 whitespace-pre-wrap">{item.lunch || '-'}</td>
+                          <td className="border-r border-[var(--border)] p-4 text-[var(--primary-strong)] font-medium">{item.lunchCooks?.join(', ') || '-'}</td>
+                          <td className="border-r border-[var(--border)] p-4 whitespace-pre-wrap">{item.dinner || '-'}</td>
+                          <td className="p-4 text-[var(--primary-strong)] font-medium">{item.dinnerCooks?.join(', ') || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="app-panel rounded-3xl p-6">
@@ -530,49 +571,6 @@ export function Dashboard() {
 
         <SupplyReportsBoard />
 
-        {showFullMenu && displayMenu && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(18,24,18,0.42)] px-4 py-6 backdrop-blur-sm overflow-y-auto">
-            <div className="app-panel w-full max-w-6xl rounded-3xl p-6 shadow-2xl my-auto">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-xl font-semibold">{displayWeekLabel}</h3>
-                  <p className="app-muted mt-1 text-sm">Open the table in a larger view and use browser zoom if you want it even bigger.</p>
-                </div>
-                <button type="button" onClick={() => setShowFullMenu(false)} className="app-button app-button-ghost p-2 rounded-full">
-                  <X size={20} />
-                </button>
-              </div>
-              <div className="mb-4 rounded-2xl bg-[var(--surface-soft)] px-4 py-3 text-sm">
-                <span className="font-semibold">Vegetable Purchasers: </span>
-                {displayMenu.purchasers?.join(', ') || 'Not assigned'}
-              </div>
-              <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
-                <table className="min-w-[1050px] w-full table-auto text-left">
-                  <thead>
-                    <tr className="bg-[var(--surface-soft)] text-base">
-                      <th className="border-b border-[var(--border)] p-4 font-semibold">Day</th>
-                      <th className="border-b border-[var(--border)] p-4 font-semibold">Lunch</th>
-                      <th className="border-b border-[var(--border)] p-4 font-semibold">Cooking Team</th>
-                      <th className="border-b border-[var(--border)] p-4 font-semibold">Dinner</th>
-                      <th className="border-b border-[var(--border)] p-4 font-semibold">Dinner Team</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {displayMenu.items?.map((item) => (
-                      <tr key={item.day} className="align-top border-b border-[var(--border)] last:border-0 text-[15px]">
-                        <td className="border-r border-[var(--border)] p-4 font-semibold">{item.day}</td>
-                        <td className="border-r border-[var(--border)] p-4 whitespace-pre-wrap">{item.lunch || '-'}</td>
-                        <td className="border-r border-[var(--border)] p-4 text-[var(--primary-strong)] font-medium">{item.lunchCooks?.join(', ') || '-'}</td>
-                        <td className="border-r border-[var(--border)] p-4 whitespace-pre-wrap">{item.dinner || '-'}</td>
-                        <td className="p-4 text-[var(--primary-strong)] font-medium">{item.dinnerCooks?.join(', ') || '-'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     )
   }
@@ -634,9 +632,9 @@ export function Dashboard() {
           <div className="mb-4 flex items-center justify-between gap-3">
             <h3 className="text-lg font-semibold">{displayWeekLabel}</h3>
             {displayMenu && (
-              <button type="button" onClick={() => setShowFullMenu(true)} className="app-button app-button-ghost px-3 py-2 text-sm">
+              <button type="button" onClick={() => setShowFullMenu((prev) => !prev)} className="app-button app-button-ghost px-3 py-2 text-sm">
                 <Eye size={16} />
-                <span>Open Full Menu</span>
+                <span>{showFullMenu ? 'Hide Full Menu' : 'Open Full Menu'}</span>
               </button>
             )}
           </div>
@@ -650,6 +648,47 @@ export function Dashboard() {
             ))}
             {!displayMenu && <p className="app-muted text-sm">No menu published yet.</p>}
           </div>
+          {showFullMenu && displayMenu && (
+            <div className="mt-5 rounded-3xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 md:p-5">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-lg font-semibold">{displayWeekLabel}</h4>
+                  <p className="app-muted mt-1 text-sm">Expanded weekly menu view inside the dashboard.</p>
+                </div>
+                <button type="button" onClick={() => setShowFullMenu(false)} className="app-button app-button-ghost px-3 py-2 text-sm">
+                  Close
+                </button>
+              </div>
+              <div className="mb-4 rounded-2xl bg-[var(--surface)] px-4 py-3 text-sm">
+                <span className="font-semibold">Vegetable Purchasers: </span>
+                {displayMenu.purchasers?.join(', ') || 'Not assigned'}
+              </div>
+              <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+                <table className="min-w-[1050px] w-full table-auto text-left">
+                  <thead>
+                    <tr className="bg-[var(--surface-soft)] text-base">
+                      <th className="border-b border-[var(--border)] p-4 font-semibold">Day</th>
+                      <th className="border-b border-[var(--border)] p-4 font-semibold">Lunch</th>
+                      <th className="border-b border-[var(--border)] p-4 font-semibold">Cooking Team</th>
+                      <th className="border-b border-[var(--border)] p-4 font-semibold">Dinner</th>
+                      <th className="border-b border-[var(--border)] p-4 font-semibold">Dinner Team</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayMenu.items?.map((item) => (
+                      <tr key={item.day} className="align-top border-b border-[var(--border)] last:border-0 text-[15px]">
+                        <td className="border-r border-[var(--border)] p-4 font-semibold">{item.day}</td>
+                        <td className="border-r border-[var(--border)] p-4 whitespace-pre-wrap">{item.lunch || '-'}</td>
+                        <td className="border-r border-[var(--border)] p-4 text-[var(--primary-strong)] font-medium">{item.lunchCooks?.join(', ') || '-'}</td>
+                        <td className="border-r border-[var(--border)] p-4 whitespace-pre-wrap">{item.dinner || '-'}</td>
+                        <td className="p-4 text-[var(--primary-strong)] font-medium">{item.dinnerCooks?.join(', ') || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="app-panel rounded-3xl p-6">
@@ -1001,49 +1040,6 @@ export function Dashboard() {
 
       <SupplyReportsBoard />
 
-      {showFullMenu && displayMenu && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(18,24,18,0.42)] px-4 py-6 backdrop-blur-sm overflow-y-auto">
-          <div className="app-panel w-full max-w-6xl rounded-3xl p-6 shadow-2xl my-auto">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <h3 className="text-xl font-semibold">{displayWeekLabel}</h3>
-                <p className="app-muted mt-1 text-sm">Open the table in a larger view and use browser zoom if you want it even bigger.</p>
-              </div>
-              <button type="button" onClick={() => setShowFullMenu(false)} className="app-button app-button-ghost p-2 rounded-full">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="mb-4 rounded-2xl bg-[var(--surface-soft)] px-4 py-3 text-sm">
-              <span className="font-semibold">Vegetable Purchasers: </span>
-              {displayMenu.purchasers?.join(', ') || 'Not assigned'}
-            </div>
-            <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
-              <table className="min-w-[1050px] w-full table-auto text-left">
-                <thead>
-                  <tr className="bg-[var(--surface-soft)] text-base">
-                    <th className="border-b border-[var(--border)] p-4 font-semibold">Day</th>
-                    <th className="border-b border-[var(--border)] p-4 font-semibold">Lunch</th>
-                    <th className="border-b border-[var(--border)] p-4 font-semibold">Cooking Team</th>
-                    <th className="border-b border-[var(--border)] p-4 font-semibold">Dinner</th>
-                    <th className="border-b border-[var(--border)] p-4 font-semibold">Dinner Team</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayMenu.items?.map((item) => (
-                    <tr key={item.day} className="align-top border-b border-[var(--border)] last:border-0 text-[15px]">
-                      <td className="border-r border-[var(--border)] p-4 font-semibold">{item.day}</td>
-                      <td className="border-r border-[var(--border)] p-4 whitespace-pre-wrap">{item.lunch || '-'}</td>
-                      <td className="border-r border-[var(--border)] p-4 text-[var(--primary-strong)] font-medium">{item.lunchCooks?.join(', ') || '-'}</td>
-                      <td className="border-r border-[var(--border)] p-4 whitespace-pre-wrap">{item.dinner || '-'}</td>
-                      <td className="p-4 text-[var(--primary-strong)] font-medium">{item.dinnerCooks?.join(', ') || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
