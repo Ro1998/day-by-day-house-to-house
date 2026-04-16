@@ -4,11 +4,27 @@ import { useState } from 'react'
 import { useData } from '@/components/DataProvider'
 import type { UserRole } from '@/types'
 
+const ROLE_LABELS: Record<UserRole, string> = {
+  admin: 'Admin',
+  coordinator: 'Coordinator',
+  overseer: 'Overseer',
+  user: 'General User',
+}
+
 export function UserManagement() {
-  const { users, updateUserAccess, createAdminResetLink, deleteUser, currentUser } = useData()
+  const { users, updateUserAccess, createAdminResetLink, deleteUser, addNotification, currentUser } = useData()
   const [drafts, setDrafts] = useState<Record<string, { role: UserRole; approved: boolean; phone?: string }>>({})
   const [resetLinks, setResetLinks] = useState<Record<string, { resetLink: string; expiresAt: string }>>({})
   const [pendingDeleteUser, setPendingDeleteUser] = useState<{ id: string; name: string } | null>(null)
+  const [pendingAccessChange, setPendingAccessChange] = useState<{
+    id: string
+    name: string
+    currentRole: UserRole
+    nextRole: UserRole
+    currentApproved: boolean
+    nextApproved: boolean
+    phone?: string
+  } | null>(null)
   const [busyUserId, setBusyUserId] = useState<string | null>(null)
 
   const getDraft = (id: string, role: UserRole, approved: boolean, phone?: string | null) =>
@@ -16,6 +32,45 @@ export function UserManagement() {
 
   const pendingUsers = users.filter((user) => !user.approved)
   const approvedUsers = users.filter((user) => user.approved)
+
+  const applyUserAccessChange = async (change: NonNullable<typeof pendingAccessChange>) => {
+    try {
+      setBusyUserId(change.id)
+      await updateUserAccess({
+        id: change.id,
+        role: change.nextRole,
+        approved: change.nextApproved,
+        phone: change.phone,
+      })
+
+      setDrafts((prev) => {
+        const next = { ...prev }
+        delete next[change.id]
+        return next
+      })
+
+      if (change.currentRole !== change.nextRole) {
+        await addNotification({
+          title: 'Role Updated',
+          message: `Your role changed from ${ROLE_LABELS[change.currentRole]} to ${ROLE_LABELS[change.nextRole]}.`,
+          category: 'general',
+          recipientUserIds: [change.id],
+          skipEmail: true,
+        })
+      } else if (!change.currentApproved && change.nextApproved) {
+        await addNotification({
+          title: 'Account Approved',
+          message: `Your account has been approved with the role ${ROLE_LABELS[change.nextRole]}.`,
+          category: 'general',
+          recipientUserIds: [change.id],
+          skipEmail: true,
+        })
+      }
+    } finally {
+      setBusyUserId(null)
+      setPendingAccessChange(null)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -50,6 +105,43 @@ export function UserManagement() {
                 className="app-button bg-red-600 text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {busyUserId === pendingDeleteUser.id ? 'Archiving...' : 'Yes, Archive'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingAccessChange && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(18,24,18,0.42)] px-4">
+          <div className="app-panel w-full max-w-lg rounded-3xl p-6 shadow-2xl">
+            <h3 className="mb-2 text-xl font-semibold">Confirm Access Change</h3>
+            <p className="app-muted mb-6 text-sm">
+              {pendingAccessChange.nextApproved
+                ? `Are you sure you want to ${pendingAccessChange.currentApproved ? 'update' : 'approve'} ${pendingAccessChange.name}${pendingAccessChange.currentRole !== pendingAccessChange.nextRole ? ` and change the role from ${ROLE_LABELS[pendingAccessChange.currentRole]} to ${ROLE_LABELS[pendingAccessChange.nextRole]}` : ` as ${ROLE_LABELS[pendingAccessChange.nextRole]}`}?`
+                : `Are you sure you want to disapprove ${pendingAccessChange.name}?`}
+            </p>
+            {pendingAccessChange.currentRole !== pendingAccessChange.nextRole && (
+              <div className="mb-5 rounded-2xl bg-[var(--surface-soft)] px-4 py-3 text-sm">
+                <span className="font-semibold">Role change: </span>
+                {ROLE_LABELS[pendingAccessChange.currentRole]} to {ROLE_LABELS[pendingAccessChange.nextRole]}
+              </div>
+            )}
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setPendingAccessChange(null)}
+                disabled={busyUserId === pendingAccessChange.id}
+                className="app-button app-button-ghost disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void applyUserAccessChange(pendingAccessChange)}
+                disabled={busyUserId === pendingAccessChange.id}
+                className="app-button app-button-primary disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {busyUserId === pendingAccessChange.id ? 'Saving...' : 'Yes, Confirm'}
               </button>
             </div>
           </div>
@@ -102,12 +194,15 @@ export function UserManagement() {
                       </select>
                       <button
                         onClick={async () => {
-                          try {
-                            setBusyUserId(user.id)
-                            await updateUserAccess({ id: user.id, role: draft.role, approved: true, phone: draft.phone })
-                          } finally {
-                            setBusyUserId(null)
-                          }
+                          setPendingAccessChange({
+                            id: user.id,
+                            name: user.name,
+                            currentRole: user.role,
+                            nextRole: draft.role,
+                            currentApproved: user.approved,
+                            nextApproved: true,
+                            phone: draft.phone,
+                          })
                         }}
                         disabled={busyUserId === user.id}
                     className="app-button app-button-primary flex-1 justify-center px-4 py-1.5 text-sm shadow-sm sm:flex-none"
@@ -219,12 +314,15 @@ export function UserManagement() {
                       <button
                         type="button"
                         onClick={async () => {
-                          try {
-                            setBusyUserId(user.id)
-                            await updateUserAccess({ id: user.id, role: draft.role, approved: true, phone: draft.phone })
-                          } finally {
-                            setBusyUserId(null)
-                          }
+                          setPendingAccessChange({
+                            id: user.id,
+                            name: user.name,
+                            currentRole: user.role,
+                            nextRole: draft.role,
+                            currentApproved: user.approved,
+                            nextApproved: true,
+                            phone: draft.phone,
+                          })
                         }}
                         disabled={busyUserId === user.id}
                     className="app-button app-button-ghost flex-1 justify-center px-3 py-1.5 text-sm sm:flex-none"
@@ -236,12 +334,15 @@ export function UserManagement() {
                           <button
                             type="button"
                             onClick={async () => {
-                              try {
-                                setBusyUserId(user.id)
-                                await updateUserAccess({ id: user.id, role: user.role, approved: false, phone: draft.phone })
-                              } finally {
-                                setBusyUserId(null)
-                              }
+                              setPendingAccessChange({
+                                id: user.id,
+                                name: user.name,
+                                currentRole: user.role,
+                                nextRole: user.role,
+                                currentApproved: user.approved,
+                                nextApproved: false,
+                                phone: draft.phone,
+                              })
                             }}
                             disabled={busyUserId === user.id}
                         className="app-button flex-1 justify-center border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-800 hover:bg-amber-100 sm:flex-none"
