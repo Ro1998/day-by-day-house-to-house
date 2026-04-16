@@ -119,6 +119,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [deletedExpense, setDeletedExpense] = useState<Expense | null>(null)
   const [refreshTick, setRefreshTick] = useState(0)
 
+  useEffect(() => {
+    if (currentUser?.id) {
+      setLoading(true)
+      setIsSyncing(false)
+    }
+  }, [currentUser?.id])
+
   const authHeaders = (): Record<string, string> => (
     currentUser ? { 'x-user-id': currentUser.id } : {}
   )
@@ -581,7 +588,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }),
       })
       await readJson<{ success: boolean }>(res, 'Failed to send verification code')
-      setNotice(`We sent a verification code to ${trimmedEmail}. Enter it to finish your registration.`)
+      setNotice(`We started sending a verification code to ${trimmedEmail}. It may take a moment to arrive.`)
       return true
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Failed to send verification code')
@@ -988,21 +995,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       startTransition(() => {
         setEvents((prev) => [...prev, newEvent].sort((a, b) => a.date.localeCompare(b.date)))
       })
-      
-      // Auto-notify everyone about the new event
-      await addNotification({
-        title: `New Event: ${event.title}`,
-        message: `${event.title} scheduled for ${event.date} at ${event.time}. Location: ${event.location || event.venue || 'TBD'}`,
-        category: 'general',
-        skipEmail: true,
-      })
 
       if (currentUser.role === 'admin' && newEvent.googleCalendarUrl && typeof window !== 'undefined') {
         window.open(newEvent.googleCalendarUrl, '_blank', 'noopener,noreferrer')
         setNotice('Event created. Google Calendar opened in a new tab for the admin.')
       }
-      
-      await logActivity(`Scheduled event: ${event.title} on ${event.date}`)
+
+      void Promise.allSettled([
+        addNotification({
+          title: `New Event: ${event.title}`,
+          message: `${event.title} scheduled for ${event.date} at ${event.time}. Location: ${event.location || event.venue || 'TBD'}`,
+          category: 'general',
+          skipEmail: true,
+        }),
+        logActivity(`Scheduled event: ${event.title} on ${event.date}`),
+      ])
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Failed to create event')
     }

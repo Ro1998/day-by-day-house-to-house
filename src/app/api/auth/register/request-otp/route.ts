@@ -80,20 +80,13 @@ export async function POST(request: Request) {
       },
     })
 
-    const sent = await sendRegistrationOtpEmail({ email, name, otp })
-    if (!sent) {
-      await prisma.registrationVerification.deleteMany({ where: { email } })
-      const smtpHost = process.env.SMTP_HOST?.trim().toLowerCase() || ''
-      const likelyGmail = smtpHost.includes('gmail')
-      return NextResponse.json(
-        {
-          error: likelyGmail
-            ? 'Failed to send verification email. Gmail SMTP rejected the configured login. Update SMTP_USER and SMTP_PASS with a valid Gmail App Password.'
-            : 'Failed to send verification email. Check the SMTP configuration and try again.',
-        },
-        { status: 500 },
-      )
-    }
+    void sendRegistrationOtpEmail({ email, name, otp }).then((sent) => {
+      if (!sent) {
+        console.error(`Failed to send OTP email to ${email}`)
+      }
+    }).catch((emailError) => {
+      console.error('Failed to queue OTP email:', emailError)
+    })
 
     return NextResponse.json({ success: true })
   } catch (error) {
