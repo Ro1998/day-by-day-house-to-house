@@ -14,7 +14,7 @@ export const getActingUser = async (request: Request) => {
 export const requireApprovedUser = async (request: Request, roles?: UserRole[]) => {
   const user = await getActingUser(request)
 
-  if (!user || !user.approved) {
+  if (!user || !user.approved || user.isArchived) {
     return {
       error: NextResponse.json({ error: 'You must be logged in with an approved account.' }, { status: 401 }),
       user: null,

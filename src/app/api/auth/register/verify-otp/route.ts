@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     }
 
     const conflictingUsername = await prisma.user.findFirst({
-      where: { username: verification.username },
+      where: { username: verification.username, isArchived: false },
       select: { id: true },
     })
     if (conflictingUsername) {
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     }
 
     const conflictingEmail = await prisma.user.findFirst({
-      where: { email: verification.email },
+      where: { email: verification.email, isArchived: false },
       select: { id: true },
     })
     if (conflictingEmail) {
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
 
     if (verification.phone) {
       const conflictingPhone = await prisma.user.findFirst({
-        where: { phone: verification.phone },
+        where: { phone: verification.phone, isArchived: false },
         select: { id: true },
       })
       if (conflictingPhone) {

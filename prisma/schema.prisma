@@ -23,6 +23,7 @@ model User {
   passwordResetTokenExpiresAt DateTime?
   role                     String @default("user")
   approved                 Boolean @default(false)
+  isArchived               Boolean @default(false)
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
   expenses Expense[]

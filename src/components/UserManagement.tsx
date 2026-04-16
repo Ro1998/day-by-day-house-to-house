@@ -23,7 +23,7 @@ export function UserManagement() {
           <div className="app-panel w-full max-w-md rounded-3xl p-6">
             <h3 className="mb-2 text-xl font-semibold text-red-700">Delete User?</h3>
             <p className="app-muted mb-6 text-sm">
-              This will delete <span className="font-semibold text-[var(--text)]">{pendingDeleteUser.name}</span> and remove that user's related activity, menus, monthly entries, and cash flow records.
+              This will archive <span className="font-semibold text-[var(--text)]">{pendingDeleteUser.name}</span>. Their sign-in details will be removed, but their expenses, menus, activity, suggestions, and other history will stay in the system.
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -41,7 +41,7 @@ export function UserManagement() {
                 }}
                 className="app-button bg-red-600 text-white hover:bg-red-700"
               >
-                Yes, Delete
+                Yes, Archive
               </button>
             </div>
           </div>

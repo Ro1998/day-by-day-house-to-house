@@ -29,6 +29,7 @@ const getUserConflictMessage = async (input: {
   const usernameConflict = await prisma.user.findFirst({
     where: {
       username,
+      isArchived: false,
       ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
     },
     select: { id: true },
@@ -40,6 +41,7 @@ const getUserConflictMessage = async (input: {
   const emailConflict = await prisma.user.findFirst({
     where: {
       email,
+      isArchived: false,
       ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
     },
     select: { id: true },
@@ -52,6 +54,7 @@ const getUserConflictMessage = async (input: {
     const phoneConflict = await prisma.user.findFirst({
       where: {
         phone,
+        isArchived: false,
         ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
       },
       select: { id: true },
@@ -70,7 +73,9 @@ export async function GET(request: Request) {
     if (auth.error) return auth.error
 
     const users = await prisma.user.findMany({
-      where: auth.user.role === 'admin' ? undefined : { approved: true },
+      where: auth.user.role === 'admin'
+        ? { isArchived: false }
+        : { approved: true, isArchived: false },
       select: {
         id: true,
         name: true,
@@ -152,6 +157,7 @@ export async function PATCH(request: Request) {
         ? await prisma.user.findFirst({
             where: {
               phone,
+              isArchived: false,
               id: { not: String(body.id) },
             },
             select: { id: true },
@@ -193,27 +199,34 @@ export async function DELETE(request: Request) {
     }
 
     await prisma.$transaction(async (tx) => {
-      const menus = await tx.menu.findMany({
-        where: { userId: id },
-        select: { id: true },
+      const user = await tx.user.findUnique({
+        where: { id },
+        select: { id: true, isArchived: true },
       })
 
-      if (menus.length > 0) {
-        await tx.menuItem.deleteMany({
-          where: { menuId: { in: menus.map((menu) => menu.id) } },
-        })
+      if (!user) {
+        throw new Error('User not found.')
       }
 
-      await tx.menu.deleteMany({ where: { userId: id } })
-      await tx.notification.deleteMany({ where: { createdById: id } })
-      await tx.menuSuggestion.deleteMany({ where: { userId: id } })
-      await tx.availability.deleteMany({ where: { userId: id } })
-      await tx.inventoryItem.deleteMany({ where: { userId: id } })
-      await tx.supplyReport.deleteMany({ where: { createdById: id } })
-      await tx.activity.deleteMany({ where: { userId: id } })
-      await tx.monthlyPayment.deleteMany({ where: { userId: id } })
-      await tx.expense.deleteMany({ where: { userId: id } })
-      await tx.user.delete({ where: { id } })
+      if (user.isArchived) {
+        return
+      }
+
+      await tx.user.update({
+        where: { id },
+        data: {
+          name: `Archived User ${id.slice(-6)}`,
+          username: null,
+          email: null,
+          phone: null,
+          passwordHash: null,
+          securityAnswers: null,
+          passwordResetTokenHash: null,
+          passwordResetTokenExpiresAt: null,
+          approved: false,
+          isArchived: true,
+        },
+      })
     })
 
     return NextResponse.json({ success: true })

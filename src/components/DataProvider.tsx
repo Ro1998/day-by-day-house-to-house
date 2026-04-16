@@ -163,6 +163,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return payload as T
   }
 
+  const hasSameJson = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right)
+
   useEffect(() => {
     // Safely track the component mount status to prevent memory leaks
     let isMounted = true
@@ -190,13 +192,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        const usersRes = await fetch('/api/users', {
+        const usersRes = await fetchWithTimeout('/api/users', {
           headers: authHeaders(),
           cache: 'no-store',
         })
         if (usersRes.ok) {
           const usersData = await readJson<User[]>(usersRes, 'Failed to load users')
-          setUsers(prev => JSON.stringify(prev) === JSON.stringify(usersData) ? prev : usersData)
+          setUsers((prev) => hasSameJson(prev, usersData) ? prev : usersData)
 
           const refreshedCurrentUser = currentUser
             ? usersData.find((user) => user.id === currentUser.id) ?? null
@@ -214,45 +216,70 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           await readJson<ApiError>(usersRes, 'Failed to load users')
         }
 
-        const [expensesRes, paymentsRes, menusRes, activitiesRes, inventoryRes, notificationsRes, suggestionsRes, availabilitiesRes, supplyReportsRes, eventsRes] = await Promise.all([
-          fetch('/api/expenses', { headers: authHeaders(), cache: 'no-store' }),
-          fetch('/api/monthly-payments', { headers: authHeaders(), cache: 'no-store' }),
-          fetch('/api/menus', { headers: authHeaders(), cache: 'no-store' }),
-          fetch('/api/activities', { headers: authHeaders(), cache: 'no-store' }),
-          fetch('/api/inventory', { headers: authHeaders(), cache: 'no-store' }),
-          fetch('/api/notifications', { headers: authHeaders(), cache: 'no-store' }),
-          fetch('/api/menu-suggestions', { headers: authHeaders(), cache: 'no-store' }),
-          fetch('/api/availability', { headers: authHeaders(), cache: 'no-store' }),
-          fetch('/api/supply-reports', { headers: authHeaders(), cache: 'no-store' }),
-          fetch('/api/events', { headers: authHeaders(), cache: 'no-store' }),
+        const [expensesRes, paymentsRes] = await Promise.all([
+          fetchWithTimeout('/api/expenses', { headers: authHeaders(), cache: 'no-store' }),
+          fetchWithTimeout('/api/monthly-payments', { headers: authHeaders(), cache: 'no-store' }),
         ])
 
-        const expensesData = await readJson<Expense[]>(expensesRes, 'Failed to load expenses')
-        const paymentsData = await readJson<MonthlyPayment[]>(paymentsRes, 'Failed to load monthly payments')
-        const menusData = await readJson<Menu[]>(menusRes, 'Failed to load menus')
-        const activitiesData = await readJson<Activity[]>(activitiesRes, 'Failed to load activities')
-        const inventoryData = await readJson<InventoryItem[]>(inventoryRes, 'Failed to load inventory')
-        const notificationsData = await readJson<Notification[]>(notificationsRes, 'Failed to load notifications')
-        const suggestionsData = await readJson<MenuSuggestion[]>(suggestionsRes, 'Failed to load menu suggestions')
-        const availabilitiesData = await readJson<Availability[]>(availabilitiesRes, 'Failed to load availability')
-        const supplyReportsData = await readJson<SupplyReport[]>(supplyReportsRes, 'Failed to load supply reports')
-        const eventsData = await readJson<CommunityEvent[]>(eventsRes, 'Failed to load events')
+        const [expensesData, paymentsData] = await Promise.all([
+          readJson<Expense[]>(expensesRes, 'Failed to load expenses'),
+          readJson<MonthlyPayment[]>(paymentsRes, 'Failed to load monthly payments'),
+        ])
 
-        // Check for low stock and add notifications
-        if (currentUser.role === 'admin') {
-          const lowStockItems = inventoryData.filter(item => item.quantity <= item.lowStockThreshold)
+        if (isMounted) {
+          setExpenses((prev) => hasSameJson(prev, expensesData) ? prev : expensesData)
+          setMonthlyPayments((prev) => hasSameJson(prev, paymentsData) ? prev : paymentsData)
+          setLastSyncTime(new Date())
+          setError(null)
+          setLoading(false)
+          setIsSyncing(false)
+        }
+
+        const secondaryResults = await Promise.allSettled([
+          fetchWithTimeout('/api/menus', { headers: authHeaders(), cache: 'no-store' }).then((res) => readJson<Menu[]>(res, 'Failed to load menus')),
+          fetchWithTimeout('/api/activities', { headers: authHeaders(), cache: 'no-store' }).then((res) => readJson<Activity[]>(res, 'Failed to load activities')),
+          fetchWithTimeout('/api/inventory', { headers: authHeaders(), cache: 'no-store' }).then((res) => readJson<InventoryItem[]>(res, 'Failed to load inventory')),
+          fetchWithTimeout('/api/notifications', { headers: authHeaders(), cache: 'no-store' }).then((res) => readJson<Notification[]>(res, 'Failed to load notifications')),
+          fetchWithTimeout('/api/menu-suggestions', { headers: authHeaders(), cache: 'no-store' }).then((res) => readJson<MenuSuggestion[]>(res, 'Failed to load menu suggestions')),
+          fetchWithTimeout('/api/availability', { headers: authHeaders(), cache: 'no-store' }).then((res) => readJson<Availability[]>(res, 'Failed to load availability')),
+          fetchWithTimeout('/api/supply-reports', { headers: authHeaders(), cache: 'no-store' }).then((res) => readJson<SupplyReport[]>(res, 'Failed to load supply reports')),
+          fetchWithTimeout('/api/events', { headers: authHeaders(), cache: 'no-store' }).then((res) => readJson<CommunityEvent[]>(res, 'Failed to load events')),
+        ])
+
+        const [
+          menusResult,
+          activitiesResult,
+          inventoryResult,
+          notificationsResult,
+          suggestionsResult,
+          availabilitiesResult,
+          supplyReportsResult,
+          eventsResult,
+        ] = secondaryResults
+
+        const menusData = menusResult.status === 'fulfilled' ? menusResult.value : null
+        const activitiesData = activitiesResult.status === 'fulfilled' ? activitiesResult.value : null
+        const inventoryData = inventoryResult.status === 'fulfilled' ? inventoryResult.value : null
+        const notificationsData = notificationsResult.status === 'fulfilled' ? notificationsResult.value : null
+        const suggestionsData = suggestionsResult.status === 'fulfilled' ? suggestionsResult.value : null
+        const availabilitiesData = availabilitiesResult.status === 'fulfilled' ? availabilitiesResult.value : null
+        const supplyReportsData = supplyReportsResult.status === 'fulfilled' ? supplyReportsResult.value : null
+        const eventsData = eventsResult.status === 'fulfilled' ? eventsResult.value : null
+
+        if (inventoryData && notificationsData && currentUser.role === 'admin') {
+          const lowStockItems = inventoryData.filter((item) => item.quantity <= item.lowStockThreshold)
           for (const item of lowStockItems) {
-            const existingNotification = notificationsData.find(n => n.title === `Low Stock: ${item.name}`)
+            const existingNotification = notificationsData.find((n) => n.title === `Low Stock: ${item.name}`)
             if (!existingNotification) {
               try {
-                const res = await fetch('/api/notifications', {
+                const res = await fetchWithTimeout('/api/notifications', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', ...authHeaders() },
                   body: JSON.stringify({
                     title: `Low Stock: ${item.name}`,
                     message: `${item.name} is running low. Current quantity: ${item.quantity} ${item.unit}`,
                     category: 'general',
-                    userId: currentUser.id
+                    userId: currentUser.id,
                   }),
                 })
                 if (res.ok) {
@@ -267,18 +294,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (isMounted) {
-          setExpenses(prev => JSON.stringify(prev) === JSON.stringify(expensesData) ? prev : expensesData)
-          setMonthlyPayments(prev => JSON.stringify(prev) === JSON.stringify(paymentsData) ? prev : paymentsData)
-          setMenus(prev => JSON.stringify(prev) === JSON.stringify(menusData) ? prev : menusData)
-          setActivities(prev => JSON.stringify(prev) === JSON.stringify(activitiesData) ? prev : activitiesData)
-          setInventoryItems(prev => JSON.stringify(prev) === JSON.stringify(inventoryData) ? prev : inventoryData)
-          setNotifications(prev => JSON.stringify(prev) === JSON.stringify(notificationsData) ? prev : notificationsData)
-          setMenuSuggestions(prev => JSON.stringify(prev) === JSON.stringify(suggestionsData) ? prev : suggestionsData)
-          setAvailabilities(prev => JSON.stringify(prev) === JSON.stringify(availabilitiesData) ? prev : availabilitiesData)
-          setSupplyReports(prev => JSON.stringify(prev) === JSON.stringify(supplyReportsData) ? prev : supplyReportsData)
-          setEvents(prev => JSON.stringify(prev) === JSON.stringify(eventsData) ? prev : eventsData)
+          if (menusData) setMenus((prev) => hasSameJson(prev, menusData) ? prev : menusData)
+          if (activitiesData) setActivities((prev) => hasSameJson(prev, activitiesData) ? prev : activitiesData)
+          if (inventoryData) setInventoryItems((prev) => hasSameJson(prev, inventoryData) ? prev : inventoryData)
+          if (notificationsData) setNotifications((prev) => hasSameJson(prev, notificationsData) ? prev : notificationsData)
+          if (suggestionsData) setMenuSuggestions((prev) => hasSameJson(prev, suggestionsData) ? prev : suggestionsData)
+          if (availabilitiesData) setAvailabilities((prev) => hasSameJson(prev, availabilitiesData) ? prev : availabilitiesData)
+          if (supplyReportsData) setSupplyReports((prev) => hasSameJson(prev, supplyReportsData) ? prev : supplyReportsData)
+          if (eventsData) setEvents((prev) => hasSameJson(prev, eventsData) ? prev : eventsData)
           setLastSyncTime(new Date())
-          setError(null)
         }
       } catch (loadError) {
         if (isMounted) {
@@ -710,7 +734,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const removedUser = users.find((entry) => entry.id === id)
       setUsers((prev) => prev.filter((entry) => entry.id !== id))
       if (removedUser) {
-        setNotice(`Deleted user ${removedUser.name}.`)
+        setNotice(`Archived user ${removedUser.name}. Their records were preserved.`)
       }
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Failed to delete user')
