@@ -9,8 +9,8 @@ export async function POST(request: Request) {
     const email = String(body.email ?? '').trim().toLowerCase()
 
     const [usernameMessage, emailMessage] = await Promise.all([
-      username ? getRegistrationConflictMessage({ username }) : Promise.resolve(null),
-      email ? getRegistrationConflictMessage({ email }) : Promise.resolve(null),
+      username ? getRegistrationConflictMessage({ username, includePending: false }) : Promise.resolve(null),
+      email ? getRegistrationConflictMessage({ email, includePending: false }) : Promise.resolve(null),
     ])
 
     return NextResponse.json({

@@ -211,7 +211,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             setCurrentUser(refreshedCurrentUser)
           }
         } else {
-          setUsers([])
+          await readJson<ApiError>(usersRes, 'Failed to load users')
         }
 
         const [expensesRes, paymentsRes, menusRes, activitiesRes, inventoryRes, notificationsRes, suggestionsRes, availabilitiesRes, supplyReportsRes, eventsRes] = await Promise.all([
@@ -281,7 +281,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setError(null)
         }
       } catch (loadError) {
-        if (isMounted && loading) {
+        if (isMounted) {
           const message = loadError instanceof Error ? loadError.message : 'Failed to load application data'
           setError(message)
           console.error('Failed to load data', loadError)

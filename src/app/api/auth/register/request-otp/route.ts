@@ -51,6 +51,7 @@ export async function POST(request: Request) {
       username,
       email,
       phone: phone || undefined,
+      includePending: false,
     })
     if (conflictMessage) {
       return NextResponse.json({ error: conflictMessage }, { status: 400 })
