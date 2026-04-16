@@ -8,6 +8,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -31,6 +32,7 @@ model User {
   menuSuggestions MenuSuggestion[]
   availabilities Availability[]
   supplyReports SupplyReport[] @relation("SupplyReportCreator")
+  communityEvents CommunityEvent[] @relation("CommunityEventCreator")
 }
 
 model RegistrationVerification {
@@ -164,4 +166,18 @@ model SupplyReport {
   createdBy   User     @relation("SupplyReportCreator", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model CommunityEvent {
+  id          String   @id @default(cuid())
+  title       String
+  date        String
+  time        String
+  type        String
+  location    String?
+  venue       String?
+  description String?
+  createdById String
+  createdBy   User     @relation("CommunityEventCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
 }

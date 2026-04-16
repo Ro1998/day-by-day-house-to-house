@@ -2,8 +2,8 @@ import { PrismaClient } from '@prisma/client';
 import { execSync } from 'child_process';
 
 // Connection strings
-const NEON_DATABASE_URL = 'postgresql://neondb_owner:npg_nZFi7esA1xbQ@ep-silent-bar-anf7lc3q-pooler.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
-const SUPABASE_DATABASE_URL = 'postgresql://postgres.fuhhnfdbepnxwjcgzdpg:Sovereign@20541126@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?sslmode=require';
+const NEON_DATABASE_URL = process.env.NEON_DATABASE_URL;
+const SUPABASE_DATABASE_URL = process.env.DATABASE_URL;
 
 // Create Prisma clients for both databases
 const neonPrisma = new PrismaClient({
@@ -267,3 +267,4 @@ main().catch((error) => {
   console.error('Migration script failed:', error);
   process.exit(1);
 });
+

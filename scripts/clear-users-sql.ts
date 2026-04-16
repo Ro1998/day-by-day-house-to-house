@@ -68,3 +68,4 @@ clearUsersAndCreateAdmin()
     console.error('Process failed:', error);
     process.exit(1);
   });
+

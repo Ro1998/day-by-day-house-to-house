@@ -1,68 +1,62 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client'
 
-// Use the exact format from Supabase dashboard
-const SUPABASE_DATABASE_URL = 'postgresql://postgres:Sovereign@20541126@db.fuhhnfdbepnxwjcgzdpg.supabase.co:5432/postgres';
+const supabaseDatabaseUrl = process.env.DATABASE_URL
 
 const supabasePrisma = new PrismaClient({
   datasources: {
     db: {
-      url: SUPABASE_DATABASE_URL,
+      url: supabaseDatabaseUrl,
     },
   },
-});
+})
 
 async function testSupabaseConnection() {
-  console.log('🔍 Testing Supabase connection with exact dashboard details...');
-  console.log(`Host: db.fuhhnfdbepnxwjcgzdpg.supabase.co`);
-  console.log(`Port: 5432`);
-  console.log(`Database: postgres`);
-  console.log(`User: postgres`);
-  console.log(`Password: Sovereign@20541126`);
-  console.log('');
-  
+  if (!supabaseDatabaseUrl) {
+    console.log('DATABASE_URL is not set.')
+    process.exit(1)
+  }
+
+  const parsedUrl = new URL(supabaseDatabaseUrl)
+
+  console.log('Testing Supabase connection details...')
+  console.log(`Host: ${parsedUrl.hostname}`)
+  console.log(`Port: ${parsedUrl.port || '5432'}`)
+  console.log(`Database: ${parsedUrl.pathname.replace(/^\//, '') || 'postgres'}`)
+  console.log(`User: ${decodeURIComponent(parsedUrl.username || 'postgres')}`)
+  console.log('')
+
   try {
-    console.log('Attempting to connect...');
-    await supabasePrisma.$connect();
-    console.log('✅ Connection successful!');
-    
-    // Test a simple query
-    console.log('Testing basic query...');
-    const result = await supabasePrisma.$queryRaw`SELECT 1 as test, NOW() as current_time`;
-    console.log('✅ Query successful!');
-    console.log('Result:', result);
-    
-    // Check if tables exist
-    console.log('\nChecking if tables exist...');
-    const tables = ['User', 'Expense', 'MonthlyPayment', 'Menu', 'Activity'];
-    
+    await supabasePrisma.$connect()
+    const result = await supabasePrisma.$queryRaw`SELECT 1 as test, NOW() as current_time`
+    console.log('Connection successful.')
+    console.log('Result:', result)
+
+    const tables = ['User', 'Expense', 'MonthlyPayment', 'Menu', 'Activity']
+
     for (const table of tables) {
       try {
-        const countResult = await supabasePrisma.$queryRawUnsafe(`SELECT COUNT(*) as count FROM "${table}"`);
-        const count = Number((countResult as any)[0]?.count || 0);
-        console.log(`📊 ${table}: ${count} records`);
-      } catch (e) {
-        console.log(`❌ ${table}: Table doesn't exist or error - ${e instanceof Error ? e.message : 'Unknown'}`);
+        const countResult = await supabasePrisma.$queryRawUnsafe(`SELECT COUNT(*) as count FROM "${table}"`)
+        const count = Number((countResult as any)[0]?.count || 0)
+        console.log(`${table}: ${count} records`)
+      } catch (error) {
+        console.log(
+          `${table}: Table does not exist or returned an error - ${
+            error instanceof Error ? error.message : 'Unknown'
+          }`,
+        )
       }
     }
-    
-    console.log('\n🎉 Supabase is ready for migration!');
-    
   } catch (error) {
-    console.error('❌ Connection failed:', error);
-    console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
-    
-    if (error instanceof Error && error.message.includes('Can\'t reach database server')) {
-      console.log('\n🔧 Troubleshooting tips:');
-      console.log('1. Check if Supabase project is active (not paused)');
-      console.log('2. Verify the database is running');
-      console.log('3. Check network connectivity');
-      console.log('4. Try connecting with psql directly:');
-      console.log('   psql -h db.fuhhnfdbepnxwjcgzdpg.supabase.co -p 5432 -d postgres -U postgres');
-    }
-    
+    console.error('Connection failed:', error)
+    console.error('Error details:', error instanceof Error ? error.message : 'Unknown error')
+    console.log(
+      `psql -h ${parsedUrl.hostname} -p ${parsedUrl.port || '5432'} -d ${
+        parsedUrl.pathname.replace(/^\//, '') || 'postgres'
+      } -U ${decodeURIComponent(parsedUrl.username || 'postgres')}`,
+    )
   } finally {
-    await supabasePrisma.$disconnect();
+    await supabasePrisma.$disconnect()
   }
 }
 
-testSupabaseConnection();
+testSupabaseConnection()

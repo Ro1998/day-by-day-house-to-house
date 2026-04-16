@@ -6,13 +6,15 @@ A meal planner website with expense tracking, menu planning, user authentication
 
 1. Create a new project at supabase.com.
 2. Go to **Project Settings > Database** and copy the connection string.
-3. Create `.env.local` with `DATABASE_URL="postgresql://postgres:[YOUR-PASSWORD]@db.fuhhnfdbepnxwjcgzdpg.supabase.co:5432/postgres"`.
-4. Run `npm run db:push` to create tables.
-5. Run `npm run db:seed` to add initial users.
+3. Create `.env.local` from `.env.example` and set `DATABASE_URL` to your pooled Supabase connection string.
+4. Set `DIRECT_URL` to the direct Supabase Postgres connection string for Prisma schema changes.
+5. Run `npm run db:push` to create tables.
+6. Run `npm run db:seed` to add initial users.
 
 ### Migrating from Neon to Supabase
-1. **Export Data**: `pg_dump -d "NEON_URL" --clean --if-exists -f neon_backup.sql`
-2. **Restore to Supabase**: Paste the contents of `neon_backup.sql` into the Supabase SQL Editor, ensuring you remove any `\restrict` commands.
+1. Set `NEON_DATABASE_URL` for the source database, `DATABASE_URL` for Supabase runtime access, and `DIRECT_URL` for Prisma schema changes.
+2. **Export Data**: `pg_dump -d "$NEON_DATABASE_URL" --clean --if-exists -f neon_backup.sql`
+3. **Restore to Supabase**: Import the cleaned SQL into Supabase, or use the migration scripts after confirming both environment variables are set.
 
 ## Performance Optimization
 
@@ -65,7 +67,7 @@ npm start
 
 1. Push code to GitHub.
 2. Connect repo to Vercel.
-3. Add DATABASE_URL environment variable in Vercel dashboard.
+3. Add the environment variables from `.env.production` in the Vercel dashboard.
 4. Deploy.
 
 ## Features

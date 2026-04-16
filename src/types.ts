@@ -118,6 +118,20 @@ export interface SupplyReport {
   updatedAt: string
 }
 
+export interface CommunityEvent {
+  id: string
+  title: string
+  date: string
+  time: string
+  type: 'online' | 'offline'
+  location?: string | null
+  venue?: string | null
+  description?: string | null
+  createdBy: string
+  createdById?: string
+  createdAt?: string
+}
+
 export interface Activity {
   id: string
   user: string

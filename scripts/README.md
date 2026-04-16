@@ -4,9 +4,10 @@ This directory contains scripts to migrate data from Neon database to Supabase d
 
 ## Prerequisites
 
-1. **Update Supabase Password**: Before running any scripts, you must replace `[YOUR-PASSWORD]` in both migration scripts with your actual Supabase database password.
-
-2. **Ensure Prisma Schema**: Make sure your Supabase database has the same schema as your Neon database. The migration scripts assume identical table structures.
+1. Set `NEON_DATABASE_URL` for the old Neon database.
+2. Set `DATABASE_URL` for the target Supabase database.
+3. Set `DIRECT_URL` if you need Prisma schema pushes against Supabase.
+4. Ensure the Supabase schema matches the Neon schema before running any migration script.
 
 ## Scripts
 
@@ -26,11 +27,20 @@ npm run migrate:neon-to-supabase
 
 ## Migration Process
 
-### Step 1: Update Connection String
-Edit both `test-connections.ts` and `migrate-neon-to-supabase.ts` files and replace `[YOUR-PASSWORD]` with your actual Supabase password:
+### Step 1: Set Environment Variables
 
-```typescript
-const SUPABASE_DATABASE_URL = 'postgresql://postgres:YOUR_ACTUAL_PASSWORD@db.fuhhnfdbepnxwjcgzdpg.supabase.co:5432/postgres';
+```bash
+export NEON_DATABASE_URL="postgresql://..."
+export DATABASE_URL="postgresql://..."
+export DIRECT_URL="postgresql://..."
+```
+
+On PowerShell:
+
+```powershell
+$env:NEON_DATABASE_URL="postgresql://..."
+$env:DATABASE_URL="postgresql://..."
+$env:DIRECT_URL="postgresql://..."
 ```
 
 ### Step 2: Test Connections
@@ -86,7 +96,7 @@ The script migrates data in this order to respect foreign key constraints:
 ## Troubleshooting
 
 ### Connection Issues
-- Verify your Supabase password is correct
+- Verify both connection strings are correct
 - Check that both databases are accessible
 - Ensure network connectivity to both database hosts
 

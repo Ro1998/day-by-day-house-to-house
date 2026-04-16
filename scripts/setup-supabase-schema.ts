@@ -3,7 +3,7 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const SUPABASE_DATABASE_URL = 'postgresql://postgres.fuhhnfdbepnxwjcgzdpg:Sovereign@20541126@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?sslmode=require';
+const SUPABASE_DATABASE_URL = process.env.DATABASE_URL;
 
 async function setupSupabaseSchema() {
   console.log('🔧 Setting up database schema in Supabase...');
@@ -129,3 +129,4 @@ async function main() {
 }
 
 main();
+
