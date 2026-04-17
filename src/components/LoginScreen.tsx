@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Eye, EyeOff, LogIn, Moon, RotateCcw, ShieldCheck, Sparkles, Sun, UserPlus } from 'lucide-react'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useData } from '@/components/DataProvider'
 import { useTheme } from '@/components/ThemeProvider'
 import { getPasswordRuleState, PASSWORD_RULE_HINT } from '@/lib/password-policy'
@@ -29,6 +29,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
     notice,
   } = useData()
   const { theme, toggleTheme } = useTheme()
+  const router = useRouter()
   const searchParams = useSearchParams()
   const resetToken = searchParams.get('resetToken') ?? ''
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot'>('login')
@@ -50,7 +51,6 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
   const [authAction, setAuthAction] = useState<'idle' | 'login' | 'request-otp' | 'verify-otp' | 'forgot' | 'reset-link'>('idle')
   const [forgotForm, setForgotForm] = useState({
     username: '',
-    newPassword: '',
     securityAnswers: {} as Record<string, string>,
   })
   const [linkResetPassword, setLinkResetPassword] = useState('')
@@ -259,7 +259,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
     try {
       const success = await resetPasswordWithSecurityAnswers(forgotForm)
       if (!success) return
-      setForgotForm({ username: '', newPassword: '', securityAnswers: {} })
+      setForgotForm({ username: '', securityAnswers: {} })
       setAuthMode('login')
     } finally {
       setAuthAction('idle')
@@ -273,6 +273,8 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
       const success = await resetPasswordWithToken({ token: resetToken, newPassword: linkResetPassword })
       if (!success) return
       setLinkResetPassword('')
+      setAuthMode('login')
+      router.replace('/')
     } finally {
       setAuthAction('idle')
     }
@@ -477,7 +479,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                           <div>
                             <h3 className="text-lg font-semibold">Forgot Password</h3>
                             <p className="app-muted text-sm">
-                              Answer 3 security questions correctly to set a new password.
+                              Enter your username or email and answer all 3 questions. We will send a reset link to your email.
                             </p>
                           </div>
                           <button
@@ -493,28 +495,10 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                           value={forgotForm.username}
                           onChange={(e) => setForgotForm((prev) => ({ ...prev, username: e.target.value }))}
                           className="app-input"
-                          placeholder="Username"
+                          placeholder="Username or email"
                           autoComplete="username"
                           required
                         />
-                        <div className="relative">
-                          <input
-                            type={showPasswords.forgot ? 'text' : 'password'}
-                            value={forgotForm.newPassword}
-                            onChange={(e) => setForgotForm((prev) => ({ ...prev, newPassword: e.target.value }))}
-                            className="app-input pr-12"
-                            placeholder="New password"
-                            autoComplete="new-password"
-                            required
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPasswords((prev) => ({ ...prev, forgot: !prev.forgot }))}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-soft)]"
-                          >
-                            {showPasswords.forgot ? <EyeOff size={18} /> : <Eye size={18} />}
-                          </button>
-                        </div>
                         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
                           <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--primary-strong)]">
                             <RotateCcw size={16} />
@@ -549,11 +533,11 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                         </div>
                         <button
                           type="submit"
-                          disabled={!forgotForm.username.trim() || !forgotForm.newPassword.trim() || forgotAnsweredCount < SECURITY_QUESTIONS.length || authAction !== 'idle'}
+                          disabled={!forgotForm.username.trim() || forgotAnsweredCount < SECURITY_QUESTIONS.length || authAction !== 'idle'}
                           className="app-button app-button-secondary inline-flex w-full items-center justify-center gap-2"
                         >
                           <RotateCcw size={18} />
-                          {authAction === 'forgot' ? 'Resetting Password...' : 'Reset Password'}
+                          {authAction === 'forgot' ? 'Sending Reset Link...' : 'Send Reset Link'}
                         </button>
                       </form>
                     )}
@@ -765,7 +749,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
             {resetToken && (
               <form onSubmit={handleLinkReset} className="space-y-4">
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm">
-                  This password reset link was created by an admin. Enter your new password to finish resetting your account.
+                  Enter your new password to finish resetting your account. You will be sent back to sign in after it is saved.
                 </div>
                 <div className="relative">
                   <input

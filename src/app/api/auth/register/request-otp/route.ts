@@ -1,5 +1,5 @@
 import { randomInt } from 'crypto'
-import { NextResponse } from 'next/server'
+import { after, NextResponse } from 'next/server'
 import { apiError } from '@/lib/api-error'
 import { isEmailConfigured, sendRegistrationOtpEmail } from '@/lib/email'
 import { prisma } from '@/lib/prisma'
@@ -80,13 +80,13 @@ export async function POST(request: Request) {
       },
     })
 
-    void sendRegistrationOtpEmail({ email, name, otp }).then((sent) => {
+    after(() => sendRegistrationOtpEmail({ email, name, otp }).then((sent) => {
       if (!sent) {
         console.error(`Failed to send OTP email to ${email}`)
       }
     }).catch((emailError) => {
       console.error('Failed to queue OTP email:', emailError)
-    })
+    }))
 
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -91,10 +91,7 @@ export function Dashboard() {
   const lowBalance = monthIncome > 0 ? monthlyBalance < monthIncome * 0.2 : monthlyBalance < 0
   
   const [activitiesLimit, setActivitiesLimit] = useState(5)
-  const generalActivities = useMemo(() => 
-    activities.filter((activity) => !/income|cash in|paid/i.test(activity.action)).slice(0, activitiesLimit),
-    [activities, activitiesLimit]
-  )
+  const canSeeRecentActivities = currentUser?.role === 'admin' || currentUser?.role === 'overseer'
 
   const eatingPeople = [...new Set(
     monthlyPayments
@@ -391,11 +388,6 @@ export function Dashboard() {
               {upcomingEvents.length === 0 && (
                 <p className="app-muted text-sm">No upcoming meetings or events scheduled.</p>
               )}
-            {activities.length > activitiesLimit && (
-              <button onClick={() => setActivitiesLimit(prev => prev + 10)} className="text-[var(--primary)] text-sm font-medium mt-2 hover:underline">
-                Show More
-              </button>
-            )}
             </div>
           </div>
         </div>
@@ -416,25 +408,6 @@ export function Dashboard() {
               ))}
               {cookingPeople.length === 0 && <span className="app-muted text-sm">No cooking team names added for {displayMenu?.week || 'this week'} yet.</span>}
             </div>
-          </div>
-        </div>
-
-        <div className="app-panel rounded-3xl p-6">
-          <h3 className="mb-4 text-lg font-semibold">Recent Activities</h3>
-          <div className="space-y-2">
-            {generalActivities.map((activity) => (
-              <div key={activity.id} className="app-muted text-sm">
-                <span className="font-medium">{activity.user}</span> {activity.action}
-              </div>
-            ))}
-            {generalActivities.length === 0 && (
-              <div className="app-muted text-sm">No recent visible activities.</div>
-            )}
-            {activities.length > activitiesLimit && (
-              <button onClick={() => setActivitiesLimit(prev => prev + 10)} className="text-[var(--primary)] text-sm font-medium mt-2 hover:underline">
-                Show More
-              </button>
-            )}
           </div>
         </div>
 
@@ -891,25 +864,27 @@ export function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="app-panel rounded-3xl p-6">
-          <h3 className="text-lg font-semibold mb-4">Recent Activities</h3>
-          <div className="space-y-2">
-            {activities
-              .filter((a) => currentUser?.role === 'admin' || !/income|cash in|paid/i.test(a.action))
-              .slice().reverse().slice(0, activitiesLimit).map(activity => (
-              <div key={activity.id} className="app-muted text-sm">
-                <span className="font-medium">{activity.user}</span> {activity.action} at {new Date(activity.timestamp).toLocaleString()}
-              </div>
-            ))}
-            {activities.length > activitiesLimit && (
-              <button onClick={() => setActivitiesLimit(prev => prev + 10)} className="text-[var(--primary)] text-sm font-medium mt-2 hover:underline">
-                Show More
-              </button>
-            )}
+      {canSeeRecentActivities && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="app-panel rounded-3xl p-6">
+            <h3 className="text-lg font-semibold mb-4">Recent Activities</h3>
+            <div className="space-y-2">
+              {activities
+                .filter((a) => currentUser?.role === 'admin' || !/income|cash in|paid/i.test(a.action))
+                .slice().reverse().slice(0, activitiesLimit).map(activity => (
+                <div key={activity.id} className="app-muted text-sm">
+                  <span className="font-medium">{activity.user}</span> {activity.action} at {new Date(activity.timestamp).toLocaleString()}
+                </div>
+              ))}
+              {activities.length > activitiesLimit && (
+                <button onClick={() => setActivitiesLimit(prev => prev + 10)} className="text-[var(--primary)] text-sm font-medium mt-2 hover:underline">
+                  Show More
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="app-panel rounded-3xl p-6">

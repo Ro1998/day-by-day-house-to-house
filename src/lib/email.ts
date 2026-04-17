@@ -135,6 +135,55 @@ export async function sendRegistrationOtpEmail(input: {
   })
 }
 
+export async function sendPasswordResetEmail(input: {
+  email: string
+  name: string
+  resetLink: string
+  expiresAt: Date
+}) {
+  const appUrl = getAppBaseUrl()
+  const expiresAtLabel = input.expiresAt.toLocaleString('en-IN', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Kolkata',
+  })
+
+  return sendEmail({
+    to: input.email,
+    subject: `${APP_NAME} password reset link`,
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6;">
+        <h1 style="margin-bottom: 12px;">Reset your password</h1>
+        <p>Hello ${escapeHtml(input.name)},</p>
+        <p>Your security answers were verified. Use the link below to set a new password.</p>
+        <p style="margin: 24px 0;">
+          <a href="${escapeHtml(input.resetLink)}" style="display:inline-block;padding:12px 18px;border-radius:8px;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:700;">
+            Reset Password
+          </a>
+        </p>
+        <p>This link expires at <strong>${escapeHtml(expiresAtLabel)}</strong>.</p>
+        <p>If you did not request this, you can safely ignore this email.</p>
+        <p style="margin-top: 24px;">
+          Open website:
+          <a href="${escapeHtml(appUrl)}">${escapeHtml(appUrl)}</a>
+        </p>
+        <p style="margin-top: 24px;">${escapeHtml(APP_NAME)}</p>
+      </div>
+    `,
+    text: [
+      `Hello ${input.name},`,
+      '',
+      'Your security answers were verified. Use this link to set a new password:',
+      input.resetLink,
+      '',
+      `This link expires at ${expiresAtLabel}.`,
+      'If you did not request this, you can safely ignore this email.',
+      '',
+      APP_NAME,
+    ].join('\n'),
+  })
+}
+
 export async function sendAdminRegistrationRequestEmail(input: {
   name: string
   username: string

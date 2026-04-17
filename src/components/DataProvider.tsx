@@ -57,7 +57,6 @@ interface DataContextType {
   verifyRegistrationOtp: (input: { email: string; otp: string }) => Promise<{ user: User | null; submitted: boolean }>
   resetPasswordWithSecurityAnswers: (input: {
     username: string
-    newPassword: string
     securityAnswers: Record<string, string>
   }) => Promise<boolean>
   createAdminResetLink: (userId: string) => Promise<{ resetLink: string; expiresAt: string } | null>
@@ -203,10 +202,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        const usersRes = await fetchWithTimeout('/api/users', {
-          headers: authHeaders(),
-          cache: 'no-store',
-        })
+        const [usersRes, expensesRes, paymentsRes] = await Promise.all([
+          fetchWithTimeout('/api/users', {
+            headers: authHeaders(),
+            cache: 'no-store',
+          }),
+          fetchWithTimeout('/api/expenses', { headers: authHeaders(), cache: 'no-store' }),
+          fetchWithTimeout('/api/monthly-payments', { headers: authHeaders(), cache: 'no-store' }),
+        ])
+
         if (usersRes.ok) {
           const usersData = await readJson<User[]>(usersRes, 'Failed to load users')
           setUsers((prev) => hasSameJson(prev, usersData) ? prev : usersData)
@@ -227,11 +231,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           await readJson<ApiError>(usersRes, 'Failed to load users')
         }
 
-        const [expensesRes, paymentsRes] = await Promise.all([
-          fetchWithTimeout('/api/expenses', { headers: authHeaders(), cache: 'no-store' }),
-          fetchWithTimeout('/api/monthly-payments', { headers: authHeaders(), cache: 'no-store' }),
-        ])
-
         const [expensesData, paymentsData] = await Promise.all([
           readJson<Expense[]>(expensesRes, 'Failed to load expenses'),
           readJson<MonthlyPayment[]>(paymentsRes, 'Failed to load monthly payments'),
@@ -246,9 +245,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setIsSyncing(false)
         }
 
+        const shouldLoadActivities = currentUser.role === 'admin' || currentUser.role === 'overseer'
         const secondaryResults = await Promise.allSettled([
           fetchWithTimeout('/api/menus', { headers: authHeaders(), cache: 'no-store' }).then((res) => readJson<Menu[]>(res, 'Failed to load menus')),
-          fetchWithTimeout('/api/activities', { headers: authHeaders(), cache: 'no-store' }).then((res) => readJson<Activity[]>(res, 'Failed to load activities')),
+          shouldLoadActivities
+            ? fetchWithTimeout('/api/activities', { headers: authHeaders(), cache: 'no-store' }).then((res) => readJson<Activity[]>(res, 'Failed to load activities'))
+            : Promise.resolve(null),
           fetchWithTimeout('/api/inventory', { headers: authHeaders(), cache: 'no-store' }).then((res) => readJson<InventoryItem[]>(res, 'Failed to load inventory')),
           fetchWithTimeout('/api/notifications', { headers: authHeaders(), cache: 'no-store' }).then((res) => readJson<Notification[]>(res, 'Failed to load notifications')),
           fetchWithTimeout('/api/menu-suggestions', { headers: authHeaders(), cache: 'no-store' }).then((res) => readJson<MenuSuggestion[]>(res, 'Failed to load menu suggestions')),
@@ -306,7 +308,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
         if (isMounted) {
           if (menusData) setMenus((prev) => hasSameJson(prev, menusData) ? prev : menusData)
-          if (activitiesData) setActivities((prev) => hasSameJson(prev, activitiesData) ? prev : activitiesData)
+          if (activitiesData) {
+            setActivities((prev) => hasSameJson(prev, activitiesData) ? prev : activitiesData)
+          } else if (!shouldLoadActivities) {
+            setActivities([])
+          }
           if (inventoryData) setInventoryItems((prev) => hasSameJson(prev, inventoryData) ? prev : inventoryData)
           if (notificationsData) setNotifications((prev) => hasSameJson(prev, notificationsData) ? prev : notificationsData)
           if (suggestionsData) setMenuSuggestions((prev) => hasSameJson(prev, suggestionsData) ? prev : suggestionsData)
@@ -331,7 +337,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
 
     loadData()
-    const intervalId = setInterval(loadData, 2000)
+    const intervalId = setInterval(loadData, 30000)
     return () => {
       clearInterval(intervalId)
       isMounted = false
@@ -634,11 +640,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const resetPasswordWithSecurityAnswers = async (input: {
     username: string
-    newPassword: string
     securityAnswers: Record<string, string>
   }) => {
-    if (!input.username.trim() || !input.newPassword.trim()) {
-      setError('Please fill in username, new password, and your security answers.')
+    if (!input.username.trim()) {
+      setError('Please fill in your username or email and your security answers.')
       return false
     }
 
@@ -650,15 +655,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: input.username.trim().toLowerCase(),
-          newPassword: input.newPassword,
           securityAnswers: input.securityAnswers,
         }),
       })
-      await readJson<{ success: boolean }>(res, 'Failed to reset password')
-      setNotice('Password reset successful. You can sign in with your new password now.')
+      await readJson<{ success: boolean }>(res, 'Failed to send password reset link')
+      setNotice('Password reset link has been sent to your email.')
       return true
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : 'Failed to reset password')
+      setError(actionError instanceof Error ? actionError.message : 'Failed to send password reset link')
       return false
     }
   }

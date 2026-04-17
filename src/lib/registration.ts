@@ -13,7 +13,7 @@ export const getRegistrationConflictMessage = async (input: {
 
   if (username) {
     const existingUsername = await prisma.user.findFirst({
-      where: { username },
+      where: { username, isArchived: false },
       select: { id: true },
     })
     if (existingUsername) {
@@ -33,7 +33,7 @@ export const getRegistrationConflictMessage = async (input: {
 
   if (email) {
     const existingEmail = await prisma.user.findFirst({
-      where: { email },
+      where: { email, isArchived: false },
       select: { id: true },
     })
     if (existingEmail) {
@@ -53,7 +53,7 @@ export const getRegistrationConflictMessage = async (input: {
 
   if (phone) {
     const existingPhone = await prisma.user.findFirst({
-      where: { phone },
+      where: { phone, isArchived: false },
       select: { id: true },
     })
     if (existingPhone) {

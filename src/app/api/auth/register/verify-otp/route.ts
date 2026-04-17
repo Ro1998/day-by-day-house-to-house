@@ -62,6 +62,31 @@ export async function POST(request: Request) {
 
     const approvedUserCount = await prisma.user.count({ where: { approved: true } })
     const user = await prisma.$transaction(async (tx) => {
+      const archivedConflicts = await tx.user.findMany({
+        where: {
+          isArchived: true,
+          OR: [
+            { name: verification.name },
+            { username: verification.username },
+            { email: verification.email },
+            ...(verification.phone ? [{ phone: verification.phone }] : []),
+          ],
+        },
+        select: { id: true },
+      })
+
+      await Promise.all(
+        archivedConflicts.map((archivedUser) => tx.user.update({
+          where: { id: archivedUser.id },
+          data: {
+            name: `Archived User ${archivedUser.id}`,
+            username: null,
+            email: null,
+            phone: null,
+          },
+        })),
+      )
+
       const createdUser = await tx.user.create({
         data: {
           name: verification.name,
