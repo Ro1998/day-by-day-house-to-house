@@ -74,7 +74,8 @@ interface DataContextType {
     emailImageDataUrl?: string
     recipientUserIds?: string[]
     skipEmail?: boolean
-  }) => Promise<void>
+    silentError?: boolean
+  }) => Promise<boolean>
   updateNotification: (id: string, input: { title: string; message: string }) => Promise<void>
   deleteNotification: (id: string) => Promise<void>
   addMenuSuggestion: (input: { suggestion: string; preferredDay?: string; preferredMeal?: string }) => Promise<void>
@@ -811,21 +812,28 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     emailImageDataUrl?: string
     recipientUserIds?: string[]
     skipEmail?: boolean
+    silentError?: boolean
   }) => {
-    if (!currentUser) return
+    if (!currentUser) return false
     try {
       setError(null)
       const res = await fetch('/api/notifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify({ ...input, userId: currentUser.id }),
+        body: JSON.stringify({ ...input, silentError: undefined, userId: currentUser.id }),
       })
       const notification = await readJson<Notification>(res, 'Failed to create notification')
       startTransition(() => {
         setNotifications((prev) => [notification, ...prev])
       })
+      return true
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : 'Failed to create notification')
+      if (!input.silentError) {
+        setError(actionError instanceof Error ? actionError.message : 'Failed to create notification')
+      } else {
+        console.error('Failed to create notification', actionError)
+      }
+      return false
     }
   }
 

@@ -56,6 +56,7 @@ export function UserManagement() {
           category: 'general',
           recipientUserIds: [change.id],
           skipEmail: true,
+          silentError: true,
         })
       } else if (!change.currentApproved && change.nextApproved) {
         await addNotification({
@@ -64,6 +65,7 @@ export function UserManagement() {
           category: 'general',
           recipientUserIds: [change.id],
           skipEmail: true,
+          silentError: true,
         })
       }
     } finally {
