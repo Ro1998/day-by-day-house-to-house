@@ -560,6 +560,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         return [...prev, updatedMenu]
       })
       await logActivity(`Updated menu for week ${menu.week}`)
+      setNotice(`Menu for week ${menu.week} ${existing ? 'updated' : 'created'} successfully.`)
+      triggerRefresh()
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Failed to save menu')
     }
