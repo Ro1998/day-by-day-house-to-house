@@ -110,11 +110,11 @@ export function Dashboard() {
   const today = new Date().getDay() // 0=Sun, 1=Mon, 2=Tue...
   const isTransitionPeriod = today === 0 || today === 1 // Sunday or Monday
 
-  // Priority Logic: Rotates every Tuesday. 
-  // On Sun/Mon, if next week is ready, show it. Otherwise, stay on current week.
-  let displayMenu = (isTransitionPeriod && isMenuPopulated(nextWeekMenu)) 
-    ? nextWeekMenu 
-    : currentWeekMenu
+  // Rotation Logic: Strictly follow the calendar rotation starting every Tuesday.
+  // We no longer fall back to old menus (like April 7) even if the current one is empty.
+  let displayMenu = (isTransitionPeriod && isMenuPopulated(nextWeekMenu))
+    ? nextWeekMenu
+    : (currentWeekMenu || nextWeekMenu)
 
   const isNextWeek = displayMenu?.week === nextWeek
   const displayWeekLabel = isNextWeek ? "Next Week's Menu" : "This Week's Menu"
