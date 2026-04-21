@@ -100,24 +100,22 @@ export function Dashboard() {
   )].filter(n => n !== 'Hidden').sort((a, b) => a.localeCompare(b))
   const eatingPeopleCount = monthlyPayments.filter((payment) => payment.month === currentMonth && payment.paid).length
 
-  const isMenuPopulated = (m: any) => m?.items?.some((i: any) => i.lunch || i.dinner)
+  const isMenuPopulated = (m: any) => 
+    m?.items?.some((i: any) => i.lunch || i.dinner || i.lunchCooks?.length > 0 || i.dinnerCooks?.length > 0) || 
+    (m?.purchasers && m.purchasers.length > 0)
+
   const currentWeekMenu = menus.find((m) => m.week === currentWeek)
   const nextWeekMenu = menus.find((m) => m.week === nextWeek)
 
   const today = new Date().getDay() // 0=Sun, 1=Mon, 2=Tue...
   const isTransitionPeriod = today === 0 || today === 1 // Sunday or Monday
 
-  // Logic: Prioritize the menu the user likely wants to see right now.
+  // Improved Logic: Always prioritize the current calendar week.
   let displayMenu = currentWeekMenu
   if (isTransitionPeriod && isMenuPopulated(nextWeekMenu)) {
-    // On Sun/Mon, if the upcoming menu is already posted, show it.
     displayMenu = nextWeekMenu
-  } else if (!isMenuPopulated(currentWeekMenu) && isMenuPopulated(nextWeekMenu)) {
-    // If current week hasn't been planned but next week has, show next.
-    displayMenu = nextWeekMenu
-  } else if (!isMenuPopulated(displayMenu)) {
-    // Otherwise, show the latest menu that actually has content.
-    displayMenu = [...menus].filter(isMenuPopulated).sort((a, b) => b.week.localeCompare(a.week))[0] || currentWeekMenu || nextWeekMenu
+  } else if (!displayMenu) {
+    displayMenu = nextWeekMenu || [...menus].filter(isMenuPopulated).sort((a, b) => b.week.localeCompare(a.week))[0]
   }
 
   const isNextWeek = displayMenu?.week === nextWeek

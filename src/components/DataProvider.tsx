@@ -537,8 +537,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (!currentUser) return
 
     const existing = menus.find((entry) => entry.week === menu.week)
-    const method = existing ? 'PUT' : 'POST'
-    const body = existing ? { ...menu, id: existing.id } : { ...menu, userId: currentUser.id }
+    const method = (menu.id || existing?.id) ? 'PUT' : 'POST'
+    const body = (menu.id || existing?.id) 
+      ? { ...menu, id: menu.id || existing?.id } 
+      : { ...menu, userId: currentUser.id }
 
     try {
       setError(null)
