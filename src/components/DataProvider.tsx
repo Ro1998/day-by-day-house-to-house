@@ -536,10 +536,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const updateMenu = async (menu: Menu) => {
     if (!currentUser) return
 
-    const existing = menus.find((entry) => entry.week === menu.week)
-    const method = (menu.id || existing?.id) ? 'PUT' : 'POST'
-    const body = (menu.id || existing?.id) 
-      ? { ...menu, id: menu.id || existing?.id } 
+    const existingRecord = menus.find((entry) => entry.week === menu.week)
+    const method = (menu.id || existingRecord?.id) ? 'PUT' : 'POST'
+    const body = (menu.id || existingRecord?.id) 
+      ? { ...menu, id: menu.id || existingRecord?.id } 
       : { ...menu, userId: currentUser.id }
 
     try {
@@ -562,7 +562,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         return [...prev, updatedMenu]
       })
       await logActivity(`Updated menu for week ${menu.week}`)
-      setNotice(`Menu for week ${menu.week} ${existing ? 'updated' : 'created'} successfully.`)
+      setNotice(`Menu for week ${menu.week} ${method === 'PUT' ? 'updated' : 'created'} successfully.`)
       triggerRefresh()
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Failed to save menu')

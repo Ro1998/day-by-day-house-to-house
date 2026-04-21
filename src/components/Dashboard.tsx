@@ -110,22 +110,14 @@ export function Dashboard() {
   const today = new Date().getDay() // 0=Sun, 1=Mon, 2=Tue...
   const isTransitionPeriod = today === 0 || today === 1 // Sunday or Monday
 
-  // Improved Logic: Always prioritize the current calendar week.
-  let displayMenu = currentWeekMenu
-  if (isTransitionPeriod && isMenuPopulated(nextWeekMenu)) {
-    displayMenu = nextWeekMenu
-  } else if (!displayMenu) {
-    displayMenu = nextWeekMenu || [...menus].filter(isMenuPopulated).sort((a, b) => b.week.localeCompare(a.week))[0]
-  }
+  // Priority Logic: Rotates every Tuesday. 
+  // On Sun/Mon, if next week is ready, show it. Otherwise, stay on current week.
+  let displayMenu = (isTransitionPeriod && isMenuPopulated(nextWeekMenu)) 
+    ? nextWeekMenu 
+    : currentWeekMenu
 
   const isNextWeek = displayMenu?.week === nextWeek
-  const displayWeekLabel = displayMenu 
-    ? displayMenu.week === currentWeek 
-      ? "This Week's Menu" 
-      : displayMenu.week === nextWeek 
-        ? "Next Week's Menu" 
-        : `Menu for ${displayMenu.week}`
-    : "Weekly Menu"
+  const displayWeekLabel = isNextWeek ? "Next Week's Menu" : "This Week's Menu"
 
   // Filter events to show only today and future events
   const todayStart = startOfDay(new Date())
