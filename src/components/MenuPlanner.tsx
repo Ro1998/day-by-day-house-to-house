@@ -66,6 +66,7 @@ export function MenuPlanner() {
   const [isRenderingExport, setIsRenderingExport] = useState(false)
   const canManageMenu = currentUser?.role === 'admin'
   const lastSavedSnapshot = useRef('')
+  const isDirty = !!menu && JSON.stringify(menu) !== lastSavedSnapshot.current
 
   const buildDefaultMenu = (week: string): Menu => {
     const days = ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', "Lord's Day", 'Monday']
@@ -110,41 +111,23 @@ export function MenuPlanner() {
     })
   }, [menus, selectedWeek])
 
-  useEffect(() => {
-    if (!menu || !canManageMenu) return
-
-    const snapshot = JSON.stringify(menu)
-    if (snapshot === lastSavedSnapshot.current) return
-
-    const timeout = window.setTimeout(async () => {
-      try {
-        setSaveState('saving')
-        const savedMenu = await updateMenu(menu)
-        if (!savedMenu) {
-          setSaveState('error')
-          return
-        }
-        setMenu(savedMenu)
-        lastSavedSnapshot.current = JSON.stringify(savedMenu)
-        setSaveState('saved')
-      } catch {
-        setSaveState('error')
-      }
-    }, 900)
-
-    return () => window.clearTimeout(timeout)
-  }, [menu, canManageMenu, updateMenu])
-
   const savedWeeks = useMemo(
     () => [...menus].sort((a, b) => b.week.localeCompare(a.week)),
     [menus],
   )
 
+  const updateMenuDraft = (nextMenu: Menu) => {
+    setMenu(nextMenu)
+    if (saveState !== 'saving') {
+      setSaveState('idle')
+    }
+  }
+
   const updateMenuItem = (index: number, field: keyof MenuItem, value: any) => {
     if (!menu) return
     const newItems = [...(menu.items || [])]
     newItems[index] = { ...newItems[index], [field]: value }
-    setMenu({ ...menu, items: newItems })
+    updateMenuDraft({ ...menu, items: newItems })
   }
 
   const saveMenu = () => {
@@ -276,7 +259,7 @@ export function MenuPlanner() {
           <div>
             <h2 className="text-xl font-semibold">Weekly Menu Planner</h2>
             <p className="app-muted mt-1 text-sm">
-              Auto-saves by week so you can review older menus any time.
+              Edit freely and save only when you click Save Now.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 w-full md:w-auto">
@@ -340,6 +323,8 @@ export function MenuPlanner() {
                 ? 'All changes saved'
                 : saveState === 'error'
                   ? 'Save failed, try Save Now'
+                  : isDirty
+                    ? 'Unsaved changes'
                   : 'Ready to edit'}
           </div>
         </div>
@@ -352,7 +337,7 @@ export function MenuPlanner() {
             <label className={`block font-medium mb-2 ${isRenderingExport ? 'text-base' : 'text-sm'}`}>Vegetable Purchasers (2 people)</label>
             <ArrayInput
               values={menu.purchasers || []}
-              onChange={(purchasers) => setMenu({ ...menu, purchasers })}
+              onChange={(purchasers) => updateMenuDraft({ ...menu, purchasers })}
               className={`app-input ${isRenderingExport ? 'text-6xl leading-tight min-h-[220px]' : ''}`}
               placeholder="Enter purchaser names separated by commas"
               disabled={!canManageMenu}
