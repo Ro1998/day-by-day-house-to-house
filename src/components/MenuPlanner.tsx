@@ -338,7 +338,7 @@ export function MenuPlanner() {
             <ArrayInput
               values={menu.purchasers || []}
               onChange={(purchasers) => updateMenuDraft({ ...menu, purchasers })}
-              className={`app-input ${isRenderingExport ? 'text-6xl leading-tight min-h-[220px]' : ''}`}
+              className={`app-input ${isRenderingExport ? 'text-6xl leading-tight min-h-[220px]' : 'text-lg leading-7'}`}
               placeholder="Enter purchaser names separated by commas"
               disabled={!canManageMenu}
               title="List the people responsible for buying vegetables this week."
@@ -346,27 +346,27 @@ export function MenuPlanner() {
           </div>
 
           <div id="menu-table-container" className="overflow-x-auto bg-[var(--surface)] p-2 -mx-2 rounded-xl">
-            <table className={`w-full table-auto border-collapse border border-[var(--border)] min-w-[1600px] ${isRenderingExport ? 'text-6xl' : ''}`}>
+            <table className={`w-full table-auto border-collapse border border-[var(--border)] min-w-[1600px] ${isRenderingExport ? 'text-6xl' : 'text-lg'}`}>
             <thead>
               <tr className="bg-[var(--surface-soft)]">
-                <th className={`border border-[var(--border)] ${isRenderingExport ? 'p-14 text-6xl' : 'p-2'}`}>Day</th>
-                <th className={`border border-[var(--border)] ${isRenderingExport ? 'p-14 text-6xl' : 'p-2'}`}>Lunch</th>
-                <th className={`border border-[var(--border)] ${isRenderingExport ? 'p-14 text-6xl' : 'p-2'}`}>Cooking Team</th>
-                <th className={`border border-[var(--border)] ${isRenderingExport ? 'p-14 text-6xl' : 'p-2'}`}>Dinner</th>
-                <th className={`border border-[var(--border)] ${isRenderingExport ? 'p-14 text-6xl' : 'p-2'}`}>Dinner Cooking Team</th>
+                <th className={`border border-[var(--border)] ${isRenderingExport ? 'p-14 text-6xl' : 'p-2 text-lg font-semibold'}`}>Day</th>
+                <th className={`border border-[var(--border)] ${isRenderingExport ? 'p-14 text-6xl' : 'p-2 text-lg font-semibold'}`}>Lunch</th>
+                <th className={`border border-[var(--border)] ${isRenderingExport ? 'p-14 text-6xl' : 'p-2 text-lg font-semibold'}`}>Cooking Team</th>
+                <th className={`border border-[var(--border)] ${isRenderingExport ? 'p-14 text-6xl' : 'p-2 text-lg font-semibold'}`}>Dinner</th>
+                <th className={`border border-[var(--border)] ${isRenderingExport ? 'p-14 text-6xl' : 'p-2 text-lg font-semibold'}`}>Dinner Cooking Team</th>
               </tr>
             </thead>
             <tbody>
               {(menu.items || []).map((item, index) => (
                 <tr key={item.day} className="border-b border-[var(--border)]">
-                  <td className={`border border-[var(--border)] font-medium align-top ${isRenderingExport ? 'p-14 text-6xl' : 'p-2'}`}>
+                  <td className={`border border-[var(--border)] font-medium align-top ${isRenderingExport ? 'p-14 text-6xl' : 'p-2 text-lg leading-7'}`}>
                     {item.day === 'Sunday' ? "Lord's Day" : item.day}
                   </td>
                   <td className={`border border-[var(--border)] ${isRenderingExport ? 'p-14' : 'p-2'}`}>
                     <textarea
                       value={item.lunch || ''}
                       onChange={(e) => updateMenuItem(index, 'lunch', e.target.value)}
-                      className={`app-input resize-y w-full ${isRenderingExport ? 'min-h-[300px] text-5xl leading-normal' : 'min-h-[80px]'}`}
+                      className={`app-input resize-y w-full ${isRenderingExport ? 'min-h-[300px] text-5xl leading-normal' : 'min-h-[80px] text-lg leading-7'}`}
                       placeholder="Lunch menu"
                       disabled={!canManageMenu}
                       title={`Enter the lunch menu for ${item.day}.`}
@@ -376,7 +376,7 @@ export function MenuPlanner() {
                     <ArrayInput
                       values={item.lunchCooks || []}
                       onChange={(cooks) => updateMenuItem(index, 'lunchCooks', cooks)}
-                      className={`app-input ${isRenderingExport ? 'text-5xl leading-normal min-h-[300px]' : ''}`}
+                      className={`app-input ${isRenderingExport ? 'text-5xl leading-normal min-h-[300px]' : 'text-lg leading-7'}`}
                       placeholder="Enter cooking team names"
                       disabled={!canManageMenu}
                       title={`Enter the lunch cooking team names for ${item.day}.`}
@@ -386,7 +386,7 @@ export function MenuPlanner() {
                     <textarea
                       value={item.dinner || ''}
                       onChange={(e) => updateMenuItem(index, 'dinner', e.target.value)}
-                      className={`app-input resize-y w-full ${isRenderingExport ? 'min-h-[300px] text-5xl leading-normal' : 'min-h-[80px]'}`}
+                      className={`app-input resize-y w-full ${isRenderingExport ? 'min-h-[300px] text-5xl leading-normal' : 'min-h-[80px] text-lg leading-7'}`}
                       placeholder="Dinner menu"
                       disabled={!canManageMenu}
                       title={`Enter the dinner menu for ${item.day}.`}
@@ -396,7 +396,7 @@ export function MenuPlanner() {
                     <ArrayInput
                       values={item.dinnerCooks || []}
                       onChange={(cooks) => updateMenuItem(index, 'dinnerCooks', cooks)}
-                      className={`app-input ${isRenderingExport ? 'text-5xl leading-normal min-h-[300px]' : ''}`}
+                      className={`app-input ${isRenderingExport ? 'text-5xl leading-normal min-h-[300px]' : 'text-lg leading-7'}`}
                       placeholder="Enter dinner cooking team names"
                       disabled={!canManageMenu}
                       title={`Enter the dinner cooking team names for ${item.day}.`}
