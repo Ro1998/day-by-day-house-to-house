@@ -119,8 +119,13 @@ export function MenuPlanner() {
     const timeout = window.setTimeout(async () => {
       try {
         setSaveState('saving')
-        await updateMenu(menu)
-        lastSavedSnapshot.current = snapshot
+        const savedMenu = await updateMenu(menu)
+        if (!savedMenu) {
+          setSaveState('error')
+          return
+        }
+        setMenu(savedMenu)
+        lastSavedSnapshot.current = JSON.stringify(savedMenu)
         setSaveState('saved')
       } catch {
         setSaveState('error')
@@ -148,8 +153,13 @@ export function MenuPlanner() {
     void (async () => {
       try {
         setSaveState('saving')
-        await updateMenu(menu)
-        lastSavedSnapshot.current = JSON.stringify(menu)
+        const savedMenu = await updateMenu(menu)
+        if (!savedMenu) {
+          setSaveState('error')
+          return
+        }
+        setMenu(savedMenu)
+        lastSavedSnapshot.current = JSON.stringify(savedMenu)
         setSaveState('saved')
       } catch {
         setSaveState('error')
@@ -200,48 +210,51 @@ export function MenuPlanner() {
     try {
       // Ensure current changes are saved to the server before generating the image/sharing
       setSaveState('saving')
-      await updateMenu(menu)
+      const savedMenu = await updateMenu(menu)
+      if (!savedMenu) {
+        setSaveState('error')
+        return
+      }
+      setMenu(savedMenu)
+      lastSavedSnapshot.current = JSON.stringify(savedMenu)
       setSaveState('saved')
 
       const canvas = await renderMenuImage()
       if (!canvas) return
       const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
 
-      canvas.toBlob(async (blob) => {
-        if (!blob) return
-        const file = new File([blob], `menu-${menu.week}.jpg`, { type: 'image/jpeg' })
-        const fallbackText = `This week's menu has been updated. Please check the dashboard.`
-        const notificationMessage = `This week's menu has been updated. Please check the dashboard for the latest weekly menu.`
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((nextBlob) => resolve(nextBlob), 'image/jpeg', 0.8)
+      })
+      if (!blob) return
 
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({ title: `Weekly Menu - ${menu.week}`, text: fallbackText, files: [file] })
-            await addNotification({
-              title: `Weekly Menu for ${menu.week}`,
-              message: notificationMessage,
-              category: 'menu',
-              menuData: menu,
-              emailImageDataUrl: dataUrl,
-            })
-            return
-          } catch (err) {
-            console.log('Share canceled', err)
-          }
+      const file = new File([blob], `menu-${savedMenu.week}.jpg`, { type: 'image/jpeg' })
+      const fallbackText = `This week's menu has been updated. Please check the dashboard.`
+      const notificationMessage = `This week's menu has been updated. Please check the dashboard for the latest weekly menu.`
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ title: `Weekly Menu - ${savedMenu.week}`, text: fallbackText, files: [file] })
+        } catch (err) {
+          console.log('Share canceled', err)
         }
-
+      } else {
         const link = document.createElement('a')
-        link.download = `menu-${menu.week}.jpg`
+        link.download = `menu-${savedMenu.week}.jpg`
         link.href = dataUrl
         link.click()
-        await addNotification({
-          title: `Weekly Menu for ${menu.week}`,
-          message: notificationMessage,
-          category: 'menu',
-          menuData: menu,
-          emailImageDataUrl: dataUrl,
-        })
-      }, 'image/jpeg', 0.8)
-    } catch {}
+      }
+
+      await addNotification({
+        title: `Weekly Menu for ${savedMenu.week}`,
+        message: notificationMessage,
+        category: 'menu',
+        menuData: savedMenu,
+        emailImageDataUrl: dataUrl,
+      })
+    } catch {
+      setSaveState('error')
+    }
   }
 
   if (!menu) return <div>Loading...</div>

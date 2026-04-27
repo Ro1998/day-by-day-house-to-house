@@ -82,7 +82,7 @@ model MonthlyPayment {
 
 model Menu {
   id          String       @id @default(cuid())
-  week        String
+  week        String       @unique
   items       MenuItem[]
   purchasers  String[]
   userId      String

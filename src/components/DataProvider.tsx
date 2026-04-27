@@ -45,7 +45,7 @@ interface DataContextType {
   addMonthlyPayment: (payment: Omit<MonthlyPayment, 'id' | 'userId'>) => Promise<void>
   updateMonthlyPayment: (input: Partial<MonthlyPayment> & { id: string }) => Promise<void>
   deleteMonthlyPayment: (id: string) => Promise<void>
-  updateMenu: (menu: Menu) => Promise<void>
+  updateMenu: (menu: Menu) => Promise<Menu | null>
   requestRegistrationOtp: (input: {
     name: string
     username: string
@@ -534,25 +534,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }
 
   const updateMenu = async (menu: Menu) => {
-    if (!currentUser) return
-
-    const existingRecord = menus.find((entry) => entry.week === menu.week)
-    const method = (menu.id || existingRecord?.id) ? 'PUT' : 'POST'
-    const body = (menu.id || existingRecord?.id) 
-      ? { ...menu, id: menu.id || existingRecord?.id } 
-      : { ...menu, userId: currentUser.id }
+    if (!currentUser) return null
 
     try {
       setError(null)
       setNotice(null)
       const res = await fetch('/api/menus', {
-        method,
+        method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...menu, userId: currentUser.id }),
       })
       const updatedMenu = await readJson<Menu>(res, 'Failed to save menu')
       setMenus((prev) => {
-        const index = prev.findIndex((entry) => entry.week === menu.week)
+        const index = prev.findIndex((entry) => entry.week === updatedMenu.week || (!!entry.id && entry.id === updatedMenu.id))
         if (index >= 0) {
           const next = [...prev]
           next[index] = updatedMenu
@@ -561,11 +555,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
         return [...prev, updatedMenu]
       })
-      await logActivity(`Updated menu for week ${menu.week}`)
-      setNotice(`Menu for week ${menu.week} ${method === 'PUT' ? 'updated' : 'created'} successfully.`)
+      await logActivity(`Updated menu for week ${updatedMenu.week}`)
+      setNotice(`Menu for week ${updatedMenu.week} saved successfully.`)
       triggerRefresh()
+      return updatedMenu
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Failed to save menu')
+      return null
     }
   }
 
