@@ -43,10 +43,11 @@ const getPaymentTypeLabel = (paymentType?: string | null) => {
 }
 
 export function MonthlyFoodMoney() {
-  const { monthlyPayments, addMonthlyPayment, updateMonthlyPayment, deleteMonthlyPayment, currentUser, users } = useData()
+  const { monthlyPayments, addMonthlyPayment, updateMonthlyPayment, deleteMonthlyPayment, copyMonthlyPaymentsFromPreviousMonth, currentUser, users } = useData()
   const canManageEntries = currentUser?.role === 'admin'
   const currentMonth = format(new Date(), 'yyyy-MM')
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
+  const [isCopyingFromPrevious, setIsCopyingFromPrevious] = useState(false)
   const approvedMembers = useMemo(
     () => users.filter((user) => user.approved).sort((a, b) => a.name.localeCompare(b.name)),
     [users],
@@ -150,6 +151,18 @@ export function MonthlyFoodMoney() {
       })
     } finally {
       setActionPaymentId(null)
+    }
+  }
+
+  const handleCopyFromPreviousMonth = async () => {
+    try {
+      setIsCopyingFromPrevious(true)
+      const success = await copyMonthlyPaymentsFromPreviousMonth(selectedMonth)
+      if (success) {
+        setSelectedMonth(selectedMonth) // Refresh to show new entries
+      }
+    } finally {
+      setIsCopyingFromPrevious(false)
     }
   }
 
@@ -354,6 +367,20 @@ export function MonthlyFoodMoney() {
             className="app-input max-w-xs"
           />
         </div>
+
+        {monthlyList.length === 0 && canManageEntries && (
+          <div className="mb-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+            <p className="app-muted mb-3 text-sm">No entries for {selectedMonth}. Would you like to copy from the previous month?</p>
+            <button
+              type="button"
+              onClick={handleCopyFromPreviousMonth}
+              disabled={isCopyingFromPrevious}
+              className="app-button app-button-primary disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isCopyingFromPrevious ? 'Copying...' : 'Copy from Previous Month'}
+            </button>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">

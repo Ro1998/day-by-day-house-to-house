@@ -45,6 +45,7 @@ interface DataContextType {
   addMonthlyPayment: (payment: Omit<MonthlyPayment, 'id' | 'userId'>) => Promise<void>
   updateMonthlyPayment: (input: Partial<MonthlyPayment> & { id: string }) => Promise<void>
   deleteMonthlyPayment: (id: string) => Promise<void>
+  copyMonthlyPaymentsFromPreviousMonth: (month: string) => Promise<boolean>
   updateMenu: (menu: Menu) => Promise<Menu | null>
   requestRegistrationOtp: (input: {
     name: string
@@ -549,6 +550,31 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Failed to delete monthly payment')
+    }
+  }
+
+  const copyMonthlyPaymentsFromPreviousMonth = async (month: string) => {
+    if (!currentUser) return false
+    try {
+      setError(null)
+      setNotice(null)
+      const res = await fetch('/api/monthly-payments/copy-previous', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ month }),
+      })
+      const data = await readJson<{ message: string; entries: MonthlyPayment[] }>(res, 'Failed to copy entries from previous month')
+      
+      if (data.entries && data.entries.length > 0) {
+        setMonthlyPayments((prev) => [...prev, ...data.entries])
+        setNotice(`Copied ${data.entries.length} entries from previous month`)
+        await logActivity(`Copied ${data.entries.length} monthly payment entries to ${month}`)
+        return true
+      }
+      return false
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Failed to copy entries from previous month')
+      return false
     }
   }
 
@@ -1173,6 +1199,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       addMonthlyPayment,
       updateMonthlyPayment,
       deleteMonthlyPayment,
+      copyMonthlyPaymentsFromPreviousMonth,
       updateMenu,
       requestRegistrationOtp,
       verifyRegistrationOtp,
