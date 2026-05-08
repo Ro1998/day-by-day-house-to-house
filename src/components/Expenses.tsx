@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Expense } from '@/types'
 import { useData } from '@/components/DataProvider'
 import { Download, FileImage, FileSpreadsheet, FileText, Trash2, Undo, X } from 'lucide-react'
@@ -27,6 +27,9 @@ export function Expenses() {
     dateTo: '',
     format: 'pdf' as 'pdf' | 'xlsx' | 'png',
   })
+  const exportButtonRef = useRef<HTMLButtonElement | null>(null)
+  const exportPanelRef = useRef<HTMLDivElement | null>(null)
+  const [exportPanelPosition, setExportPanelPosition] = useState({ top: 0, left: 0, width: 0 })
 
   const categories = ['grocery', 'vegetables', 'gas', 'others', 'food money', 'offering', 'separate meal']
   const formatCategoryLabel = (category: string) => category.replace(/\b\w/g, (char) => char.toUpperCase())
@@ -284,6 +287,56 @@ export function Expenses() {
     setIsExportOpen(false)
   }
 
+  useEffect(() => {
+    if (!isExportOpen) return
+
+    const updatePosition = () => {
+      const button = exportButtonRef.current
+      if (!button) return
+
+      const rect = button.getBoundingClientRect()
+      const panelWidth = Math.min(window.innerWidth - 24, 520)
+      const estimatedPanelHeight = 360
+      const left = Math.min(
+        Math.max(12, rect.right - panelWidth),
+        window.innerWidth - panelWidth - 12,
+      )
+      const fitsBelow = rect.bottom + 10 + estimatedPanelHeight <= window.innerHeight - 12
+      const top = fitsBelow
+        ? rect.bottom + 10
+        : Math.max(12, rect.top - estimatedPanelHeight - 10)
+
+      setExportPanelPosition({ top, left, width: panelWidth })
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (exportPanelRef.current?.contains(target) || exportButtonRef.current?.contains(target)) {
+        return
+      }
+      setIsExportOpen(false)
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsExportOpen(false)
+      }
+    }
+
+    updatePosition()
+    window.addEventListener('resize', updatePosition)
+    window.addEventListener('scroll', updatePosition, true)
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleEscape)
+
+    return () => {
+      window.removeEventListener('resize', updatePosition)
+      window.removeEventListener('scroll', updatePosition, true)
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [isExportOpen])
+
   const renderExpenseCards = () => (
     <div className="space-y-3 md:hidden">
       {visibleExpenses.map((exp) => (
@@ -355,8 +408,17 @@ export function Expenses() {
       )}
 
       {isExportOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[rgba(18,24,18,0.42)] px-4 py-4 backdrop-blur-sm">
-          <div className="app-panel flex max-h-[calc(100vh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-3xl">
+        <div className="fixed inset-0 z-50">
+          <div
+            ref={exportPanelRef}
+            className="app-panel fixed flex max-h-[min(32rem,calc(100vh-2rem))] flex-col overflow-hidden rounded-3xl border border-[var(--border-strong)] shadow-2xl"
+            style={{
+              top: exportPanelPosition.top,
+              left: exportPanelPosition.left,
+              width: exportPanelPosition.width || undefined,
+              maxWidth: 'calc(100vw - 1.5rem)',
+            }}
+          >
             <div className="mb-5 flex items-start justify-between gap-4">
               <div className="px-6 pt-6">
                 <h3 className="text-xl font-semibold">Export Cash Flow</h3>
@@ -478,6 +540,7 @@ export function Expenses() {
               {currentUser?.role === 'admin' && (
                 <button
                   type="button"
+                  ref={exportButtonRef}
                   onClick={() => {
                     setExportConfig((prev) => ({
                       ...prev,
