@@ -4,8 +4,9 @@ import { useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import { useData } from '@/components/DataProvider'
 import { formatCurrency } from '@/lib/format'
-import { MoreVertical, Trash2 } from 'lucide-react'
+import { MoreVertical, Trash2, History } from 'lucide-react'
 import type { MonthlyPayment } from '@/types'
+import { PaymentHistorySummary } from '@/components/PaymentHistorySummary'
 
 type PaymentType = 'both-meals' | 'one-meal' | 'per-meal' | 'custom'
 
@@ -48,6 +49,7 @@ export function MonthlyFoodMoney() {
   const currentMonth = format(new Date(), 'yyyy-MM')
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
   const [isCopyingFromPrevious, setIsCopyingFromPrevious] = useState(false)
+  const [activeView, setActiveView] = useState<'current' | 'history'>('current')
   const approvedMembers = useMemo(
     () => users.filter((user) => user.approved).sort((a, b) => a.name.localeCompare(b.name)),
     [users],
@@ -173,6 +175,32 @@ export function MonthlyFoodMoney() {
 
   return (
     <div className="space-y-6">
+      {/* Tab Navigation */}
+      <div className="flex gap-2 border-b border-[var(--border)] overflow-x-auto">
+        <button
+          onClick={() => setActiveView('current')}
+          className={`px-4 py-3 font-medium whitespace-nowrap border-b-2 transition-colors ${
+            activeView === 'current'
+              ? 'border-[var(--primary)] text-[var(--primary-strong)]'
+              : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text)]'
+          }`}
+        >
+          Current Month
+        </button>
+        <button
+          onClick={() => setActiveView('history')}
+          className={`px-4 py-3 font-medium whitespace-nowrap border-b-2 transition-colors flex items-center gap-2 ${
+            activeView === 'history'
+              ? 'border-[var(--primary)] text-[var(--primary-strong)]'
+              : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text)]'
+          }`}
+        >
+          <History size={16} />
+          Payment History
+        </button>
+      </div>
+
+      {/* Modals and overlays - shown regardless of view */}
       {pendingDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(18,24,18,0.42)] px-4">
           <div className="app-panel w-full max-w-md rounded-3xl p-6 shadow-2xl">
@@ -269,7 +297,13 @@ export function MonthlyFoodMoney() {
           </div>
         </div>
       )}
-      {!currentUser && (
+
+      {/* View Content */}
+      {activeView === 'history' ? (
+        <PaymentHistorySummary />
+      ) : (
+        <>
+          {!currentUser && (
         <div className="app-panel rounded-2xl px-4 py-3 text-sm">
           Log in first to add monthly payments.
         </div>
@@ -355,191 +389,193 @@ export function MonthlyFoodMoney() {
             </button>
           </form>
         </div>
-      )}
-
-      <div className="app-panel rounded-3xl p-6">
-        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <h2 className="text-xl font-semibold">Monthly Status Overview</h2>
-          <input
-            type="month"
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="app-input max-w-xs"
-          />
-        </div>
-
-        {monthlyList.length === 0 && canManageEntries && (
-          <div className="mb-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-            <p className="app-muted mb-3 text-sm">No entries for {selectedMonth}. Would you like to copy from the previous month?</p>
-            <button
-              type="button"
-              onClick={handleCopyFromPreviousMonth}
-              disabled={isCopyingFromPrevious}
-              className="app-button app-button-primary disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isCopyingFromPrevious ? 'Copying...' : 'Copy from Previous Month'}
-            </button>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">
-            <p className="text-2xl font-bold text-[var(--primary-strong)]">{monthlyList.length}</p>
-            <p className="app-muted text-sm">People In List</p>
-          </div>
-          <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">
-            <p className="text-2xl font-bold text-[var(--accent-strong)]">{paidCount}</p>
-            <p className="app-muted text-sm">Paid</p>
-          </div>
-          <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">
-            <p className="text-2xl font-bold text-[var(--primary)]">{formatCurrency(totalDue)}</p>
-            <p className="app-muted text-sm">Total Due</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="app-panel rounded-3xl p-6">
-        <h2 className="mb-4 text-xl font-semibold">Reminder List</h2>
-        <div className="flex flex-wrap gap-2">
-          {monthlyList.filter((payment) => !payment.paid).map((payment) => (
-            <span
-              key={payment.id}
-              className="rounded-full bg-[var(--primary)]/15 px-3 py-2 text-sm text-[var(--primary-strong)]"
-            >
-              {payment.memberName} - {formatCurrency(payment.amount)} pending
-            </span>
-          ))}
-          {monthlyList.filter((payment) => !payment.paid).length === 0 && (
-            <p className="app-muted text-sm">Everyone has paid for {selectedMonth}.</p>
           )}
-        </div>
-      </div>
 
-      <div className="app-panel rounded-3xl p-6">
-        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
-          <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">
-            <p className="text-2xl font-bold text-[var(--accent-strong)]">{formatCurrency(totalPaid)}</p>
-            <p className="app-muted text-sm">Cash In Posted</p>
-          </div>
-          <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">
-            <p className="text-2xl font-bold text-[var(--primary-strong)]">{pendingCount}</p>
-            <p className="app-muted text-sm">Pending</p>
-          </div>
-          <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">
-            <p className="text-2xl font-bold text-[var(--primary)]">{knownNames.length}</p>
-            <p className="app-muted text-sm">Known Names</p>
-          </div>
-          <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">
-            <p className="text-2xl font-bold text-[var(--accent-strong)]">{approvedMembers.length}</p>
-            <p className="app-muted text-sm">Approved Users</p>
-          </div>
-        </div>
+          <div className="app-panel rounded-3xl p-6">
+            <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <h2 className="text-xl font-semibold">Monthly Status Overview</h2>
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="app-input max-w-xs"
+              />
+            </div>
 
-        <h2 className="mb-4 text-xl font-semibold">Monthly Food Money List</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full table-auto">
-            <thead>
-              <tr className="border-b border-[var(--border)]">
-                <th className="p-2 text-left">Month</th>
-                <th className="p-2 text-left">Person</th>
-                <th className="p-2 text-left">Plan</th>
-                <th className="p-2 text-left">Note</th>
-                <th className="p-2 text-left">Status</th>
-                <th className="p-2 text-left">Amount Due</th>
-                <th className="p-2 text-left">Recorded By</th>
-                <th className="p-2 text-left">Action</th>
-                {canManageEntries && <th className="p-2 text-right">Options</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {monthlyList.map((payment) => (
-                <tr key={payment.id} className="border-b border-[var(--border)] transition-all duration-200 ease-out">
-                  <td className="p-2">{payment.month}</td>
-                  <td className="p-2 font-medium">{payment.memberName}</td>
-                  <td className="p-2">{getPaymentTypeLabel(payment.paymentType)}</td>
-                  <td className="p-2">{payment.note || '-'}</td>
-                  <td className="p-2">
-                    <span
-                      className={`rounded-full px-2 py-1 text-sm ${
-                        payment.paid
-                          ? 'bg-[var(--accent)]/20 text-[var(--accent-strong)]'
-                          : 'bg-amber-100 text-amber-800'
-                      }`}
-                    >
-                      {payment.paid ? 'Paid' : 'Pending'}
-                    </span>
-                  </td>
-                  <td className="p-2">{formatCurrency(payment.amount)}</td>
-                  <td className="p-2">{payment.user}</td>
-                  <td className="p-2">
-                    {canManageEntries && !payment.paid ? (
-                      <button
-                        type="button"
-                        onClick={() => markAsPaid(payment.id)}
-                        disabled={actionPaymentId === payment.id}
-                        className="app-button app-button-primary px-4 py-2 disabled:cursor-not-allowed disabled:opacity-70"
-                      >
-                        {actionPaymentId === payment.id ? 'Updating...' : 'Mark Paid'}
-                      </button>
-                    ) : (
-                      <span className="app-muted text-sm">
-                        {payment.paid ? 'Cash in updated' : 'Pending'}
-                      </span>
-                    )}
-                  </td>
-                  {canManageEntries && (
-                    <td className="p-2 text-right">
-                      {openMenuId === payment.id ? (
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingPayment({
-                                ...payment,
-                                amountStr: String(payment.amount),
-                                mealCountStr: payment.paymentType === 'per-meal' ? String(payment.amount) : '',
-                              })
-                              setOpenMenuId(null)
-                            }}
-                            className="app-button app-button-ghost px-3 py-1.5 text-xs"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => { setPendingDelete(payment); setOpenMenuId(null); }}
-                            className="app-button border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 px-3 py-1.5 text-xs"
-                          >
-                            Delete
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setOpenMenuId(null)}
-                            className="app-button app-button-ghost px-2 py-1.5 text-xs text-gray-500"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setOpenMenuId(payment.id)}
-                          className="p-2 app-button-ghost rounded-full hover:bg-[var(--surface-soft)]"
-                        >
-                          <MoreVertical size={16} />
-                        </button>
-                      )}
-                    </td>
-                  )}
-                </tr>
+            {monthlyList.length === 0 && canManageEntries && (
+              <div className="mb-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                <p className="app-muted mb-3 text-sm">No entries for {selectedMonth}. Would you like to copy from the previous month?</p>
+                <button
+                  type="button"
+                  onClick={handleCopyFromPreviousMonth}
+                  disabled={isCopyingFromPrevious}
+                  className="app-button app-button-primary disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isCopyingFromPrevious ? 'Copying...' : 'Copy from Previous Month'}
+                </button>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">
+                <p className="text-2xl font-bold text-[var(--primary-strong)]">{monthlyList.length}</p>
+                <p className="app-muted text-sm">People In List</p>
+              </div>
+              <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">
+                <p className="text-2xl font-bold text-[var(--accent-strong)]">{paidCount}</p>
+                <p className="app-muted text-sm">Paid</p>
+              </div>
+              <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">
+                <p className="text-2xl font-bold text-[var(--primary)]">{formatCurrency(totalDue)}</p>
+                <p className="app-muted text-sm">Total Due</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="app-panel rounded-3xl p-6">
+            <h2 className="mb-4 text-xl font-semibold">Reminder List</h2>
+            <div className="flex flex-wrap gap-2">
+              {monthlyList.filter((payment) => !payment.paid).map((payment) => (
+                <span
+                  key={payment.id}
+                  className="rounded-full bg-[var(--primary)]/15 px-3 py-2 text-sm text-[var(--primary-strong)]"
+                >
+                  {payment.memberName} - {formatCurrency(payment.amount)} pending
+                </span>
               ))}
-            </tbody>
-          </table>
-        </div>
-        {monthlyList.length === 0 && (
-          <p className="app-muted mt-4 text-sm">No entries saved for {selectedMonth} yet.</p>
-        )}
-      </div>
+              {monthlyList.filter((payment) => !payment.paid).length === 0 && (
+                <p className="app-muted text-sm">Everyone has paid for {selectedMonth}.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="app-panel rounded-3xl p-6">
+            <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+              <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">
+                <p className="text-2xl font-bold text-[var(--accent-strong)]">{formatCurrency(totalPaid)}</p>
+                <p className="app-muted text-sm">Cash In Posted</p>
+              </div>
+              <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">
+                <p className="text-2xl font-bold text-[var(--primary-strong)]">{pendingCount}</p>
+                <p className="app-muted text-sm">Pending</p>
+              </div>
+              <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">
+                <p className="text-2xl font-bold text-[var(--primary)]">{knownNames.length}</p>
+                <p className="app-muted text-sm">Known Names</p>
+              </div>
+              <div className="rounded-2xl bg-[var(--surface-soft)] p-4 text-center">
+                <p className="text-2xl font-bold text-[var(--accent-strong)]">{approvedMembers.length}</p>
+                <p className="app-muted text-sm">Approved Users</p>
+              </div>
+            </div>
+
+            <h2 className="mb-4 text-xl font-semibold">Monthly Food Money List</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full table-auto">
+                <thead>
+                  <tr className="border-b border-[var(--border)]">
+                    <th className="p-2 text-left">Month</th>
+                    <th className="p-2 text-left">Person</th>
+                    <th className="p-2 text-left">Plan</th>
+                    <th className="p-2 text-left">Note</th>
+                    <th className="p-2 text-left">Status</th>
+                    <th className="p-2 text-left">Amount Due</th>
+                    <th className="p-2 text-left">Recorded By</th>
+                    <th className="p-2 text-left">Action</th>
+                    {canManageEntries && <th className="p-2 text-right">Options</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {monthlyList.map((payment) => (
+                    <tr key={payment.id} className="border-b border-[var(--border)] transition-all duration-200 ease-out">
+                      <td className="p-2">{payment.month}</td>
+                      <td className="p-2 font-medium">{payment.memberName}</td>
+                      <td className="p-2">{getPaymentTypeLabel(payment.paymentType)}</td>
+                      <td className="p-2">{payment.note || '-'}</td>
+                      <td className="p-2">
+                        <span
+                          className={`rounded-full px-2 py-1 text-sm ${
+                            payment.paid
+                              ? 'bg-[var(--accent)]/20 text-[var(--accent-strong)]'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {payment.paid ? 'Paid' : 'Pending'}
+                        </span>
+                      </td>
+                      <td className="p-2">{formatCurrency(payment.amount)}</td>
+                      <td className="p-2">{payment.user}</td>
+                      <td className="p-2">
+                        {canManageEntries && !payment.paid ? (
+                          <button
+                            type="button"
+                            onClick={() => markAsPaid(payment.id)}
+                            disabled={actionPaymentId === payment.id}
+                            className="app-button app-button-primary px-4 py-2 disabled:cursor-not-allowed disabled:opacity-70"
+                          >
+                            {actionPaymentId === payment.id ? 'Updating...' : 'Mark Paid'}
+                          </button>
+                        ) : (
+                          <span className="app-muted text-sm">
+                            {payment.paid ? 'Cash in updated' : 'Pending'}
+                          </span>
+                        )}
+                      </td>
+                      {canManageEntries && (
+                        <td className="p-2 text-right">
+                          {openMenuId === payment.id ? (
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingPayment({
+                                    ...payment,
+                                    amountStr: String(payment.amount),
+                                    mealCountStr: payment.paymentType === 'per-meal' ? String(payment.amount) : '',
+                                  })
+                                  setOpenMenuId(null)
+                                }}
+                                className="app-button app-button-ghost px-3 py-1.5 text-xs"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => { setPendingDelete(payment); setOpenMenuId(null); }}
+                                className="app-button border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 px-3 py-1.5 text-xs"
+                              >
+                                Delete
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setOpenMenuId(null)}
+                                className="app-button app-button-ghost px-2 py-1.5 text-xs text-gray-500"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setOpenMenuId(payment.id)}
+                              className="p-2 app-button-ghost rounded-full hover:bg-[var(--surface-soft)]"
+                            >
+                              <MoreVertical size={16} />
+                            </button>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {monthlyList.length === 0 && (
+              <p className="app-muted mt-4 text-sm">No entries saved for {selectedMonth} yet.</p>
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }
