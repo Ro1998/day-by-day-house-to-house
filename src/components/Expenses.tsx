@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import type { Expense } from '@/types'
 import { useData } from '@/components/DataProvider'
 import { Download, FileImage, FileSpreadsheet, FileText, Trash2, Undo, X } from 'lucide-react'
 import jsPDF from 'jspdf'
@@ -100,25 +101,118 @@ export function Expenses() {
 
   const exportRows = getVisibleExpenses({ ...filter, dateFrom: exportConfig.dateFrom, dateTo: exportConfig.dateTo })
 
+  const getExportRow = (expense: Expense) => ({
+    Date: expense.date,
+    Type: expense.type === 'in' ? 'Cash In' : 'Cash Out',
+    Category: getExpenseCategoryLabel(expense),
+    Amount: getExpenseAmountLabel(expense),
+    Description: getExpenseDescriptionLabel(expense),
+    User: getExpenseUserLabel(expense),
+  })
+
+  const wrapText = (doc: jsPDF, text: string, maxWidth: number) => {
+    const safeText = text.trim() || '-'
+    return doc.splitTextToSize(safeText, maxWidth) as string[]
+  }
+
   const exportPDF = (rows: typeof visibleExpenses) => {
-    const doc = new jsPDF()
-    doc.text('Cash Flow Report', 20, 20)
-    let y = 40
-    rows.forEach(exp => {
-      doc.text(`${exp.date} - ${exp.category} - INR ${exp.amount} - ${exp.description}`, 20, y)
-      y += 10
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+    const pageHeight = doc.internal.pageSize.getHeight()
+    const margin = 12
+    const startX = margin
+    const columns = [
+      { key: 'Date', label: 'Date', width: 26 },
+      { key: 'Type', label: 'Type', width: 24 },
+      { key: 'Category', label: 'Category', width: 35 },
+      { key: 'Amount', label: 'Amount', width: 32 },
+      { key: 'Description', label: 'Description', width: 102 },
+      { key: 'User', label: 'User', width: 38 },
+    ] as const
+    const tableWidth = columns.reduce((sum, column) => sum + column.width, 0)
+    const minRowHeight = 10
+    const lineHeight = 5
+    const cellPaddingX = 2.5
+    const cellPaddingY = 3
+    const titleY = 14
+    const subtitleY = 21
+    const headerY = 28
+
+    const drawHeader = (y: number) => {
+      doc.setFillColor(240, 244, 248)
+      doc.rect(startX, y, tableWidth, minRowHeight, 'F')
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(10)
+
+      let x = startX
+      columns.forEach((column) => {
+        doc.rect(x, y, column.width, minRowHeight)
+        doc.text(column.label, x + cellPaddingX, y + 6.5)
+        x += column.width
+      })
+    }
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(16)
+    doc.text('Cash Flow Report', startX, titleY)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    doc.text(`Entries exported: ${rows.length}`, startX, subtitleY)
+    drawHeader(headerY)
+
+    let y = headerY + minRowHeight
+
+    rows.forEach((expense) => {
+      const row = getExportRow(expense)
+      const cellLines = columns.map((column) => wrapText(doc, row[column.key], column.width - cellPaddingX * 2))
+      const rowHeight = Math.max(
+        minRowHeight,
+        ...cellLines.map((lines) => lines.length * lineHeight + cellPaddingY * 2),
+      )
+
+      if (y + rowHeight > pageHeight - margin) {
+        doc.addPage()
+        y = margin
+        drawHeader(y)
+        y += minRowHeight
+      }
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+
+      let x = startX
+      columns.forEach((column, index) => {
+        doc.rect(x, y, column.width, rowHeight)
+        doc.text(cellLines[index], x + cellPaddingX, y + cellPaddingY + lineHeight - 1)
+        x += column.width
+      })
+
+      y += rowHeight
     })
+
     doc.save('expenses.pdf')
   }
 
   const exportXLS = (rows: typeof visibleExpenses) => {
-    const ws = XLSX.utils.json_to_sheet(rows)
+    const sheetRows = rows.map(getExportRow)
+    const ws = XLSX.utils.json_to_sheet(sheetRows)
+    ws['!cols'] = [
+      { wch: 14 },
+      { wch: 12 },
+      { wch: 18 },
+      { wch: 16 },
+      { wch: 42 },
+      { wch: 18 },
+    ]
+    ws['!autofilter'] = {
+      ref: `A1:F${Math.max(sheetRows.length + 1, 2)}`,
+    }
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Expenses')
     XLSX.writeFile(wb, 'expenses.xlsx')
   }
 
   const exportPNG = async (rows: typeof visibleExpenses) => {
+    const previewRows = rows.map(getExportRow)
     const element = document.createElement('div')
     element.style.position = 'fixed'
     element.style.left = '-9999px'
@@ -132,23 +226,23 @@ export function Expenses() {
       <table style="width:100%;border-collapse:collapse;font-size:14px;">
         <thead>
           <tr>
-            <th style="text-align:left;border-bottom:1px solid #d1d5db;padding:8px;">Date</th>
-            <th style="text-align:left;border-bottom:1px solid #d1d5db;padding:8px;">Type</th>
-            <th style="text-align:left;border-bottom:1px solid #d1d5db;padding:8px;">Category</th>
-            <th style="text-align:left;border-bottom:1px solid #d1d5db;padding:8px;">Amount</th>
-            <th style="text-align:left;border-bottom:1px solid #d1d5db;padding:8px;">Description</th>
-            <th style="text-align:left;border-bottom:1px solid #d1d5db;padding:8px;">User</th>
+            <th style="text-align:left;border:1px solid #d1d5db;padding:8px;background:#f8fafc;">Date</th>
+            <th style="text-align:left;border:1px solid #d1d5db;padding:8px;background:#f8fafc;">Type</th>
+            <th style="text-align:left;border:1px solid #d1d5db;padding:8px;background:#f8fafc;">Category</th>
+            <th style="text-align:left;border:1px solid #d1d5db;padding:8px;background:#f8fafc;">Amount</th>
+            <th style="text-align:left;border:1px solid #d1d5db;padding:8px;background:#f8fafc;">Description</th>
+            <th style="text-align:left;border:1px solid #d1d5db;padding:8px;background:#f8fafc;">User</th>
           </tr>
         </thead>
         <tbody>
-          ${rows.map((exp) => `
+          ${previewRows.map((row) => `
             <tr>
-              <td style="border-bottom:1px solid #e5e7eb;padding:8px;">${exp.date}</td>
-              <td style="border-bottom:1px solid #e5e7eb;padding:8px;">${exp.type}</td>
-              <td style="border-bottom:1px solid #e5e7eb;padding:8px;">${exp.category}</td>
-              <td style="border-bottom:1px solid #e5e7eb;padding:8px;">${formatCurrency(exp.amount)}</td>
-              <td style="border-bottom:1px solid #e5e7eb;padding:8px;">${exp.description}</td>
-              <td style="border-bottom:1px solid #e5e7eb;padding:8px;">${exp.user}</td>
+              <td style="border:1px solid #e5e7eb;padding:8px;">${row.Date}</td>
+              <td style="border:1px solid #e5e7eb;padding:8px;">${row.Type}</td>
+              <td style="border:1px solid #e5e7eb;padding:8px;">${row.Category}</td>
+              <td style="border:1px solid #e5e7eb;padding:8px;">${row.Amount}</td>
+              <td style="border:1px solid #e5e7eb;padding:8px;">${row.Description}</td>
+              <td style="border:1px solid #e5e7eb;padding:8px;">${row.User}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -261,44 +355,46 @@ export function Expenses() {
       )}
 
       {isExportOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(18,24,18,0.42)] px-4 backdrop-blur-sm">
-          <div className="app-panel w-full max-w-lg rounded-3xl p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[rgba(18,24,18,0.42)] px-4 py-4 backdrop-blur-sm">
+          <div className="app-panel flex max-h-[calc(100vh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-3xl">
             <div className="mb-5 flex items-start justify-between gap-4">
-              <div>
+              <div className="px-6 pt-6">
                 <h3 className="text-xl font-semibold">Export Cash Flow</h3>
                 <p className="app-muted mt-1 text-sm">Choose the date range and format, then export in one step.</p>
               </div>
-              <button onClick={() => setIsExportOpen(false)} className="text-[var(--text-soft)] hover:text-[var(--text)]" aria-label="Close export dialog">
+              <button onClick={() => setIsExportOpen(false)} className="mr-6 mt-6 text-[var(--text-soft)] hover:text-[var(--text)]" aria-label="Close export dialog">
                 <X size={18} />
               </button>
             </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <input
-                type="date"
-                value={exportConfig.dateFrom}
-                onChange={(e) => setExportConfig((prev) => ({ ...prev, dateFrom: e.target.value }))}
-                className="app-input"
-              />
-              <input
-                type="date"
-                value={exportConfig.dateTo}
-                onChange={(e) => setExportConfig((prev) => ({ ...prev, dateTo: e.target.value }))}
-                className="app-input"
-              />
-              <select
-                value={exportConfig.format}
-                onChange={(e) => setExportConfig((prev) => ({ ...prev, format: e.target.value as 'pdf' | 'xlsx' | 'png' }))}
-                className="app-input md:col-span-2"
-              >
-                <option value="pdf">PDF</option>
-                <option value="xlsx">Excel</option>
-                <option value="png">PNG</option>
-              </select>
+            <div className="overflow-y-auto px-6 pb-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <input
+                  type="date"
+                  value={exportConfig.dateFrom}
+                  onChange={(e) => setExportConfig((prev) => ({ ...prev, dateFrom: e.target.value }))}
+                  className="app-input"
+                />
+                <input
+                  type="date"
+                  value={exportConfig.dateTo}
+                  onChange={(e) => setExportConfig((prev) => ({ ...prev, dateTo: e.target.value }))}
+                  className="app-input"
+                />
+                <select
+                  value={exportConfig.format}
+                  onChange={(e) => setExportConfig((prev) => ({ ...prev, format: e.target.value as 'pdf' | 'xlsx' | 'png' }))}
+                  className="app-input md:col-span-2"
+                >
+                  <option value="pdf">PDF</option>
+                  <option value="xlsx">Excel</option>
+                  <option value="png">PNG</option>
+                </select>
+              </div>
+              <p className="app-muted mt-4 text-sm">
+                {exportRows.length} entries ready to export.
+              </p>
             </div>
-            <p className="app-muted mt-4 text-sm">
-              {exportRows.length} entries ready to export.
-            </p>
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-auto flex justify-end gap-3 border-t border-[var(--border)] bg-[var(--surface)] px-6 py-4">
               <button onClick={() => setIsExportOpen(false)} className="app-button app-button-ghost">
                 Cancel
               </button>
