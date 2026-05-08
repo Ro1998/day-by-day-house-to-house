@@ -370,9 +370,28 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const balance = expenses.reduce((acc, exp) => acc + (exp.type === 'in' ? exp.amount : -exp.amount), 0)
   const currentMonth = new Date().toISOString().slice(0, 7)
-  const monthlyBalance = expenses
+  
+  // Helper function to get previous month
+  const getPreviousMonth = (month: string) => {
+    const [year, monthNum] = month.split('-').map(Number)
+    const date = new Date(year, monthNum - 1, 1)
+    date.setMonth(date.getMonth() - 1)
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+  }
+  
+  // Get previous month's ending balance
+  const previousMonth = getPreviousMonth(currentMonth)
+  const previousMonthBalance = expenses
+    .filter((expense) => expense.date.startsWith(previousMonth))
+    .reduce((acc, expense) => acc + (expense.type === 'in' ? expense.amount : -expense.amount), 0)
+  
+  // Get current month's net (income - expenses)
+  const currentMonthNet = expenses
     .filter((expense) => expense.date.startsWith(currentMonth))
     .reduce((acc, expense) => acc + (expense.type === 'in' ? expense.amount : -expense.amount), 0)
+  
+  // Monthly balance = previous month's ending balance + current month's net
+  const monthlyBalance = previousMonthBalance + currentMonthNet
 
   const addExpense = async (expense: Omit<Expense, 'id' | 'userId'>) => {
     if (!currentUser) return
