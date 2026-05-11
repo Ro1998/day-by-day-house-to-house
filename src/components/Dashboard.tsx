@@ -50,6 +50,7 @@ export function Dashboard() {
   const [editingEventId, setEditingEventId] = useState<string | null>(null)
   const [isCreatingEvent, setIsCreatingEvent] = useState(false)
   const [showFullMenu, setShowFullMenu] = useState(false)
+  const [selectedMenuWeek, setSelectedMenuWeek] = useState<string | null>(null)
   const canSeeFullCashInDetails = currentUser?.role === 'admin' || currentUser?.role === 'overseer'
   const isGeneralUser = currentUser?.role === 'user'
   const canManageEvents = currentUser?.role === 'admin' || currentUser?.role === 'overseer'
@@ -106,18 +107,32 @@ export function Dashboard() {
 
   const currentWeekMenu = menus.find((m) => m.week === currentWeek)
   const nextWeekMenu = menus.find((m) => m.week === nextWeek)
+  const plannedMenuOptions = useMemo(
+    () => [...menus]
+      .filter((menu) => menu.week >= currentWeek && isMenuPopulated(menu))
+      .sort((left, right) => left.week.localeCompare(right.week)),
+    [currentWeek, menus],
+  )
 
   const today = new Date().getDay() // 0=Sun, 1=Mon, 2=Tue...
   const isTransitionPeriod = today === 0 || today === 1 // Sunday or Monday
 
   // Rotation Logic: Strictly follow the calendar rotation starting every Tuesday.
   // We no longer fall back to old menus (like April 7) even if the current one is empty.
-  let displayMenu = (isTransitionPeriod && isMenuPopulated(nextWeekMenu))
+  const defaultDisplayMenu = (isTransitionPeriod && isMenuPopulated(nextWeekMenu))
     ? nextWeekMenu
     : (currentWeekMenu || nextWeekMenu)
+  const selectedMenu = selectedMenuWeek
+    ? plannedMenuOptions.find((menu) => menu.week === selectedMenuWeek)
+    : null
+  const displayMenu = selectedMenu || defaultDisplayMenu || plannedMenuOptions[0]
 
   const isNextWeek = displayMenu?.week === nextWeek
-  const displayWeekLabel = isNextWeek ? "Next Week's Menu" : "This Week's Menu"
+  const displayWeekLabel = selectedMenu
+    ? `Menu for ${displayMenu?.week}`
+    : isNextWeek
+      ? "Next Week's Menu"
+      : "This Week's Menu"
 
   // Filter events to show only today and future events
   const todayStart = startOfDay(new Date())
@@ -172,6 +187,13 @@ export function Dashboard() {
   useEffect(() => {
     setReviewedAvailabilityIds((prev) => prev.filter((id) => availabilities.some((entry) => entry.id === id)))
   }, [availabilities])
+
+  useEffect(() => {
+    if (!selectedMenuWeek) return
+    if (!plannedMenuOptions.some((menu) => menu.week === selectedMenuWeek)) {
+      setSelectedMenuWeek(null)
+    }
+  }, [plannedMenuOptions, selectedMenuWeek])
 
   const handleSuggestionSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -295,6 +317,31 @@ export function Dashboard() {
                 </button>
               )}
             </div>
+            {plannedMenuOptions.length > 0 && (
+              <div className="mb-4 flex flex-wrap gap-2">
+                {plannedMenuOptions.map((menuOption) => (
+                  <button
+                    key={menuOption.week}
+                    type="button"
+                    onClick={() => {
+                      setSelectedMenuWeek((current) => current === menuOption.week ? null : menuOption.week)
+                      setShowFullMenu(false)
+                    }}
+                    className={`app-button px-3 py-2 text-sm ${
+                      displayMenu?.week === menuOption.week
+                        ? 'app-button-primary'
+                        : 'app-button-ghost'
+                    }`}
+                  >
+                    {menuOption.week === currentWeek
+                      ? 'This Week'
+                      : menuOption.week === nextWeek
+                        ? 'Next Week'
+                        : format(parseISO(menuOption.week), 'dd MMM')}
+                  </button>
+                ))}
+              </div>
+            )}
             {!showFullMenu && (
               <div className="space-y-3">
                 {displayMenu?.items?.map((item) => (

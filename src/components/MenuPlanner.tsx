@@ -64,7 +64,8 @@ export function MenuPlanner() {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [viewingMenu, setViewingMenu] = useState<Menu | null>(null)
   const [isRenderingExport, setIsRenderingExport] = useState(false)
-  const canManageMenu = currentUser?.role === 'admin'
+  const [isSending, setIsSending] = useState(false)
+  const canManageMenu = currentUser?.role === 'admin' || currentUser?.role === 'coordinator'
   const lastSavedSnapshot = useRef('')
   const isDirty = !!menu && JSON.stringify(menu) !== lastSavedSnapshot.current
 
@@ -183,7 +184,7 @@ export function MenuPlanner() {
 
     const link = document.createElement('a')
     link.download = `menu-${menu.week}.png`
-    link.href = canvas.toDataURL()
+    link.href = canvas.toDataURL('image/png')
     link.click()
   }
 
@@ -191,6 +192,7 @@ export function MenuPlanner() {
     if (!menu) return
 
     try {
+      setIsSending(true)
       // Ensure current changes are saved to the server before generating the image/sharing
       setSaveState('saving')
       const savedMenu = await updateMenu(menu)
@@ -204,16 +206,15 @@ export function MenuPlanner() {
 
       const canvas = await renderMenuImage()
       if (!canvas) return
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
+      const dataUrl = canvas.toDataURL('image/png')
 
       const blob = await new Promise<Blob | null>((resolve) => {
-        canvas.toBlob((nextBlob) => resolve(nextBlob), 'image/jpeg', 0.8)
+        canvas.toBlob((nextBlob) => resolve(nextBlob), 'image/png')
       })
       if (!blob) return
 
-      const file = new File([blob], `menu-${savedMenu.week}.jpg`, { type: 'image/jpeg' })
-      const fallbackText = `This week's menu has been updated. Please check the dashboard.`
-      const notificationMessage = `This week's menu has been updated. Please check the dashboard for the latest weekly menu.`
+      const file = new File([blob], `menu-${savedMenu.week}.png`, { type: 'image/png' })
+      const fallbackText = `Weekly menu for ${savedMenu.week} is ready.`
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
@@ -223,20 +224,22 @@ export function MenuPlanner() {
         }
       } else {
         const link = document.createElement('a')
-        link.download = `menu-${savedMenu.week}.jpg`
+        link.download = `menu-${savedMenu.week}.png`
         link.href = dataUrl
         link.click()
       }
 
       await addNotification({
         title: `Weekly Menu for ${savedMenu.week}`,
-        message: notificationMessage,
+        message: `[MENU_IMAGE]${dataUrl}`,
         category: 'menu',
         menuData: savedMenu,
         emailImageDataUrl: dataUrl,
       })
     } catch {
       setSaveState('error')
+    } finally {
+      setIsSending(false)
     }
   }
 
@@ -251,7 +254,7 @@ export function MenuPlanner() {
       )}
       {currentUser && !canManageMenu && (
         <div className="app-panel rounded-2xl px-4 py-3 text-sm">
-          Only the Admin can update the weekly menu.
+          Only admins and coordinators can update the weekly menu.
         </div>
       )}
       <div className="app-panel rounded-3xl p-6">
@@ -259,7 +262,7 @@ export function MenuPlanner() {
           <div>
             <h2 className="text-xl font-semibold">Weekly Menu Planner</h2>
             <p className="app-muted mt-1 text-sm">
-              Edit freely and save only when you click Save Now.
+              Plan this week or future weeks, then save only when you are ready.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 w-full md:w-auto">
@@ -282,12 +285,12 @@ export function MenuPlanner() {
             <button
               type="button"
               onClick={() => void sendWeeklyMenu()}
-              disabled={!canManageMenu}
-            className="app-button app-button-primary flex flex-1 md:flex-none items-center justify-center space-x-1"
-              title="Send this weekly menu as a notification to everyone in the app."
+              disabled={!canManageMenu || isSending}
+              className="app-button app-button-primary flex flex-1 md:flex-none items-center justify-center space-x-1"
+              title="Share this weekly menu as a PNG and publish it in the app and by email."
             >
-            <Send size={16} />
-            <span>Share & Send</span>
+              <Send size={16} />
+              <span>{isSending ? 'Sharing...' : 'Share & Send'}</span>
             </button>
           </div>
         </div>
@@ -309,6 +312,32 @@ export function MenuPlanner() {
           >
             Next Week
           </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedWeek(getWeekKey(new Date()))}
+              className="app-button app-button-ghost"
+              title="Jump to the current planning week."
+            >
+              This Week
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedWeek(getWeekKey(addWeeks(new Date(), 1)))}
+              className="app-button app-button-ghost"
+              title="Jump to one week ahead."
+            >
+              1 Week Ahead
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedWeek(getWeekKey(addWeeks(new Date(), 2)))}
+              className="app-button app-button-ghost"
+              title="Jump to two weeks ahead."
+            >
+              2 Weeks Ahead
+            </button>
+          </div>
           <input
             type="date"
             value={selectedWeek}

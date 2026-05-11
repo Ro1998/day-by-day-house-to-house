@@ -113,7 +113,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
     { id: 'maintenance', label: 'Maintenance', icon: Wrench },
     ...(canManageOperations ? [{ id: 'inventory', label: 'Supplies', icon: Boxes }] : []),
     ...(canViewMonthly ? [{ id: 'monthly', label: 'Monthly Food Money', icon: Wallet }] : []),
-    ...(currentUser?.role === 'admin' ? [{ id: 'menu', label: 'Menu Planner', icon: MenuSquare }] : []),
+    ...(currentUser?.role === 'admin' || currentUser?.role === 'coordinator' ? [{ id: 'menu', label: 'Menu Planner', icon: MenuSquare }] : []),
     ...(currentUser?.role === 'admin' ? [{ id: 'users', label: 'User Access', icon: Settings2 }] : []),
   ]
 

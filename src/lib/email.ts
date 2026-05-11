@@ -344,7 +344,7 @@ export async function sendMenuEmails(
   const imageAttachment =
     options?.imageDataUrl && options.imageDataUrl.startsWith('data:image/')
       ? {
-          filename: `menu-${menu.week}.jpg`,
+          filename: `menu-${menu.week}.${options.imageDataUrl.includes('image/png') ? 'png' : 'jpg'}`,
           path: options.imageDataUrl,
         }
       : undefined
