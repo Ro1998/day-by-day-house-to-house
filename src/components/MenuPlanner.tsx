@@ -55,6 +55,9 @@ function ArrayInput({
   )
 }
 
+const displayNames = (values?: string[]) => values?.filter(Boolean).join(', ') || '-'
+const displayText = (value?: string) => value?.trim() || '-'
+
 export function MenuPlanner() {
   const { menus, updateMenu, currentUser, addNotification } = useData()
   const getWeekKey = (date: Date) => format(startOfWeek(date, { weekStartsOn: 2 }), 'yyyy-MM-dd')
@@ -152,27 +155,24 @@ export function MenuPlanner() {
   }
 
   const renderMenuImage = async () => {
-    const wrapper = document.getElementById('menu-export-area')
-    const tableContainer = document.getElementById('menu-table-container')
-    if (!wrapper || !tableContainer || !menu) return null
-
-    const originalOverflow = tableContainer.style.overflowX
-    const originalWidth = tableContainer.style.width
-    const originalWrapperWidth = wrapper.style.width
+    const wrapper = document.getElementById('menu-export-canvas')
+    if (!wrapper || !menu) return null
 
     setIsRenderingExport(true)
     await new Promise((resolve) => window.requestAnimationFrame(() => resolve(null)))
 
-    tableContainer.style.overflowX = 'visible'
-    tableContainer.style.width = `${tableContainer.scrollWidth}px`
-    wrapper.style.width = `${tableContainer.scrollWidth + 32}px`
-
     try {
-      return await html2canvas(wrapper, { scale: 2.5, backgroundColor: '#ffffff' })
+      return await html2canvas(wrapper, {
+        backgroundColor: '#ffffff',
+        scale: 3,
+        useCORS: true,
+        logging: false,
+        width: wrapper.scrollWidth,
+        height: wrapper.scrollHeight,
+        windowWidth: wrapper.scrollWidth,
+        windowHeight: wrapper.scrollHeight,
+      })
     } finally {
-      tableContainer.style.overflowX = originalOverflow
-      tableContainer.style.width = originalWidth
-      wrapper.style.width = originalWrapperWidth
       setIsRenderingExport(false)
     }
   }
@@ -435,6 +435,60 @@ export function MenuPlanner() {
               ))}
             </tbody>
           </table>
+          </div>
+        </div>
+      </div>
+
+      <div className="fixed -left-[10000px] top-0 z-[-1] pointer-events-none opacity-100">
+        <div
+          id="menu-export-canvas"
+          className="w-[1800px] bg-white p-10 text-black"
+        >
+          <div className="rounded-[28px] border border-slate-200 bg-white p-10 shadow-sm">
+            <div className="mb-8 flex items-start justify-between gap-6 border-b border-slate-200 pb-6">
+              <div>
+                <div className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-500">Day by Day</div>
+                <h2 className="mt-2 text-5xl font-bold text-slate-900">Weekly Menu</h2>
+                <p className="mt-2 text-2xl text-slate-600">Week of {menu.week}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-100 px-5 py-4 text-right">
+                <div className="text-lg font-semibold text-slate-500">Vegetable Purchasers</div>
+                <div className="mt-2 text-2xl font-semibold text-slate-900">{displayNames(menu.purchasers)}</div>
+              </div>
+            </div>
+
+            <table className="w-full border-collapse overflow-hidden rounded-3xl text-left">
+              <thead>
+                <tr className="bg-slate-100 text-slate-900">
+                  <th className="border border-slate-200 px-5 py-5 text-2xl font-bold">Day</th>
+                  <th className="border border-slate-200 px-5 py-5 text-2xl font-bold">Lunch</th>
+                  <th className="border border-slate-200 px-5 py-5 text-2xl font-bold">Cooking Team</th>
+                  <th className="border border-slate-200 px-5 py-5 text-2xl font-bold">Dinner</th>
+                  <th className="border border-slate-200 px-5 py-5 text-2xl font-bold">Dinner Team</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(menu.items || []).map((item) => (
+                  <tr key={`export-${item.day}`} className="align-top">
+                    <td className="border border-slate-200 px-5 py-5 text-2xl font-semibold text-slate-900">
+                      {item.day === 'Sunday' ? "Lord's Day" : item.day}
+                    </td>
+                    <td className="border border-slate-200 px-5 py-5 text-2xl leading-relaxed whitespace-pre-wrap text-slate-700">
+                      {displayText(item.lunch)}
+                    </td>
+                    <td className="border border-slate-200 px-5 py-5 text-2xl leading-relaxed whitespace-pre-wrap text-slate-700">
+                      {displayNames(item.lunchCooks)}
+                    </td>
+                    <td className="border border-slate-200 px-5 py-5 text-2xl leading-relaxed whitespace-pre-wrap text-slate-700">
+                      {displayText(item.dinner)}
+                    </td>
+                    <td className="border border-slate-200 px-5 py-5 text-2xl leading-relaxed whitespace-pre-wrap text-slate-700">
+                      {displayNames(item.dinnerCooks)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
