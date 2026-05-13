@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Expense } from '@/types'
 import { useData } from '@/components/DataProvider'
-import { Download, FileImage, FileSpreadsheet, FileText, Trash2, Undo, X } from 'lucide-react'
+import { ChevronDown, Download, FileImage, FileSpreadsheet, FileText, Trash2, Undo, X } from 'lucide-react'
 import jsPDF from 'jspdf'
 import * as XLSX from 'xlsx'
 import html2canvas from 'html2canvas'
@@ -22,6 +22,7 @@ export function Expenses() {
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [expandedMonths, setExpandedMonths] = useState<Record<string, boolean>>({})
   const [exportConfig, setExportConfig] = useState({
     dateFrom: '',
     dateTo: '',
@@ -95,6 +96,27 @@ export function Expenses() {
 
   const currentMonthKey = getCurrentMonthKey()
   const visibleExpenses = getVisibleExpenses(filter)
+  const groupedExpenses = useMemo(() => {
+    const groups = visibleExpenses.reduce((map, expense) => {
+      const monthKey = expense.date.slice(0, 7)
+      const existing = map.get(monthKey)
+
+      if (existing) {
+        existing.push(expense)
+      } else {
+        map.set(monthKey, [expense])
+      }
+
+      return map
+    }, new Map<string, Expense[]>())
+
+    return Array.from(groups.entries())
+      .sort(([left], [right]) => right.localeCompare(left))
+      .map(([monthKey, items]) => ({
+        monthKey,
+        items: [...items].sort((left, right) => right.date.localeCompare(left.date)),
+      }))
+  }, [visibleExpenses])
   const visibleIncomeTotal = expenses
     .filter((expense) => (!filter.dateFrom || expense.date >= filter.dateFrom) &&
       (!filter.dateTo || expense.date <= filter.dateTo) &&
@@ -103,6 +125,18 @@ export function Expenses() {
     .reduce((sum, expense) => sum + expense.amount, 0)
 
   const exportRows = getVisibleExpenses({ ...filter, dateFrom: exportConfig.dateFrom, dateTo: exportConfig.dateTo })
+
+  const formatMonthLabel = (monthKey: string) => {
+    const [year, month] = monthKey.split('-').map(Number)
+    return new Date(year, month - 1, 1).toLocaleDateString(undefined, {
+      month: 'long',
+      year: 'numeric',
+    })
+  }
+
+  const toggleMonth = (monthKey: string) => {
+    setExpandedMonths((prev) => ({ ...prev, [monthKey]: !prev[monthKey] }))
+  }
 
   const getExportRow = (expense: Expense) => ({
     Date: expense.date,
@@ -337,36 +371,141 @@ export function Expenses() {
     }
   }, [isExportOpen])
 
-  const renderExpenseCards = () => (
-    <div className="space-y-3 md:hidden">
-      {visibleExpenses.map((exp) => (
-        <div key={exp.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-3 transition-all duration-200 ease-out">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-sm font-semibold">{exp.description}</div>
-              <div className="app-muted mt-1 text-xs">{exp.date} | {getExpenseCategoryLabel(exp)}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm font-semibold">{getExpenseAmountLabel(exp)}</div>
-              <div className="app-muted text-[11px] uppercase">{exp.type}</div>
+  useEffect(() => {
+    if (groupedExpenses.length === 0) {
+      setExpandedMonths({})
+      return
+    }
+
+    setExpandedMonths((prev) => {
+      const nextState = groupedExpenses.reduce<Record<string, boolean>>((acc, group, index) => {
+        acc[group.monthKey] = prev[group.monthKey] ?? index === 0
+        return acc
+      }, {})
+
+      const isSame = Object.keys(nextState).length === Object.keys(prev).length &&
+        Object.entries(nextState).every(([key, value]) => prev[key] === value)
+
+      return isSame ? prev : nextState
+    })
+  }, [groupedExpenses])
+
+  const renderMonthSection = (monthKey: string, monthExpenses: Expense[], compact = false) => {
+    const isOpen = expandedMonths[monthKey] ?? false
+    const monthIn = monthExpenses
+      .filter((expense) => expense.type === 'in')
+      .reduce((sum, expense) => sum + expense.amount, 0)
+    const monthOut = monthExpenses
+      .filter((expense) => expense.type === 'out')
+      .reduce((sum, expense) => sum + expense.amount, 0)
+
+    return (
+      <section key={monthKey} className="overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface)]">
+        <button
+          type="button"
+          onClick={() => toggleMonth(monthKey)}
+          className="flex w-full items-center justify-between gap-4 bg-[var(--surface-soft)] px-4 py-4 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--surface-soft)_82%,white)] sm:px-5"
+          aria-expanded={isOpen}
+        >
+          <div className="min-w-0">
+            <div className="text-base font-semibold">{formatMonthLabel(monthKey)}</div>
+            <div className="app-muted mt-1 text-xs sm:text-sm">
+              {monthExpenses.length} entries
+              {canSeeFullCashInDetails ? ` | In ${formatCurrency(monthIn)}` : ''}
+              {' | '}Out {formatCurrency(monthOut)}
             </div>
           </div>
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <div className="app-muted text-xs">{getExpenseUserLabel(exp)}</div>
-            {canManageEntries && (
-              <button
-                type="button"
-                onClick={() => setPendingDelete({ id: exp.id, description: exp.description })}
-                className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 hover:text-red-800"
-                title="Open a confirmation box before deleting this entry."
-              >
-                <Trash2 size={14} />
-                Delete
-              </button>
-            )}
+          <ChevronDown
+            size={18}
+            className={`shrink-0 text-[var(--text-soft)] transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+          />
+        </button>
+        <div className={`grid transition-all duration-300 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+          <div className="overflow-hidden">
+            <div className="border-t border-[var(--border)] p-3 sm:p-4">
+              {compact ? (
+                <div className="space-y-3">
+                  {monthExpenses.map((exp) => (
+                    <div key={exp.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-3 transition-all duration-200 ease-out">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold">{exp.description}</div>
+                          <div className="app-muted mt-1 text-xs">{exp.date} | {getExpenseCategoryLabel(exp)}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-semibold">{getExpenseAmountLabel(exp)}</div>
+                          <div className="app-muted text-[11px] uppercase">{exp.type}</div>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between gap-3">
+                        <div className="app-muted text-xs">{getExpenseUserLabel(exp)}</div>
+                        {canManageEntries && (
+                          <button
+                            type="button"
+                            onClick={() => setPendingDelete({ id: exp.id, description: exp.description })}
+                            className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 hover:text-red-800"
+                            title="Open a confirmation box before deleting this entry."
+                          >
+                            <Trash2 size={14} />
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full table-auto">
+                    <thead>
+                      <tr className="border-b border-[var(--border)]">
+                        <th className="text-left p-2">Date</th>
+                        <th className="text-left p-2">Type</th>
+                        <th className="text-left p-2">Category</th>
+                        <th className="text-left p-2">Amount</th>
+                        <th className="text-left p-2">Description</th>
+                        <th className="text-left p-2">User</th>
+                        <th className="text-left p-2">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {monthExpenses.map((exp) => (
+                        <tr key={exp.id} className="border-b border-[var(--border)] last:border-0 transition-all duration-200 ease-out">
+                          <td className="p-2">{exp.date}</td>
+                          <td className="p-2">{exp.type}</td>
+                          <td className="p-2">{getExpenseCategoryLabel(exp)}</td>
+                          <td className="p-2">{getExpenseAmountLabel(exp)}</td>
+                          <td className="p-2">{getExpenseDescriptionLabel(exp)}</td>
+                          <td className="p-2">{getExpenseUserLabel(exp)}</td>
+                          <td className="p-2">
+                            {canManageEntries && (
+                              <button
+                                type="button"
+                                onClick={() => setPendingDelete({ id: exp.id, description: exp.description })}
+                                className="inline-flex items-center gap-1 rounded-full bg-red-50 px-3 py-1.5 text-red-700 transition-colors hover:bg-red-100 hover:text-red-800"
+                                title="Open a confirmation box before deleting this entry."
+                              >
+                                <Trash2 size={16} />
+                                Delete
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      ))}
+      </section>
+    )
+  }
+
+  const renderExpenseCards = () => (
+    <div className="space-y-3 md:hidden">
+      {groupedExpenses.map((group) => renderMonthSection(group.monthKey, group.items, true))}
       {visibleExpenses.length === 0 && (
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm app-muted">
           No cash flow entries found for this filter.
@@ -599,45 +738,13 @@ export function Expenses() {
           </div>
         </div>
         {renderExpenseCards()}
-        <div id="cash-flow-table" className="hidden overflow-x-auto md:block">
-          <table className="w-full table-auto">
-            <thead>
-              <tr className="border-b border-[var(--border)]">
-                <th className="text-left p-2">Date</th>
-                <th className="text-left p-2">Type</th>
-                <th className="text-left p-2">Category</th>
-                <th className="text-left p-2">Amount</th>
-                <th className="text-left p-2">Description</th>
-                <th className="text-left p-2">User</th>
-                <th className="text-left p-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleExpenses.map(exp => (
-                <tr key={exp.id} className="border-b border-[var(--border)] transition-all duration-200 ease-out">
-                  <td className="p-2">{exp.date}</td>
-                  <td className="p-2">{exp.type}</td>
-                  <td className="p-2">{getExpenseCategoryLabel(exp)}</td>
-                  <td className="p-2">{getExpenseAmountLabel(exp)}</td>
-                  <td className="p-2">{getExpenseDescriptionLabel(exp)}</td>
-                  <td className="p-2">{getExpenseUserLabel(exp)}</td>
-                  <td className="p-2">
-                    {canManageEntries && (
-                      <button
-                        type="button"
-                        onClick={() => setPendingDelete({ id: exp.id, description: exp.description })}
-                        className="inline-flex items-center gap-1 rounded-full bg-red-50 px-3 py-1.5 text-red-700 transition-colors hover:bg-red-100 hover:text-red-800"
-                        title="Open a confirmation box before deleting this entry."
-                      >
-                        <Trash2 size={16} />
-                        Delete
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div id="cash-flow-table" className="hidden space-y-4 md:block">
+          {groupedExpenses.map((group) => renderMonthSection(group.monthKey, group.items))}
+          {visibleExpenses.length === 0 && (
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm app-muted">
+              No cash flow entries found for this filter.
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -7,7 +7,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearSca
 import { formatCurrency } from '@/lib/format'
 import { format, startOfWeek, addWeeks, isToday, isTomorrow, parseISO, startOfDay } from 'date-fns'
 import { SupplyReportsBoard } from '@/components/SupplyReportsBoard'
-import { X, Calendar as CalendarIcon, MapPin, Video, Clock, Plus, ExternalLink, Loader2, Pencil, Trash2, Eye } from 'lucide-react'
+import { X, Calendar as CalendarIcon, MapPin, Video, Clock, Plus, ExternalLink, Loader2, Pencil, Trash2, Eye, BookOpen } from 'lucide-react'
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement)
 
@@ -18,6 +18,12 @@ const REPORT_STATUS_LABELS = {
   'in-consideration': 'In Consideration',
   'will-take-time': 'Will Take Time',
 } as const
+
+interface DailyVerse {
+  reference: string
+  text: string
+  translation?: string
+}
 
 export function Dashboard() {
   const {
@@ -51,6 +57,7 @@ export function Dashboard() {
   const [isCreatingEvent, setIsCreatingEvent] = useState(false)
   const [showFullMenu, setShowFullMenu] = useState(false)
   const [selectedMenuWeek, setSelectedMenuWeek] = useState<string | null>(null)
+  const [verseOfDay, setVerseOfDay] = useState<DailyVerse | null>(null)
   const canSeeFullCashInDetails = currentUser?.role === 'admin' || currentUser?.role === 'overseer'
   const isGeneralUser = currentUser?.role === 'user'
   const canManageEvents = currentUser?.role === 'admin' || currentUser?.role === 'overseer'
@@ -195,6 +202,51 @@ export function Dashboard() {
     }
   }, [plannedMenuOptions, selectedMenuWeek])
 
+  useEffect(() => {
+    let isMounted = true
+
+    const loadVerse = async () => {
+      try {
+        const res = await fetch('/api/verse-of-day', { cache: 'no-store' })
+        const payload = await res.json() as { verse?: DailyVerse | null }
+
+        if (isMounted) {
+          setVerseOfDay(payload.verse ?? null)
+        }
+      } catch {
+        if (isMounted) {
+          setVerseOfDay(null)
+        }
+      }
+    }
+
+    void loadVerse()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const renderVerseCard = () => {
+    if (!verseOfDay) return null
+
+    return (
+      <div className="app-panel rounded-3xl p-6">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--primary)]/12 text-[var(--primary-strong)]">
+            <BookOpen size={20} />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold">Verse Of The Day</h3>
+            <p className="app-muted text-sm">{verseOfDay.translation || 'Daily scripture'}</p>
+          </div>
+        </div>
+        <p className="text-base leading-7 sm:text-lg">"{verseOfDay.text}"</p>
+        <p className="mt-4 text-sm font-semibold text-[var(--primary-strong)]">{verseOfDay.reference}</p>
+      </div>
+    )
+  }
+
   const handleSuggestionSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     await addMenuSuggestion(suggestionForm)
@@ -300,6 +352,7 @@ export function Dashboard() {
         )}
 
         <div className="grid grid-cols-1 gap-6">
+          {renderVerseCard()}
           <div className="app-panel rounded-3xl p-6">
             <h3 className="mb-2 text-lg font-semibold">Remaining Balance This Month</h3>
             <p className="text-2xl font-bold text-[var(--primary)]">{formatCurrency(monthlyBalance)}</p>
@@ -580,6 +633,8 @@ export function Dashboard() {
 
   return (
       <div className="space-y-6">
+      {renderVerseCard()}
+
       {unreadNotifications.length > 0 && (
         <div className="space-y-3">
           {unreadNotifications.map((notification) => (
