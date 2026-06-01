@@ -10,7 +10,7 @@ import html2canvas from 'html2canvas'
 import { formatCurrency, getCurrentMonthKey } from '@/lib/format'
 
 export function Expenses() {
-  const { expenses, addExpense, deleteExpense, undoDelete, currentUser, notice } = useData()
+  const { expenses, addExpense, deleteExpense, undoDelete, currentUser, notice, monthlyCashFlowSummaries } = useData()
   const [form, setForm] = useState({
     type: 'out' as 'in' | 'out',
     category: '',
@@ -392,6 +392,7 @@ export function Expenses() {
 
   const renderMonthSection = (monthKey: string, monthExpenses: Expense[], compact = false) => {
     const isOpen = expandedMonths[monthKey] ?? false
+    const monthSummary = monthlyCashFlowSummaries.find((summary) => summary.monthKey === monthKey)
     const monthIn = monthExpenses
       .filter((expense) => expense.type === 'in')
       .reduce((sum, expense) => sum + expense.amount, 0)
@@ -413,6 +414,7 @@ export function Expenses() {
               {monthExpenses.length} entries
               {canSeeFullCashInDetails ? ` | In ${formatCurrency(monthIn)}` : ''}
               {' | '}Out {formatCurrency(monthOut)}
+              {monthSummary ? ` | Balance ${formatCurrency(monthSummary.closingBalance)}` : ''}
             </div>
           </div>
           <ChevronDown
@@ -423,6 +425,30 @@ export function Expenses() {
         <div className={`grid transition-all duration-300 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
           <div className="overflow-hidden">
             <div className="border-t border-[var(--border)] p-3 sm:p-4">
+              {monthSummary && (
+                <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {canSeeFullCashInDetails && (
+                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+                      <p className="app-muted text-xs">Balance Carried Forward</p>
+                      <p className="mt-1 text-lg font-semibold">{formatCurrency(monthSummary.openingBalance)}</p>
+                    </div>
+                  )}
+                  {canSeeFullCashInDetails && (
+                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+                      <p className="app-muted text-xs">Total Cash In</p>
+                      <p className="mt-1 text-lg font-semibold text-green-600">{formatCurrency(monthSummary.cashIn)}</p>
+                    </div>
+                  )}
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+                    <p className="app-muted text-xs">Total Cash Out</p>
+                    <p className="mt-1 text-lg font-semibold text-red-600">{formatCurrency(monthSummary.cashOut)}</p>
+                  </div>
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+                    <p className="app-muted text-xs">Balance Remaining</p>
+                    <p className="mt-1 text-lg font-semibold text-[var(--primary)]">{formatCurrency(monthSummary.closingBalance)}</p>
+                  </div>
+                </div>
+              )}
               {compact ? (
                 <div className="space-y-3">
                   {monthExpenses.map((exp) => (

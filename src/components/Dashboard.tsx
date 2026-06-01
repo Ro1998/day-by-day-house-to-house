@@ -23,6 +23,7 @@ export function Dashboard() {
   const {
     expenses,
     monthlyBalance,
+    currentMonthSummary,
     currentUser,
     monthlyPayments,
     menus,
@@ -85,10 +86,11 @@ export function Dashboard() {
   const currentMonth = new Date().toISOString().slice(0, 7)
   const currentWeek = format(startOfWeek(new Date(), { weekStartsOn: 2 }), 'yyyy-MM-dd')
   const nextWeek = format(startOfWeek(addWeeks(new Date(), 1), { weekStartsOn: 2 }), 'yyyy-MM-dd')
-  const monthExpenses = expenses.filter((expense) => expense.date.startsWith(currentMonth))
-  const monthIncome = monthExpenses.filter((expense) => expense.type === 'in').reduce((sum, expense) => sum + expense.amount, 0)
-  const monthSpend = monthExpenses.filter((expense) => expense.type === 'out').reduce((sum, expense) => sum + expense.amount, 0)
-  const lowBalance = monthIncome > 0 ? monthlyBalance < monthIncome * 0.2 : monthlyBalance < 0
+  const monthIncome = currentMonthSummary.cashIn
+  const monthSpend = currentMonthSummary.cashOut
+  const monthOpeningBalance = currentMonthSummary.openingBalance
+  const monthTotalMoney = currentMonthSummary.totalAvailable
+  const lowBalance = monthTotalMoney > 0 ? monthlyBalance < monthTotalMoney * 0.2 : monthlyBalance < 0
 
   const eatingPeople = [...new Set(
     monthlyPayments
@@ -602,11 +604,24 @@ export function Dashboard() {
         </div>
       )}
 
-      <div className={`grid grid-cols-1 gap-6 ${canSeeFullCashInDetails ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
+      <div className={`grid grid-cols-1 gap-6 ${canSeeFullCashInDetails ? 'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6' : 'md:grid-cols-3'}`}>
+        {canSeeFullCashInDetails && (
+          <div className="app-panel rounded-3xl p-6">
+            <h3 className="text-lg font-semibold mb-2">Carried From Last Month</h3>
+            <p className="text-2xl font-bold text-[var(--primary)]">{formatCurrency(monthOpeningBalance)}</p>
+          </div>
+        )}
         {canSeeFullCashInDetails && (
           <div className="app-panel rounded-3xl p-6">
             <h3 className="text-lg font-semibold mb-2">This Month&apos;s Income</h3>
             <p className="text-2xl font-bold text-green-600">{formatCurrency(monthIncome)}</p>
+          </div>
+        )}
+        {canSeeFullCashInDetails && (
+          <div className="app-panel rounded-3xl p-6">
+            <h3 className="text-lg font-semibold mb-2">Total Money This Month</h3>
+            <p className="text-2xl font-bold text-[var(--accent-strong)]">{formatCurrency(monthTotalMoney)}</p>
+            <p className="app-muted mt-2 text-sm">Carry-over plus cash in.</p>
           </div>
         )}
         <div className="app-panel rounded-3xl p-6">
@@ -616,7 +631,7 @@ export function Dashboard() {
         <div className="app-panel rounded-3xl p-6">
           <h3 className="text-lg font-semibold mb-2">Remaining Balance</h3>
           <p className="text-2xl font-bold text-[var(--primary)]">{formatCurrency(monthlyBalance)}</p>
-          <p className="app-muted mt-2 text-sm">Income minus expenses.</p>
+          <p className="app-muted mt-2 text-sm">Total money minus expenses.</p>
         </div>
         <div className="app-panel rounded-3xl p-6">
           <h3 className="text-lg font-semibold mb-2">Status</h3>
