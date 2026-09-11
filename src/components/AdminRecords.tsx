@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useData } from '@/components/DataProvider'
 import { BookMoneyRecord, PersonalMoneyEntry, PersonalMoneyKind } from '@/types'
-import { Clipboard, FileImage, Trash2 } from 'lucide-react'
+import { Clipboard, FileImage, Pencil, Trash2, X } from 'lucide-react'
 import html2canvas from 'html2canvas'
 
 type MoneyForm = {
@@ -21,12 +21,29 @@ type BookForm = {
   bookName: string
   priceLabel: string
   unitPrice: string
+  englishPrice: string
+  hindiPrice: string
+  englishVolumes: string
+  hindiVolumes: string
   mk1English: string
   mk1Hindi: string
   mk2English: string
   mk2Hindi: string
   knEnglish: string
   knHindi: string
+  mk1PaidAmount: string
+  mk1PaidMethod: string
+  mk1PaidBy: string
+  mk1PaidAt: string
+  mk2PaidAmount: string
+  mk2PaidMethod: string
+  mk2PaidBy: string
+  mk2PaidAt: string
+  knPaidAmount: string
+  knPaidMethod: string
+  knPaidBy: string
+  knPaidAt: string
+  deadline: string
   note: string
 }
 
@@ -53,23 +70,103 @@ const monthLabel = (month: string) => {
 }
 
 const recordDistricts = [
-  { id: 'mk1', label: 'MK1', english: 'mk1English', hindi: 'mk1Hindi' },
-  { id: 'mk2', label: 'MK2', english: 'mk2English', hindi: 'mk2Hindi' },
-  { id: 'kn', label: 'KN', english: 'knEnglish', hindi: 'knHindi' },
+  { id: 'mk1', label: 'MK1', english: 'mk1English', hindi: 'mk1Hindi', paidAmount: 'mk1PaidAmount', paidMethod: 'mk1PaidMethod', paidBy: 'mk1PaidBy', paidAt: 'mk1PaidAt' },
+  { id: 'mk2', label: 'MK2', english: 'mk2English', hindi: 'mk2Hindi', paidAmount: 'mk2PaidAmount', paidMethod: 'mk2PaidMethod', paidBy: 'mk2PaidBy', paidAt: 'mk2PaidAt' },
+  { id: 'kn', label: 'KN', english: 'knEnglish', hindi: 'knHindi', paidAmount: 'knPaidAmount', paidMethod: 'knPaidMethod', paidBy: 'knPaidBy', paidAt: 'knPaidAt' },
 ] as const
 
 const districtTotal = (record: BookMoneyRecord, district: (typeof recordDistricts)[number]) => {
-  const quantity = Number(record[district.english]) + Number(record[district.hindi])
+  const english = Number(record[district.english])
+  const hindi = Number(record[district.hindi])
+  const englishAmount = english * (record.englishVolumes || 1) * (record.englishPrice || record.unitPrice || 0)
+  const hindiAmount = hindi * (record.hindiVolumes || 1) * (record.hindiPrice || record.unitPrice || 0)
+  const amount = englishAmount + hindiAmount
+  const paid = Number(record[district.paidAmount]) || 0
   return {
-    english: Number(record[district.english]),
-    hindi: Number(record[district.hindi]),
-    quantity,
-    amount: quantity * record.unitPrice,
+    english,
+    hindi,
+    quantity: english + hindi,
+    englishAmount,
+    hindiAmount,
+    amount,
+    paid,
+    remaining: Math.max(amount - paid, 0),
+    paidStatus: paid >= amount && amount > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Unpaid',
   }
 }
 
 const bookGrandTotal = (record: BookMoneyRecord) =>
   recordDistricts.reduce((total, district) => total + districtTotal(record, district).amount, 0)
+
+const bookCollectedTotal = (record: BookMoneyRecord) =>
+  recordDistricts.reduce((total, district) => total + districtTotal(record, district).paid, 0)
+
+const bookRemainingTotal = (record: BookMoneyRecord) =>
+  Math.max(bookGrandTotal(record) - bookCollectedTotal(record), 0)
+
+const defaultBookForm = (): BookForm => ({
+  month: currentMonth(),
+  bookType: 'HWMR',
+  bookName: '',
+  priceLabel: 'per volume/book',
+  unitPrice: '',
+  englishPrice: '',
+  hindiPrice: '',
+  englishVolumes: '2',
+  hindiVolumes: '1',
+  mk1English: '0',
+  mk1Hindi: '0',
+  mk2English: '0',
+  mk2Hindi: '0',
+  knEnglish: '0',
+  knHindi: '0',
+  mk1PaidAmount: '0',
+  mk1PaidMethod: '',
+  mk1PaidBy: '',
+  mk1PaidAt: '',
+  mk2PaidAmount: '0',
+  mk2PaidMethod: '',
+  mk2PaidBy: '',
+  mk2PaidAt: '',
+  knPaidAmount: '0',
+  knPaidMethod: '',
+  knPaidBy: '',
+  knPaidAt: '',
+  deadline: '',
+  note: '',
+})
+
+const recordToBookForm = (record: BookMoneyRecord): BookForm => ({
+  month: record.month,
+  bookType: record.bookType,
+  bookName: record.bookName,
+  priceLabel: record.priceLabel || 'per volume/book',
+  unitPrice: String(record.unitPrice || ''),
+  englishPrice: String(record.englishPrice || record.unitPrice || ''),
+  hindiPrice: String(record.hindiPrice || record.unitPrice || ''),
+  englishVolumes: String(record.englishVolumes || 1),
+  hindiVolumes: String(record.hindiVolumes || 1),
+  mk1English: String(record.mk1English || 0),
+  mk1Hindi: String(record.mk1Hindi || 0),
+  mk2English: String(record.mk2English || 0),
+  mk2Hindi: String(record.mk2Hindi || 0),
+  knEnglish: String(record.knEnglish || 0),
+  knHindi: String(record.knHindi || 0),
+  mk1PaidAmount: String(record.mk1PaidAmount || 0),
+  mk1PaidMethod: record.mk1PaidMethod || '',
+  mk1PaidBy: record.mk1PaidBy || '',
+  mk1PaidAt: record.mk1PaidAt || '',
+  mk2PaidAmount: String(record.mk2PaidAmount || 0),
+  mk2PaidMethod: record.mk2PaidMethod || '',
+  mk2PaidBy: record.mk2PaidBy || '',
+  mk2PaidAt: record.mk2PaidAt || '',
+  knPaidAmount: String(record.knPaidAmount || 0),
+  knPaidMethod: record.knPaidMethod || '',
+  knPaidBy: record.knPaidBy || '',
+  knPaidAt: record.knPaidAt || '',
+  deadline: record.deadline || '',
+  note: record.note || '',
+})
 
 const normalizeMessage = async <T,>(res: Response, fallback: string): Promise<T> => {
   const payload = await res.json().catch(() => null)
@@ -89,6 +186,7 @@ export function AdminRecords() {
   const [bookMonth, setBookMonth] = useState(currentMonth())
   const [bookYear, setBookYear] = useState(currentYear())
   const [selectedBillId, setSelectedBillId] = useState('')
+  const [editingBookId, setEditingBookId] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [isLoading, setIsLoading] = useState(true)
@@ -100,20 +198,7 @@ export function AdminRecords() {
     counterparty: '',
     description: '',
   })
-  const [bookForm, setBookForm] = useState<BookForm>({
-    month: currentMonth(),
-    bookType: 'HWMR',
-    bookName: '',
-    priceLabel: 'per book',
-    unitPrice: '',
-    mk1English: '0',
-    mk1Hindi: '0',
-    mk2English: '0',
-    mk2Hindi: '0',
-    knEnglish: '0',
-    knHindi: '0',
-    note: '',
-  })
+  const [bookForm, setBookForm] = useState<BookForm>(() => defaultBookForm())
 
   const authHeaders = (): Record<string, string> => currentUser ? { 'x-user-id': currentUser.id } : {}
 
@@ -146,6 +231,15 @@ export function AdminRecords() {
   useEffect(() => {
     void loadRecords()
   }, [currentUser?.id])
+
+  useEffect(() => {
+    if (editingBookId) return
+    setBookForm((prev) => ({
+      ...prev,
+      englishVolumes: prev.bookType === 'HWMR' ? '2' : '1',
+      hindiVolumes: '1',
+    }))
+  }, [bookForm.bookType, editingBookId])
 
   const monthlyMoney = useMemo(
     () => moneyEntries.filter((entry) => entry.month === moneyMonth),
@@ -224,7 +318,7 @@ export function AdminRecords() {
     }
   }
 
-  const addBookRecord = async (event: React.FormEvent) => {
+  const saveBookRecord = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!currentUser) return
 
@@ -232,33 +326,39 @@ export function AdminRecords() {
       setError('')
       setNotice('')
       const res = await fetch('/api/book-money', {
-        method: 'POST',
+        method: editingBookId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify(bookForm),
+        body: JSON.stringify({ ...bookForm, id: editingBookId || undefined }),
       })
       const record = await normalizeMessage<BookMoneyRecord>(res, 'Failed to save book money')
-      setBookRecords((prev) => [record, ...prev].sort((a, b) => b.month.localeCompare(a.month) || b.createdAt.localeCompare(a.createdAt)))
+      setBookRecords((prev) => {
+        const next = editingBookId
+          ? prev.map((entry) => entry.id === record.id ? record : entry)
+          : [record, ...prev]
+
+        return next.sort((a, b) => b.month.localeCompare(a.month) || b.createdAt.localeCompare(a.createdAt))
+      })
       setBookMonth(record.month)
       setBookYear(record.year)
       setSelectedBillId(record.id)
-      setBookForm({
-        month: currentMonth(),
-        bookType: 'HWMR',
-        bookName: '',
-        priceLabel: 'per book',
-        unitPrice: '',
-        mk1English: '0',
-        mk1Hindi: '0',
-        mk2English: '0',
-        mk2Hindi: '0',
-        knEnglish: '0',
-        knHindi: '0',
-        note: '',
-      })
-      setNotice('Book money record saved.')
+      setEditingBookId('')
+      setBookForm(defaultBookForm())
+      setNotice(editingBookId ? 'Book money record updated.' : 'Book money record saved.')
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Failed to save book money')
     }
+  }
+
+  const startEditingBook = (record: BookMoneyRecord) => {
+    setEditingBookId(record.id)
+    setSelectedBillId(record.id)
+    setBookForm(recordToBookForm(record))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const cancelEditingBook = () => {
+    setEditingBookId('')
+    setBookForm(defaultBookForm())
   }
 
   const deleteRecord = async (type: 'money' | 'book', id: string) => {
@@ -288,10 +388,11 @@ export function AdminRecords() {
 
     const plainText = recordDistricts.map((district) => {
       const total = districtTotal(selectedBill, district)
-      return `${district.label}: English ${total.english}, Hindi ${total.hindi}, Total ${total.quantity}, Amount ${formatCurrency(total.amount)}`
+      return `${district.label}: English ${total.english}, Hindi ${total.hindi}, Total ${total.quantity}, Amount ${formatCurrency(total.amount)}, Paid ${formatCurrency(total.paid)}, Remaining ${formatCurrency(total.remaining)}`
     }).join('\n')
 
-    const fullText = `${selectedBill.bookType} Bill - ${selectedBill.bookName}\n${monthLabel(selectedBill.month)}\nPrice: ${formatCurrency(selectedBill.unitPrice)} ${selectedBill.priceLabel}\n\n${plainText}\n\nSouth Delhi Total: ${formatCurrency(bookGrandTotal(selectedBill))}`
+    const deadlineText = selectedBill.deadline ? `\nDeadline: ${selectedBill.deadline}` : ''
+    const fullText = `${selectedBill.bookType} Bill - ${selectedBill.bookName}\n${monthLabel(selectedBill.month)}\nEnglish: ${selectedBill.englishVolumes || 1} volume(s) x ${formatCurrency(selectedBill.englishPrice || selectedBill.unitPrice)}\nHindi: ${selectedBill.hindiVolumes || 1} volume(s) x ${formatCurrency(selectedBill.hindiPrice || selectedBill.unitPrice)}${deadlineText}\n\n${plainText}\n\nSouth Delhi Total: ${formatCurrency(bookGrandTotal(selectedBill))}\nCollected: ${formatCurrency(bookCollectedTotal(selectedBill))}\nRemaining: ${formatCurrency(bookRemainingTotal(selectedBill))}`
 
     try {
       if (navigator.clipboard && 'ClipboardItem' in window) {
@@ -494,8 +595,16 @@ export function AdminRecords() {
       ) : (
         <div className="space-y-6">
           <div className="app-panel rounded-3xl p-6">
-            <h3 className="mb-4 text-lg font-semibold">Add Books Money Record</h3>
-            <form onSubmit={addBookRecord} className="grid gap-4 md:grid-cols-3">
+            <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <h3 className="text-lg font-semibold">{editingBookId ? 'Edit Books Money Record' : 'Add Books Money Record'}</h3>
+              {editingBookId && (
+                <button type="button" onClick={cancelEditingBook} className="app-button app-button-ghost">
+                  <X size={16} />
+                  <span>Cancel Edit</span>
+                </button>
+              )}
+            </div>
+            <form onSubmit={saveBookRecord} className="grid gap-4 md:grid-cols-4">
               <label className="block text-sm font-medium">
                 Month
                 <input type="month" value={bookForm.month} onChange={(e) => setBookForm((prev) => ({ ...prev, month: e.target.value }))} className="app-input mt-1 w-full" required />
@@ -508,8 +617,12 @@ export function AdminRecords() {
                 </select>
               </label>
               <label className="block text-sm font-medium">
-                Price
-                <input type="number" min="0" step="0.01" value={bookForm.unitPrice} onChange={(e) => setBookForm((prev) => ({ ...prev, unitPrice: e.target.value }))} className="app-input mt-1 w-full" required />
+                English Price
+                <input type="number" min="0" step="0.01" value={bookForm.englishPrice || bookForm.unitPrice} onChange={(e) => setBookForm((prev) => ({ ...prev, englishPrice: e.target.value, unitPrice: e.target.value }))} className="app-input mt-1 w-full" required />
+              </label>
+              <label className="block text-sm font-medium">
+                Hindi Price
+                <input type="number" min="0" step="0.01" value={bookForm.hindiPrice} onChange={(e) => setBookForm((prev) => ({ ...prev, hindiPrice: e.target.value }))} className="app-input mt-1 w-full" required />
               </label>
               <label className="block text-sm font-medium md:col-span-2">
                 Book Name
@@ -519,11 +632,23 @@ export function AdminRecords() {
                 Price Label
                 <input value={bookForm.priceLabel} onChange={(e) => setBookForm((prev) => ({ ...prev, priceLabel: e.target.value }))} className="app-input mt-1 w-full" placeholder="per book / per set" />
               </label>
+              <label className="block text-sm font-medium">
+                English Volumes
+                <input type="number" min="1" value={bookForm.englishVolumes} onChange={(e) => setBookForm((prev) => ({ ...prev, englishVolumes: e.target.value }))} className="app-input mt-1 w-full" />
+              </label>
+              <label className="block text-sm font-medium">
+                Hindi Volumes
+                <input type="number" min="1" value={bookForm.hindiVolumes} onChange={(e) => setBookForm((prev) => ({ ...prev, hindiVolumes: e.target.value }))} className="app-input mt-1 w-full" />
+              </label>
+              <label className="block text-sm font-medium">
+                Payment Deadline
+                <input type="date" value={bookForm.deadline} onChange={(e) => setBookForm((prev) => ({ ...prev, deadline: e.target.value }))} className="app-input mt-1 w-full" />
+              </label>
 
               {recordDistricts.map((district) => (
-                <div key={district.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                <div key={district.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 md:col-span-4">
                   <div className="mb-3 font-semibold">{district.label}</div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-3 md:grid-cols-6">
                     <label className="block text-sm font-medium">
                       English
                       <input type="number" min="0" value={bookForm[district.english]} onChange={(e) => setBookForm((prev) => ({ ...prev, [district.english]: e.target.value }))} className="app-input mt-1 w-full" />
@@ -532,16 +657,36 @@ export function AdminRecords() {
                       Hindi
                       <input type="number" min="0" value={bookForm[district.hindi]} onChange={(e) => setBookForm((prev) => ({ ...prev, [district.hindi]: e.target.value }))} className="app-input mt-1 w-full" />
                     </label>
+                    <label className="block text-sm font-medium">
+                      Paid Amount
+                      <input type="number" min="0" step="0.01" value={bookForm[district.paidAmount]} onChange={(e) => setBookForm((prev) => ({ ...prev, [district.paidAmount]: e.target.value }))} className="app-input mt-1 w-full" />
+                    </label>
+                    <label className="block text-sm font-medium">
+                      Method
+                      <select value={bookForm[district.paidMethod]} onChange={(e) => setBookForm((prev) => ({ ...prev, [district.paidMethod]: e.target.value }))} className="app-input mt-1 w-full">
+                        <option value="">Not paid</option>
+                        <option value="cash">Cash</option>
+                        <option value="online">Online</option>
+                      </select>
+                    </label>
+                    <label className="block text-sm font-medium">
+                      Paid By
+                      <input value={bookForm[district.paidBy]} onChange={(e) => setBookForm((prev) => ({ ...prev, [district.paidBy]: e.target.value }))} className="app-input mt-1 w-full" />
+                    </label>
+                    <label className="block text-sm font-medium">
+                      Paid On
+                      <input type="date" value={bookForm[district.paidAt]} onChange={(e) => setBookForm((prev) => ({ ...prev, [district.paidAt]: e.target.value }))} className="app-input mt-1 w-full" />
+                    </label>
                   </div>
                 </div>
               ))}
 
-              <label className="block text-sm font-medium md:col-span-3">
+              <label className="block text-sm font-medium md:col-span-4">
                 Note
                 <textarea value={bookForm.note} onChange={(e) => setBookForm((prev) => ({ ...prev, note: e.target.value }))} className="app-input mt-1 min-h-[80px] w-full resize-y" />
               </label>
-              <div className="md:col-span-3">
-                <button type="submit" className="app-button app-button-primary">Save Books Record</button>
+              <div className="md:col-span-4">
+                <button type="submit" className="app-button app-button-primary">{editingBookId ? 'Update Books Record' : 'Save Books Record'}</button>
               </div>
             </form>
           </div>
@@ -563,7 +708,7 @@ export function AdminRecords() {
               </div>
 
               <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
-                <table className="w-full min-w-[1000px] text-left text-sm">
+                <table className="w-full min-w-[1200px] text-left text-sm">
                   <thead className="bg-[var(--surface-soft)]">
                     <tr>
                       <th className="p-3 font-semibold">Month</th>
@@ -573,6 +718,9 @@ export function AdminRecords() {
                       <th className="p-3 text-right font-semibold">MK2</th>
                       <th className="p-3 text-right font-semibold">KN</th>
                       <th className="p-3 text-right font-semibold">South Delhi</th>
+                      <th className="p-3 text-right font-semibold">Collected</th>
+                      <th className="p-3 text-right font-semibold">Remaining</th>
+                      <th className="p-3 font-semibold">Deadline</th>
                       <th className="p-3"></th>
                     </tr>
                   </thead>
@@ -585,20 +733,34 @@ export function AdminRecords() {
                             {record.bookType} - {record.bookName}
                           </button>
                         </td>
-                        <td className="p-3">{formatCurrency(record.unitPrice)} {record.priceLabel}</td>
+                        <td className="p-3">
+                          <div>English: {record.englishVolumes || 1} x {formatCurrency(record.englishPrice || record.unitPrice)}</div>
+                          <div>Hindi: {record.hindiVolumes || 1} x {formatCurrency(record.hindiPrice || record.unitPrice)}</div>
+                        </td>
                         {recordDistricts.map((district) => (
-                          <td key={district.id} className="p-3 text-right">{formatCurrency(districtTotal(record, district).amount)}</td>
+                          <td key={district.id} className="p-3 text-right">
+                            <div className="font-semibold">{formatCurrency(districtTotal(record, district).amount)}</div>
+                            <div className="app-muted text-xs">{districtTotal(record, district).paidStatus}</div>
+                          </td>
                         ))}
                         <td className="p-3 text-right font-bold">{formatCurrency(bookGrandTotal(record))}</td>
+                        <td className="p-3 text-right font-semibold text-emerald-700">{formatCurrency(bookCollectedTotal(record))}</td>
+                        <td className="p-3 text-right font-semibold text-red-700">{formatCurrency(bookRemainingTotal(record))}</td>
+                        <td className="p-3">{record.deadline || '-'}</td>
                         <td className="p-3 text-right">
-                          <button type="button" onClick={() => void deleteRecord('book', record.id)} className="app-button app-button-ghost p-2" title="Delete record">
-                            <Trash2 size={16} />
-                          </button>
+                          <div className="flex justify-end gap-2">
+                            <button type="button" onClick={() => startEditingBook(record)} className="app-button app-button-ghost p-2" title="Edit record">
+                              <Pencil size={16} />
+                            </button>
+                            <button type="button" onClick={() => void deleteRecord('book', record.id)} className="app-button app-button-ghost p-2" title="Delete record">
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
                     {bookRecords.length === 0 && (
-                      <tr><td colSpan={8} className="p-4 text-sm app-muted">No book records yet.</td></tr>
+                      <tr><td colSpan={11} className="p-4 text-sm app-muted">No book records yet.</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -616,6 +778,13 @@ export function AdminRecords() {
                   <div className="app-muted text-xs font-semibold uppercase">{bookYear} Total</div>
                   <div className="mt-1 text-2xl font-bold">{formatCurrency(yearlyBookTotal)}</div>
                 </div>
+                {selectedBill && (
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                    <div className="app-muted text-xs font-semibold uppercase">Selected Bill Balance</div>
+                    <div className="mt-1 text-xl font-bold text-emerald-700">{formatCurrency(bookCollectedTotal(selectedBill))} collected</div>
+                    <div className="mt-1 text-xl font-bold text-red-700">{formatCurrency(bookRemainingTotal(selectedBill))} remaining</div>
+                  </div>
+                )}
                 {selectedBill && (
                   <>
                     <label className="block text-sm font-medium">

@@ -178,12 +178,29 @@ export interface BookMoneyRecord {
   bookName: string
   priceLabel: string
   unitPrice: number
+  englishPrice: number
+  hindiPrice: number
+  englishVolumes: number
+  hindiVolumes: number
   mk1English: number
   mk1Hindi: number
   mk2English: number
   mk2Hindi: number
   knEnglish: number
   knHindi: number
+  mk1PaidAmount: number
+  mk1PaidMethod?: string | null
+  mk1PaidBy?: string | null
+  mk1PaidAt?: string | null
+  mk2PaidAmount: number
+  mk2PaidMethod?: string | null
+  mk2PaidBy?: string | null
+  mk2PaidAt?: string | null
+  knPaidAmount: number
+  knPaidMethod?: string | null
+  knPaidBy?: string | null
+  knPaidAt?: string | null
+  deadline?: string | null
   note?: string | null
   createdBy: string
   createdById?: string

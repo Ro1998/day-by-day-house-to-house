@@ -215,12 +215,29 @@ model BookMoneyRecord {
   bookName    String
   priceLabel  String
   unitPrice   Float
+  englishPrice Float   @default(0)
+  hindiPrice   Float   @default(0)
+  englishVolumes Int   @default(1)
+  hindiVolumes   Int   @default(1)
   mk1English  Int      @default(0)
   mk1Hindi    Int      @default(0)
   mk2English  Int      @default(0)
   mk2Hindi    Int      @default(0)
   knEnglish   Int      @default(0)
   knHindi     Int      @default(0)
+  mk1PaidAmount Float  @default(0)
+  mk1PaidMethod String?
+  mk1PaidBy     String?
+  mk1PaidAt     String?
+  mk2PaidAmount Float  @default(0)
+  mk2PaidMethod String?
+  mk2PaidBy     String?
+  mk2PaidAt     String?
+  knPaidAmount  Float  @default(0)
+  knPaidMethod  String?
+  knPaidBy      String?
+  knPaidAt      String?
+  deadline      String?
   note        String?
   createdById String
   createdBy   User     @relation("BookMoneyRecordCreator", fields: [createdById], references: [id])
