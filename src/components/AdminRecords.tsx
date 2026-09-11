@@ -661,6 +661,15 @@ export function AdminRecords() {
                       Paid Amount
                       <input type="number" min="0" step="0.01" value={bookForm[district.paidAmount]} onChange={(e) => setBookForm((prev) => ({ ...prev, [district.paidAmount]: e.target.value }))} className="app-input mt-1 w-full" />
                     </label>
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm">
+                      <div className="app-muted text-xs font-medium">Amount To Be Paid</div>
+                      <div className="mt-1 font-semibold">
+                        {formatCurrency(
+                          (Number(bookForm[district.english]) || 0) * (Number(bookForm.englishVolumes) || 1) * (Number(bookForm.englishPrice || bookForm.unitPrice) || 0) +
+                          (Number(bookForm[district.hindi]) || 0) * (Number(bookForm.hindiVolumes) || 1) * (Number(bookForm.hindiPrice || bookForm.unitPrice) || 0),
+                        )}
+                      </div>
+                    </div>
                     <label className="block text-sm font-medium">
                       Method
                       <select value={bookForm[district.paidMethod]} onChange={(e) => setBookForm((prev) => ({ ...prev, [district.paidMethod]: e.target.value }))} className="app-input mt-1 w-full">
