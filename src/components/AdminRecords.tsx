@@ -43,8 +43,13 @@ type BookForm = {
   knPaidMethod: string
   knPaidBy: string
   knPaidAt: string
+  mk1Settled: boolean
+  mk2Settled: boolean
+  knSettled: boolean
   deadline: string
   note: string
+  southDelhiSettled: boolean
+  settlementNote: string
 }
 
 const today = () => new Date().toISOString().slice(0, 10)
@@ -70,9 +75,9 @@ const monthLabel = (month: string) => {
 }
 
 const recordDistricts = [
-  { id: 'mk1', label: 'MK1', english: 'mk1English', hindi: 'mk1Hindi', paidAmount: 'mk1PaidAmount', paidMethod: 'mk1PaidMethod', paidBy: 'mk1PaidBy', paidAt: 'mk1PaidAt' },
-  { id: 'mk2', label: 'MK2', english: 'mk2English', hindi: 'mk2Hindi', paidAmount: 'mk2PaidAmount', paidMethod: 'mk2PaidMethod', paidBy: 'mk2PaidBy', paidAt: 'mk2PaidAt' },
-  { id: 'kn', label: 'KN', english: 'knEnglish', hindi: 'knHindi', paidAmount: 'knPaidAmount', paidMethod: 'knPaidMethod', paidBy: 'knPaidBy', paidAt: 'knPaidAt' },
+  { id: 'mk1', label: 'MK1', english: 'mk1English', hindi: 'mk1Hindi', paidAmount: 'mk1PaidAmount', paidMethod: 'mk1PaidMethod', paidBy: 'mk1PaidBy', paidAt: 'mk1PaidAt', settled: 'mk1Settled' },
+  { id: 'mk2', label: 'MK2', english: 'mk2English', hindi: 'mk2Hindi', paidAmount: 'mk2PaidAmount', paidMethod: 'mk2PaidMethod', paidBy: 'mk2PaidBy', paidAt: 'mk2PaidAt', settled: 'mk2Settled' },
+  { id: 'kn', label: 'KN', english: 'knEnglish', hindi: 'knHindi', paidAmount: 'knPaidAmount', paidMethod: 'knPaidMethod', paidBy: 'knPaidBy', paidAt: 'knPaidAt', settled: 'knSettled' },
 ] as const
 
 const districtTotal = (record: BookMoneyRecord, district: (typeof recordDistricts)[number]) => {
@@ -132,8 +137,13 @@ const defaultBookForm = (): BookForm => ({
   knPaidMethod: '',
   knPaidBy: '',
   knPaidAt: '',
+  mk1Settled: false,
+  mk2Settled: false,
+  knSettled: false,
   deadline: '',
   note: '',
+  southDelhiSettled: false,
+  settlementNote: '',
 })
 
 const recordToBookForm = (record: BookMoneyRecord): BookForm => ({
@@ -164,8 +174,13 @@ const recordToBookForm = (record: BookMoneyRecord): BookForm => ({
   knPaidMethod: record.knPaidMethod || '',
   knPaidBy: record.knPaidBy || '',
   knPaidAt: record.knPaidAt || '',
+  mk1Settled: record.mk1Settled,
+  mk2Settled: record.mk2Settled,
+  knSettled: record.knSettled,
   deadline: record.deadline || '',
   note: record.note || '',
+  southDelhiSettled: record.southDelhiSettled,
+  settlementNote: record.settlementNote || '',
 })
 
 const normalizeMessage = async <T,>(res: Response, fallback: string): Promise<T> => {
@@ -686,6 +701,10 @@ export function AdminRecords() {
                       Paid On
                       <input type="date" value={bookForm[district.paidAt]} onChange={(e) => setBookForm((prev) => ({ ...prev, [district.paidAt]: e.target.value }))} className="app-input mt-1 w-full" />
                     </label>
+                    <label className="flex items-center gap-2 self-end pb-2 text-sm font-medium">
+                      <input type="checkbox" checked={bookForm[district.settled]} onChange={(e) => setBookForm((prev) => ({ ...prev, [district.settled]: e.target.checked }))} />
+                      Mark {district.label} settled
+                    </label>
                   </div>
                 </div>
               ))}
@@ -694,6 +713,18 @@ export function AdminRecords() {
                 Note
                 <textarea value={bookForm.note} onChange={(e) => setBookForm((prev) => ({ ...prev, note: e.target.value }))} className="app-input mt-1 min-h-[80px] w-full resize-y" />
               </label>
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 md:col-span-4">
+                <div className="grid gap-4 md:grid-cols-[auto_minmax(0,1fr)] md:items-center">
+                  <label className="flex items-center gap-2 text-sm font-semibold">
+                    <input type="checkbox" checked={bookForm.southDelhiSettled} onChange={(e) => setBookForm((prev) => ({ ...prev, southDelhiSettled: e.target.checked }))} />
+                    Mark entire South Delhi settled
+                  </label>
+                  <label className="block text-sm font-medium">
+                    Settlement remarks
+                    <input value={bookForm.settlementNote} onChange={(e) => setBookForm((prev) => ({ ...prev, settlementNote: e.target.value }))} className="app-input mt-1 w-full" placeholder="Paid to Bikash brother, sent to Amana..." />
+                  </label>
+                </div>
+              </div>
               <div className="md:col-span-4">
                 <button type="submit" className="app-button app-button-primary">{editingBookId ? 'Update Books Record' : 'Save Books Record'}</button>
               </div>
@@ -749,10 +780,18 @@ export function AdminRecords() {
                         {recordDistricts.map((district) => (
                           <td key={district.id} className="p-3 text-right">
                             <div className="font-semibold">{formatCurrency(districtTotal(record, district).amount)}</div>
-                            <div className="app-muted text-xs">{districtTotal(record, district).paidStatus}</div>
+                            <div className="app-muted text-xs">Paid: {formatCurrency(districtTotal(record, district).paid)}</div>
+                            <div className={`text-xs font-semibold ${record[district.settled] ? 'text-emerald-700' : 'text-red-700'}`}>
+                              {record[district.settled] ? 'Settled' : `Due: ${formatCurrency(districtTotal(record, district).remaining)}`}
+                            </div>
                           </td>
                         ))}
-                        <td className="p-3 text-right font-bold">{formatCurrency(bookGrandTotal(record))}</td>
+                        <td className="p-3 text-right">
+                          <div className="font-bold">{formatCurrency(bookGrandTotal(record))}</div>
+                          <div className={`text-xs font-semibold ${record.southDelhiSettled ? 'text-emerald-700' : 'text-red-700'}`}>
+                            {record.southDelhiSettled ? 'Settled' : 'Not settled'}
+                          </div>
+                        </td>
                         <td className="p-3 text-right font-semibold text-emerald-700">{formatCurrency(bookCollectedTotal(record))}</td>
                         <td className="p-3 text-right font-semibold text-red-700">{formatCurrency(bookRemainingTotal(record))}</td>
                         <td className="p-3">{record.deadline || '-'}</td>
@@ -792,6 +831,10 @@ export function AdminRecords() {
                     <div className="app-muted text-xs font-semibold uppercase">Selected Bill Balance</div>
                     <div className="mt-1 text-xl font-bold text-emerald-700">{formatCurrency(bookCollectedTotal(selectedBill))} collected</div>
                     <div className="mt-1 text-xl font-bold text-red-700">{formatCurrency(bookRemainingTotal(selectedBill))} remaining</div>
+                    <div className={`mt-1 text-sm font-semibold ${selectedBill.southDelhiSettled ? 'text-emerald-700' : 'text-red-700'}`}>
+                      South Delhi: {selectedBill.southDelhiSettled ? 'Settled' : 'Not settled'}
+                    </div>
+                    {selectedBill.settlementNote && <div className="app-muted mt-2 text-sm">{selectedBill.settlementNote}</div>}
                   </div>
                 )}
                 {selectedBill && (

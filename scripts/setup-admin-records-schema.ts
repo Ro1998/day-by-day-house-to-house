@@ -92,8 +92,13 @@ const statements = [
   `ALTER TABLE "BookMoneyRecord" ADD COLUMN IF NOT EXISTS "knPaidMethod" TEXT`,
   `ALTER TABLE "BookMoneyRecord" ADD COLUMN IF NOT EXISTS "knPaidBy" TEXT`,
   `ALTER TABLE "BookMoneyRecord" ADD COLUMN IF NOT EXISTS "knPaidAt" TEXT`,
+  `ALTER TABLE "BookMoneyRecord" ADD COLUMN IF NOT EXISTS "mk1Settled" BOOLEAN NOT NULL DEFAULT false`,
+  `ALTER TABLE "BookMoneyRecord" ADD COLUMN IF NOT EXISTS "mk2Settled" BOOLEAN NOT NULL DEFAULT false`,
+  `ALTER TABLE "BookMoneyRecord" ADD COLUMN IF NOT EXISTS "knSettled" BOOLEAN NOT NULL DEFAULT false`,
   `ALTER TABLE "BookMoneyRecord" ADD COLUMN IF NOT EXISTS "deadline" TEXT`,
   `ALTER TABLE "BookMoneyRecord" ADD COLUMN IF NOT EXISTS "note" TEXT`,
+  `ALTER TABLE "BookMoneyRecord" ADD COLUMN IF NOT EXISTS "southDelhiSettled" BOOLEAN NOT NULL DEFAULT false`,
+  `ALTER TABLE "BookMoneyRecord" ADD COLUMN IF NOT EXISTS "settlementNote" TEXT`,
   `UPDATE "BookMoneyRecord"
     SET "englishPrice" = "unitPrice"
     WHERE "englishPrice" = 0 AND "unitPrice" > 0`,

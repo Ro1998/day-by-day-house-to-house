@@ -237,8 +237,13 @@ model BookMoneyRecord {
   knPaidMethod  String?
   knPaidBy      String?
   knPaidAt      String?
+  mk1Settled    Boolean  @default(false)
+  mk2Settled    Boolean  @default(false)
+  knSettled     Boolean  @default(false)
   deadline      String?
   note        String?
+  southDelhiSettled Boolean @default(false)
+  settlementNote String?
   createdById String
   createdBy   User     @relation("BookMoneyRecordCreator", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())

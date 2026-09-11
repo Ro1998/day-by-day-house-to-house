@@ -200,8 +200,13 @@ export interface BookMoneyRecord {
   knPaidMethod?: string | null
   knPaidBy?: string | null
   knPaidAt?: string | null
+  mk1Settled: boolean
+  mk2Settled: boolean
+  knSettled: boolean
   deadline?: string | null
   note?: string | null
+  southDelhiSettled: boolean
+  settlementNote?: string | null
   createdBy: string
   createdById?: string
   createdAt: string
