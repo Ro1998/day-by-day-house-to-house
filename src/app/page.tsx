@@ -12,6 +12,7 @@ import { MenuPlanner } from '@/components/MenuPlanner'
 import { NotificationsCenter } from '@/components/NotificationsCenter'
 import { UserManagement } from '@/components/UserManagement'
 import { MaintenanceBoard } from '@/components/MaintenanceBoard'
+import { AdminRecords } from '@/components/AdminRecords'
 
 export default function Home() {
   const { currentUser } = useData()
@@ -33,6 +34,8 @@ export default function Home() {
         return <MaintenanceBoard />
       case 'menu':
         return <MenuPlanner />
+      case 'admin-records':
+        return currentUser?.role === 'admin' ? <AdminRecords /> : <Dashboard />
       case 'users':
         return currentUser?.role === 'admin' ? <UserManagement /> : <Dashboard />
       default:

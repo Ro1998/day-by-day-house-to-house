@@ -36,6 +36,8 @@ model User {
   availabilities Availability[]
   supplyReports SupplyReport[] @relation("SupplyReportCreator")
   communityEvents CommunityEvent[] @relation("CommunityEventCreator")
+  personalMoneyEntries PersonalMoneyEntry[] @relation("PersonalMoneyEntryCreator")
+  bookMoneyRecords BookMoneyRecord[] @relation("BookMoneyRecordCreator")
 }
 
 model RegistrationVerification {
@@ -187,4 +189,41 @@ model CommunityEvent {
   createdById String
   createdBy   User     @relation("CommunityEventCreator", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
+}
+
+model PersonalMoneyEntry {
+  id           String   @id @default(cuid())
+  date         String
+  month        String
+  year         String
+  kind         String
+  category     String
+  amount       Float
+  counterparty String?
+  description  String
+  createdById  String
+  createdBy    User     @relation("PersonalMoneyEntryCreator", fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model BookMoneyRecord {
+  id          String   @id @default(cuid())
+  month       String
+  year        String
+  bookType    String
+  bookName    String
+  priceLabel  String
+  unitPrice   Float
+  mk1English  Int      @default(0)
+  mk1Hindi    Int      @default(0)
+  mk2English  Int      @default(0)
+  mk2Hindi    Int      @default(0)
+  knEnglish   Int      @default(0)
+  knHindi     Int      @default(0)
+  note        String?
+  createdById String
+  createdBy   User     @relation("BookMoneyRecordCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

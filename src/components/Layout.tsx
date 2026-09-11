@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTheme } from './ThemeProvider'
 import { useData } from './DataProvider'
-import { BadgeCheck, Bell, Boxes, Home, MenuSquare, Moon, Receipt, Settings2, Sun, Wallet, Menu as MenuIcon, X, Wrench, RefreshCw, LogOut } from 'lucide-react'
+import { BadgeCheck, Bell, Boxes, Home, MenuSquare, Moon, PiggyBank, Receipt, Settings2, Sun, Wallet, Menu as MenuIcon, X, Wrench, RefreshCw, LogOut } from 'lucide-react'
 import { BrandLogo } from './BrandLogo'
 
 interface LayoutProps {
@@ -114,6 +114,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
     ...(canManageOperations ? [{ id: 'inventory', label: 'Supplies', icon: Boxes }] : []),
     ...(canViewMonthly ? [{ id: 'monthly', label: 'Monthly Food Money', icon: Wallet }] : []),
     ...(currentUser?.role === 'admin' || currentUser?.role === 'coordinator' ? [{ id: 'menu', label: 'Menu Planner', icon: MenuSquare }] : []),
+    ...(currentUser?.role === 'admin' ? [{ id: 'admin-records', label: 'Admin Records', icon: PiggyBank }] : []),
     ...(currentUser?.role === 'admin' ? [{ id: 'users', label: 'User Access', icon: Settings2 }] : []),
   ]
 

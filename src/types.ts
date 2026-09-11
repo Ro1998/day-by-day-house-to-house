@@ -151,6 +151,45 @@ export interface Activity {
   userId?: string
 }
 
+export type PersonalMoneyKind = 'income' | 'expense' | 'received' | 'given' | 'receivable' | 'settled'
+
+export interface PersonalMoneyEntry {
+  id: string
+  date: string
+  month: string
+  year: string
+  kind: PersonalMoneyKind
+  category: string
+  amount: number
+  counterparty?: string | null
+  description: string
+  createdBy: string
+  createdById?: string
+  createdAt: string
+}
+
+export type BookMoneyType = 'HWMR' | 'LS'
+
+export interface BookMoneyRecord {
+  id: string
+  month: string
+  year: string
+  bookType: BookMoneyType
+  bookName: string
+  priceLabel: string
+  unitPrice: number
+  mk1English: number
+  mk1Hindi: number
+  mk2English: number
+  mk2Hindi: number
+  knEnglish: number
+  knHindi: number
+  note?: string | null
+  createdBy: string
+  createdById?: string
+  createdAt: string
+}
+
 export interface ApiError {
   error: string
 }
