@@ -1,21 +1,52 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Day by Day and House to House">
+  <style>
+    :root {
+      --bg: #f4f8fc;
+      --bg2: #ddeeff;
+      --primary: #3b82c4;
+      --secondary: #1e4f7a;
+      --path: #45b8b0;
+      --landscape: #4f9fe8;
+      --window: #1e4f7a;
+      --sun: #f7c948;
+      --moon: #dcebff;
+      --sun-opacity: 1;
+      --moon-opacity: 0;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1b2d;
+        --bg2: #14243a;
+        --primary: #4da3ff;
+        --secondary: #5bb0ff;
+        --path: #4fb8b2;
+        --landscape: #315b82;
+        --window: #dcebff;
+        --sun-opacity: 0;
+        --moon-opacity: 1;
+      }
+    }
+  </style>
   <defs>
-    <linearGradient id="bg" x1="0%" x2="100%" y1="0%" y2="100%">
-      <stop offset="0%" stop-color="#eefabd" />
-      <stop offset="100%" stop-color="#dbe9d6" />
-    </linearGradient>
-    <linearGradient id="roof" x1="0%" x2="100%" y1="0%" y2="100%">
-      <stop offset="0%" stop-color="#6984A9" />
-      <stop offset="100%" stop-color="#263B6A" />
+    <linearGradient id="iconBg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="var(--bg2)" />
+      <stop offset="1" stop-color="var(--bg)" />
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="120" fill="url(#bg)" />
-  <rect x="56" y="56" width="400" height="400" rx="104" fill="#346739" opacity="0.08" />
-  <path d="M116 296h104l88-112 88 112h104l-42-52h-34l-30 38-86-108-86 108-30-38h-34z" fill="url(#roof)" />
-  <path d="M220 296h40l40-50 40 50h40l-80-102z" fill="#346739" />
-  <rect x="236" y="250" width="18" height="18" rx="4" fill="#eefabd" />
-  <rect x="258" y="250" width="18" height="18" rx="4" fill="#eefabd" />
-  <rect x="236" y="272" width="18" height="18" rx="4" fill="#eefabd" />
-  <rect x="258" y="272" width="18" height="18" rx="4" fill="#eefabd" />
-  <text x="256" y="380" text-anchor="middle" font-size="50" font-family="Arial, sans-serif" font-weight="700" fill="#234a28">HUB</text>
+  <rect width="512" height="512" rx="116" fill="url(#iconBg)" />
+  <path d="M34 332 124 210l55 70 88-118 103 132 60-58 82 101v175H34Z" fill="var(--landscape)" opacity="0.28" />
+  <circle cx="382" cy="118" r="42" fill="var(--sun)" opacity="var(--sun-opacity)" />
+  <path d="M405 76a46 46 0 1 0 33 79 35 35 0 1 1-33-79Z" fill="var(--moon)" opacity="var(--moon-opacity)" />
+  <path d="M54 374c70-77 136-96 198-61 63 36 124 20 213-48" fill="none" stroke="var(--landscape)" stroke-width="26" stroke-linecap="round" opacity="0.72" />
+  <path d="M58 302 147 226l89 76v110H58Z" fill="var(--primary)" />
+  <path d="M38 305 147 208l109 97-19 24-90-78-90 78Z" fill="var(--secondary)" />
+  <rect x="111" y="318" width="31" height="31" rx="7" fill="var(--window)" />
+  <rect x="154" y="318" width="31" height="31" rx="7" fill="var(--window)" />
+  <path d="M277 295 376 212l99 83v117H277Z" fill="var(--secondary)" />
+  <path d="M257 299 376 196l119 103-19 25-100-84-100 84Z" fill="var(--primary)" />
+  <rect x="340" y="316" width="31" height="31" rx="7" fill="var(--window)" />
+  <rect x="383" y="316" width="31" height="31" rx="7" fill="var(--window)" />
+  <path d="M238 512c12-100 18-174 20-224 5 53 15 127 32 224Z" fill="var(--path)" />
+  <path d="M258 289c-32 54-81 101-148 141M260 289c42 58 89 105 141 141" fill="none" stroke="var(--path)" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M257 300c-10 51-13 121-6 212" fill="none" stroke="var(--bg)" stroke-width="9" stroke-linecap="round" opacity="0.72" />
 </svg>

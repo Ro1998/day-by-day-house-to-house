@@ -1,4 +1,25 @@
 import { PrismaClient } from '@prisma/client'
+import { existsSync, readFileSync } from 'fs'
+import { resolve } from 'path'
+
+const loadEnvFile = (fileName: string) => {
+  const filePath = resolve(process.cwd(), fileName)
+  if (!existsSync(filePath)) return
+
+  for (const line of readFileSync(filePath, 'utf8').split(/\r?\n/)) {
+    const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/)
+    if (!match) continue
+
+    const [, key, rawValue] = match
+    if (process.env[key]) continue
+
+    const value = rawValue.replace(/^(['"])(.*)\1$/, '$2')
+    process.env[key] = value
+  }
+}
+
+loadEnvFile('.env.local')
+loadEnvFile('.env')
 
 const prisma = new PrismaClient()
 
@@ -16,6 +37,8 @@ const tables = [
   'Availability',
   'SupplyReport',
   'CommunityEvent',
+  'PersonalMoneyEntry',
+  'BookMoneyRecord',
 ] as const
 
 async function main() {

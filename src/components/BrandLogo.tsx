@@ -1,34 +1,71 @@
 'use client'
 
+type AppLogoIconProps = {
+  className?: string
+}
+
+export function AppLogoIcon({ className = 'h-11 w-16 sm:h-16 sm:w-24' }: AppLogoIconProps) {
+  return (
+    <svg
+      viewBox="0 0 168 112"
+      className={className}
+      role="img"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <defs>
+        <clipPath id="logoPathClip">
+          <rect x="0" y="0" width="168" height="112" rx="18" />
+        </clipPath>
+      </defs>
+      <g clipPath="url(#logoPathClip)">
+        <path d="M7 74 41 43l21 18 27-30 34 36 19-13 27 24v35H7Z" fill="var(--logo-landscape)" opacity="0.28" />
+        <circle cx="128" cy="25" r="13" fill="var(--logo-sun)" opacity="var(--logo-sun-opacity)" />
+        <path
+          d="M135 13a14 14 0 1 0 10 24 11 11 0 1 1-10-24Z"
+          fill="var(--logo-moon)"
+          opacity="var(--logo-moon-opacity)"
+        />
+        <path d="M18 82c20-22 39-29 58-21 22 10 39 8 74-14" fill="none" stroke="var(--logo-landscape)" strokeWidth="7" strokeLinecap="round" opacity="0.7" />
+
+        <path d="M21 63 49 39l28 24v31H21Z" fill="var(--logo-primary)" />
+        <path d="M15 64 49 34l34 30-5 6-29-25-29 25Z" fill="var(--logo-secondary)" />
+        <rect x="37" y="67" width="10" height="10" rx="2" fill="var(--logo-moon)" />
+        <rect x="51" y="67" width="10" height="10" rx="2" fill="var(--logo-moon)" />
+
+        <path d="M92 61 123 35l31 26v33H92Z" fill="var(--logo-secondary)" />
+        <path d="M86 62 123 30l37 32-5 7-32-27-32 27Z" fill="var(--logo-primary)" />
+        <rect x="111" y="66" width="10" height="10" rx="2" fill="var(--logo-moon)" />
+        <rect x="125" y="66" width="10" height="10" rx="2" fill="var(--logo-moon)" />
+
+        <path
+          d="M76 111c4-23 6-40 7-53 1 13 4 30 9 53Z"
+          fill="var(--logo-path)"
+        />
+        <path
+          d="M83 58c-9 14-24 28-44 41M84 58c13 16 27 29 43 41"
+          fill="none"
+          stroke="var(--logo-path)"
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path d="M83 60c-3 13-4 30-2 52" fill="none" stroke="var(--surface)" strokeWidth="2.5" strokeLinecap="round" opacity="0.72" />
+      </g>
+    </svg>
+  )
+}
+
 export function BrandLogo() {
   return (
-    <div className="flex items-center gap-2 sm:gap-4">
-      <svg
-        viewBox="0 0 240 120"
-        className="h-10 w-16 shrink-0 sm:h-16 sm:w-24"
-        aria-hidden="true"
-      >
-        <g fill="#6984A9">
-          <path d="M37 73h45l38-48 38 48h45l-18-22h-14l-13 16-38-48-38 48-13-16H55z" />
-          <path d="M82 73h19l19-24 19 24h19l-38-48z" />
-          <path d="M56 42h26v8H56z" />
-          <path d="M158 42h26v8h-26z" />
-          <path d="M49 53h31v8H49z" />
-          <path d="M160 53h31v8h-31z" />
-        </g>
-        <g fill="#263B6A">
-          <rect x="111" y="55" width="8" height="8" rx="1" />
-          <rect x="121" y="55" width="8" height="8" rx="1" />
-          <rect x="111" y="65" width="8" height="8" rx="1" />
-          <rect x="121" y="65" width="8" height="8" rx="1" />
-        </g>
-      </svg>
-      <div className="min-w-0">
-        <div className="text-[0.52rem] font-black uppercase tracking-[0.16em] text-[#263b6a] drop-shadow-[0_1px_0_rgba(255,255,255,0.18)] dark:text-[#eefabd] sm:text-sm sm:tracking-[0.28em]">
-          Day By Day And
+    <div className="app-logo flex items-center gap-2 sm:gap-4" aria-label="Day by Day and House to House">
+      <AppLogoIcon />
+      <div className="hidden min-w-0 sm:block">
+        <div className="app-logo-text text-sm font-black uppercase tracking-[0.28em]">
+          Day By Day
         </div>
-        <div className="text-[0.5rem] font-semibold uppercase tracking-[0.2em] text-[#6984a9] dark:text-[#d6e2b8] sm:text-xs sm:tracking-[0.42em]">
-          House To House
+        <div className="app-logo-muted text-xs font-semibold uppercase tracking-[0.36em]">
+          And House To House
         </div>
       </div>
     </div>

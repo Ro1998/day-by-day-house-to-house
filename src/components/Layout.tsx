@@ -118,9 +118,37 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
     ...(currentUser?.role === 'admin' ? [{ id: 'users', label: 'User Access', icon: Settings2 }] : []),
   ]
 
+  const mountainScene = (
+    <div className="mountain-scene" aria-hidden="true">
+      <svg viewBox="0 0 1200 220" preserveAspectRatio="xMidYMid slice">
+        <g className="mountain-stars">
+          <circle cx="156" cy="38" r="1.6" />
+          <circle cx="242" cy="74" r="1.2" />
+          <circle cx="377" cy="42" r="1.4" />
+          <circle cx="538" cy="64" r="1.1" />
+          <circle cx="692" cy="34" r="1.5" />
+          <circle cx="802" cy="78" r="1.1" />
+          <circle cx="1034" cy="50" r="1.3" />
+          <circle cx="1112" cy="88" r="1.1" />
+        </g>
+        <circle className="mountain-sun" cx="1030" cy="58" r="24" />
+        <path className="mountain-moon" d="M1048 38a25 25 0 1 0 19 41 21 21 0 1 1-19-41Z" />
+        <g className="mountain-cloud">
+          <path d="M112 76c11-18 37-17 47 1 13-7 31 1 33 17H78c3-17 20-26 34-18Z" />
+          <path d="M836 96c8-13 27-13 35 0 9-5 23 1 25 13h-84c2-12 13-19 24-13Z" />
+        </g>
+        <path className="mountain-haze" d="M0 116c160-22 250 8 390-8 176-20 304-48 506-20 126 17 200 8 304-10v142H0Z" />
+        <path className="mountain-far" d="M0 141 126 78l72 47 106-64 134 79 88-53 118 62 120-86 142 84 87-45 207 74v44H0Z" />
+        <path className="mountain-mid" d="M0 164 106 106l80 34 108-74 112 91 96-65 127 84 111-101 156 108 88-52 216 70v19H0Z" />
+        <path className="mountain-near" d="M0 190 112 134l84 26 116-72 106 86 85-54 124 78 118-92 144 91 89-40 222 58v5H0Z" />
+      </svg>
+    </div>
+  )
+
   return (
     <div className="app-shell">
-      <header className={`sticky top-0 z-50 border-b border-[var(--border)] ${isMobileMenuOpen ? 'bg-white dark:bg-[#121812]' : 'bg-[var(--surface-strong)]/98 backdrop-blur-md shadow-[0_10px_30px_rgba(18,24,18,0.08)]'}`}>
+      <header className="theme-header sticky top-0 z-50 border-b border-[var(--border)]">
+        {mountainScene}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="relative z-50 py-3 md:py-6">
             <div className="flex items-start justify-between md:items-center">
@@ -214,7 +242,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
           <nav 
             className={`${
               isMobileMenuOpen 
-                ? 'fixed inset-0 z-40 flex flex-col overflow-y-auto bg-white dark:bg-[#121812] px-5 pb-8 pt-24 shadow-2xl' 
+                ? 'fixed inset-0 z-40 flex flex-col overflow-y-auto bg-[var(--surface-strong)] px-5 pb-8 pt-24 shadow-2xl' 
                 : 'hidden'
             } gap-1.5 md:static md:z-auto md:flex md:flex-row md:flex-wrap md:overflow-visible md:bg-transparent md:p-0 md:pb-4`}
           >
@@ -288,17 +316,17 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
           </div>
         )}
         {error && (
-          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <div className="mb-6 rounded-2xl border border-[color-mix(in_srgb,var(--destructive)_34%,var(--border))] bg-[color-mix(in_srgb,var(--destructive)_12%,var(--surface))] px-4 py-3 text-sm text-[var(--destructive)]">
             {error}
           </div>
         )}
         {notice && (
-          <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <div className="mb-6 rounded-2xl border border-[color-mix(in_srgb,var(--success)_34%,var(--border))] bg-[color-mix(in_srgb,var(--success)_12%,var(--surface))] px-4 py-3 text-sm text-[var(--success)]">
             {notice}
           </div>
         )}
         {!loading && users.length === 0 && (
-          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div className="mb-6 rounded-2xl border border-[color-mix(in_srgb,var(--warning)_44%,var(--border))] bg-[color-mix(in_srgb,var(--warning)_16%,var(--surface))] px-4 py-3 text-sm text-[color-mix(in_srgb,var(--warning)_72%,var(--text))]">
             No users were found yet. Create the first user to start using the app.
           </div>
         )}
@@ -306,7 +334,7 @@ export function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
       </main>
 
       {isEditProfileOpen && currentUser && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[rgba(18,24,18,0.42)] px-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[var(--overlay)] px-4 backdrop-blur-sm">
           <div className="app-panel w-full max-w-md rounded-3xl p-6 shadow-2xl">
             <h3 className="mb-4 text-xl font-semibold">Edit Profile</h3>
             <form onSubmit={handleUpdateProfile} className="space-y-4">

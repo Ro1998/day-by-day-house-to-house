@@ -3,33 +3,119 @@
 @tailwind utilities;
 
 :root {
-  --bg: #dbe9d6;
-  --surface: rgba(246, 251, 244, 0.82);
-  --surface-strong: #f5faf2;
-  --surface-soft: #e7f1e3;
-  --border: rgba(52, 103, 57, 0.2);
-  --text: #1f3a22;
-  --text-soft: #4f6b52;
-  --primary: #346739;
-  --primary-strong: #234a28;
-  --accent: #346739;
-  --accent-strong: #264f2b;
-  --shadow: 0 18px 50px rgba(52, 103, 57, 0.16);
+  --background: #f4f8fc;
+  --foreground: #19324a;
+  --card: #ffffff;
+  --card-foreground: #19324a;
+  --muted: #eef5fb;
+  --muted-foreground: #64788a;
+  --border: #d9e5ef;
+  --primary: #3b82c4;
+  --primary-foreground: #ffffff;
+  --primary-strong: #1e4f7a;
+  --success: #22a06b;
+  --destructive: #ef5b4d;
+  --warning: #f2c94c;
+  --accent: #45b8b0;
+  --accent-strong: #1e4f7a;
+  --purple: #8b5cf6;
+  --chart-1: #ef6a78;
+  --chart-2: #4f9fe8;
+  --chart-3: #f2c94c;
+  --chart-4: #55b8b3;
+  --chart-5: #8b5cf6;
+  --cash-in: #4caf78;
+  --cash-out: #ef5b4d;
+  --balance: #4f9fe8;
+  --bg: var(--background);
+  --surface: var(--card);
+  --surface-strong: var(--card);
+  --surface-soft: var(--muted);
+  --text: var(--foreground);
+  --text-soft: var(--muted-foreground);
+  --shadow: 0 2px 10px rgba(30, 79, 122, 0.08);
+  --focus-ring: rgba(59, 130, 196, 0.22);
+  --header-bg: #ddeeff;
+  --header-bg-end: #eaf4ff;
+  --header-shadow: 0 10px 30px rgba(30, 79, 122, 0.09);
+  --overlay: rgba(15, 27, 45, 0.42);
+  --sky-start: #ddeeff;
+  --sky-end: #f4f8fc;
+  --sun-opacity: 1;
+  --moon-opacity: 0;
+  --stars-opacity: 0;
+  --far-mountain: #b9d3e8;
+  --mid-mountain: #8fb7d4;
+  --near-mountain: #6f9fc2;
+  --haze: rgba(255, 255, 255, 0.4);
+  --logo-primary: #3b82c4;
+  --logo-secondary: #1e4f7a;
+  --logo-path: #45b8b0;
+  --logo-landscape: #4f9fe8;
+  --logo-sun: #f7c948;
+  --logo-moon: #dcebff;
+  --logo-text: #1e4f7a;
+  --logo-muted: #3b82c4;
+  --logo-sun-opacity: 1;
+  --logo-moon-opacity: 0;
 }
 
 .dark {
-  --bg: #263b6a;
-  --surface: rgba(21, 35, 70, 0.78);
-  --surface-strong: #31497d;
-  --surface-soft: #22345b;
-  --border: rgba(238, 250, 189, 0.12);
-  --text: #eefabd;
-  --text-soft: #d6e2b8;
-  --primary: #4d8552;
-  --primary-strong: #eefabd;
-  --accent: #346739;
-  --accent-strong: #6eaa74;
+  --background: #0f1b2d;
+  --foreground: #f1f5f9;
+  --card: #182b43;
+  --card-foreground: #f1f5f9;
+  --muted: #14243a;
+  --muted-foreground: #a9b8c8;
+  --border: #29415c;
+  --primary: #4da3ff;
+  --primary-foreground: #0f1b2d;
+  --primary-strong: #dcebff;
+  --success: #35c48a;
+  --destructive: #ff6257;
+  --warning: #f4c95d;
+  --accent: #4fb8b2;
+  --accent-strong: #5bb0ff;
+  --purple: #9b6dff;
+  --chart-1: #ff6b78;
+  --chart-2: #4da3ff;
+  --chart-3: #f4c95d;
+  --chart-4: #4fb8b2;
+  --chart-5: #9b6dff;
+  --cash-in: #35c48a;
+  --cash-out: #ff6257;
+  --balance: #4da3ff;
+  --bg: var(--background);
+  --surface: var(--card);
+  --surface-strong: var(--card);
+  --surface-soft: #14243a;
+  --text: var(--foreground);
+  --text-soft: var(--muted-foreground);
   --shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+  --focus-ring: rgba(77, 163, 255, 0.28);
+  --header-bg: #172a42;
+  --header-bg-end: #14243a;
+  --header-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
+  --overlay: rgba(5, 12, 22, 0.64);
+  --sky-start: #0f1b2d;
+  --sky-end: #14243a;
+  --sun-opacity: 0;
+  --moon-opacity: 1;
+  --stars-opacity: 0.72;
+  --far-mountain: #243b55;
+  --mid-mountain: #1d3149;
+  --near-mountain: #17283d;
+  --haze: rgba(77, 163, 255, 0.12);
+  --logo-primary: #4da3ff;
+  --logo-secondary: #5bb0ff;
+  --logo-path: #4fb8b2;
+  --logo-landscape: #315b82;
+  --logo-sun: #f7c948;
+  --logo-moon: #dcebff;
+  --logo-text: #f1f5f9;
+  --logo-muted: #a9b8c8;
+  --logo-sun-opacity: 0;
+  --logo-moon-opacity: 1;
 }
 
 * {
@@ -39,16 +125,17 @@
 html {
   background: var(--bg);
   scroll-behavior: smooth;
+  transition: background-color 800ms ease-in-out;
 }
 
 body {
   min-height: 100vh;
   color: var(--text);
   background:
-    radial-gradient(circle at top left, rgba(52, 103, 57, 0.24), transparent 34%),
-    radial-gradient(circle at top right, rgba(87, 132, 92, 0.2), transparent 28%),
-    linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 88%, white) 100%);
-  transition: background-color 200ms ease, color 200ms ease;
+    radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 16%, transparent), transparent 34%),
+    radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 14%, transparent), transparent 28%),
+    linear-gradient(180deg, var(--bg) 0%, var(--surface-soft) 100%);
+  transition: background 800ms ease-in-out, background-color 800ms ease-in-out, color 800ms ease-in-out;
 }
 
 body * {
@@ -76,6 +163,7 @@ textarea {
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
   backdrop-filter: blur(18px);
+  transition: background-color 800ms ease-in-out, border-color 800ms ease-in-out, box-shadow 800ms ease-in-out, color 800ms ease-in-out;
 }
 
 .app-panel {
@@ -83,6 +171,11 @@ textarea {
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
   animation: panel-rise 480ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background-color 800ms ease-in-out, border-color 800ms ease-in-out, box-shadow 800ms ease-in-out, color 800ms ease-in-out;
+}
+
+.app-panel:hover {
+  background: color-mix(in srgb, var(--surface-strong) 92%, var(--primary) 8%);
 }
 
 .app-input {
@@ -93,7 +186,7 @@ textarea {
   color: var(--text);
   padding: 0.85rem 1rem;
   outline: none;
-  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 800ms ease-in-out, color 800ms ease-in-out;
 }
 
 .app-input::placeholder {
@@ -102,16 +195,16 @@ textarea {
 
 .app-input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(52, 103, 57, 0.14);
+  box-shadow: 0 0 0 4px var(--focus-ring);
 }
 
 .app-button {
   border-radius: 9999px;
   padding: 0.8rem 1.25rem;
   font-weight: 600;
-  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), opacity 150ms ease, background-color 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), opacity 150ms ease, color 180ms ease, background-color 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
   transform: translateY(0) scale(1);
-  box-shadow: 0 8px 20px rgba(18, 24, 18, 0.06);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--primary) 10%, transparent);
 }
 
 .app-button:hover {
@@ -130,17 +223,19 @@ textarea {
 }
 
 .app-button-primary {
-  background: var(--primary-strong);
-  color: #eefabd;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: 1px solid color-mix(in srgb, var(--primary) 84%, black);
 }
 
-.dark .app-button-primary {
-  color: #263b6a;
+.app-button-primary:hover {
+  background: color-mix(in srgb, var(--primary) 88%, var(--primary-strong));
 }
 
 .app-button-secondary {
-  background: var(--accent);
-  color: #263b6a;
+  background: var(--surface-soft);
+  color: var(--primary-strong);
+  border: 1px solid var(--border);
 }
 
 .app-button-ghost {
@@ -151,6 +246,103 @@ textarea {
 
 .app-muted {
   color: var(--text-soft);
+}
+
+.app-logo {
+  color: var(--logo-text);
+}
+
+.app-logo svg *,
+.app-logo-text,
+.app-logo-muted {
+  transition: fill 700ms ease-in-out, stroke 700ms ease-in-out, color 700ms ease-in-out, opacity 700ms ease-in-out;
+}
+
+.app-logo-text {
+  color: var(--logo-text);
+}
+
+.app-logo-muted {
+  color: var(--logo-muted);
+}
+
+.theme-header {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--header-bg) 96%, transparent), color-mix(in srgb, var(--header-bg-end) 94%, transparent));
+  box-shadow: var(--header-shadow);
+  overflow: hidden;
+  transition: background 900ms ease-in-out, border-color 900ms ease-in-out, box-shadow 900ms ease-in-out;
+}
+
+.mountain-scene {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--sky-start), var(--sky-end));
+  transition: background 900ms ease-in-out;
+}
+
+.mountain-scene svg {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+  min-width: 760px;
+  transform: translateX(-4%);
+}
+
+.mountain-scene * {
+  transition: fill 900ms ease-in-out, opacity 900ms ease-in-out, filter 900ms ease-in-out, transform 900ms ease-in-out;
+}
+
+.mountain-sun {
+  fill: #ffd166;
+  filter: drop-shadow(0 0 16px rgba(247, 201, 72, 0.5));
+  opacity: var(--sun-opacity);
+}
+
+.mountain-moon {
+  fill: #dcebff;
+  filter: drop-shadow(0 0 16px rgba(220, 235, 255, 0.38));
+  opacity: var(--moon-opacity);
+}
+
+.mountain-stars {
+  fill: #dcebff;
+  opacity: var(--stars-opacity);
+}
+
+.mountain-far {
+  fill: var(--far-mountain);
+}
+
+.mountain-mid {
+  fill: var(--mid-mountain);
+}
+
+.mountain-near {
+  fill: var(--near-mountain);
+}
+
+.mountain-haze {
+  fill: var(--haze);
+}
+
+.mountain-cloud {
+  fill: rgba(255, 255, 255, 0.42);
+  opacity: calc(1 - var(--stars-opacity));
+  animation: cloud-drift 28s ease-in-out infinite alternate;
+}
+
+.dark .mountain-cloud {
+  fill: rgba(220, 235, 255, 0.08);
+}
+
+@keyframes cloud-drift {
+  from { transform: translateX(-8px); }
+  to { transform: translateX(12px); }
 }
 
 .app-shell main > * {
@@ -183,5 +375,30 @@ textarea {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (max-width: 767px) {
+  .mountain-scene svg {
+    min-width: 900px;
+    transform: translateX(-22%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+
+  .mountain-cloud {
+    animation: none;
   }
 }

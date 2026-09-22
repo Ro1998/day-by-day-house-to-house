@@ -10,12 +10,12 @@
     "display": "standalone",
     "status_bar": "default",
     "launch_screen": {
-      "background_color": "#dbe9d6",
+      "background_color": "#f4f8fc",
       "orientation": "portrait"
     }
   },
-  "background_color": "#dbe9d6",
-  "theme_color": "#346739",
+  "background_color": "#f4f8fc",
+  "theme_color": "#3b82c4",
   "orientation": "portrait-primary",
   "categories": ["lifestyle", "productivity", "utilities"],
   "lang": "en",

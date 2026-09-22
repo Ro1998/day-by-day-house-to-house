@@ -202,7 +202,7 @@ export function MonthlyFoodMoney() {
 
       {/* Modals and overlays - shown regardless of view */}
       {pendingDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(18,24,18,0.42)] px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] px-4">
           <div className="app-panel w-full max-w-md rounded-3xl p-6 shadow-2xl">
             <h3 className="mb-2 text-xl font-semibold text-red-700">Delete Entry?</h3>
             <p className="app-muted mb-6 text-sm">
@@ -235,7 +235,7 @@ export function MonthlyFoodMoney() {
       )}
 
       {editingPayment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(18,24,18,0.42)] px-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] px-4 backdrop-blur-sm">
           <div className="app-panel w-full max-w-xl rounded-3xl p-6 shadow-2xl">
             <h3 className="mb-4 text-xl font-semibold">Edit Monthly Payment</h3>
             <form

@@ -77,7 +77,7 @@ export function UserManagement() {
   return (
     <div className="space-y-6">
       {pendingDeleteUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(18,24,18,0.42)] px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] px-4">
           <div className="app-panel w-full max-w-md rounded-3xl p-6">
             <h3 className="mb-2 text-xl font-semibold text-red-700">Delete User?</h3>
             <p className="app-muted mb-6 text-sm">
@@ -114,7 +114,7 @@ export function UserManagement() {
       )}
 
       {pendingAccessChange && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(18,24,18,0.42)] px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] px-4">
           <div className="app-panel w-full max-w-lg rounded-3xl p-6 shadow-2xl">
             <h3 className="mb-2 text-xl font-semibold">Confirm Access Change</h3>
             <p className="app-muted mb-6 text-sm">

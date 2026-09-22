@@ -283,7 +283,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
   return (
     <div className="app-shell relative overflow-hidden px-4 py-8 sm:px-6 lg:px-8">
       {showApprovalPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(18,24,18,0.42)] px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] px-4">
           <div className="app-panel w-full max-w-md rounded-3xl p-6">
             <h3 className="mb-2 text-xl font-semibold">Request Submitted</h3>
             <p className="app-muted mb-6 text-sm">
@@ -302,8 +302,8 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
         </div>
       )}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-[-8%] top-10 h-40 w-40 rounded-full bg-[rgba(160,214,131,0.32)] blur-3xl" />
-        <div className="absolute bottom-0 right-[-6%] h-56 w-56 rounded-full bg-[rgba(105,132,169,0.26)] blur-3xl" />
+        <div className="absolute left-[-8%] top-10 h-40 w-40 rounded-full bg-[color-mix(in_srgb,var(--primary)_22%,transparent)] blur-3xl" />
+        <div className="absolute bottom-0 right-[-6%] h-56 w-56 rounded-full bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] blur-3xl" />
       </div>
 
       <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-6xl items-center justify-center">
@@ -403,7 +403,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                       type="button"
                       onClick={() => setAuthMode('login')}
                       className={`relative z-10 rounded-full px-4 py-3 text-sm font-semibold transition-colors duration-300 ${
-                        switchMode === 'login' ? 'text-white dark:text-[#121812]' : 'text-[var(--text)]'
+                        switchMode === 'login' ? 'text-[var(--primary-foreground)]' : 'text-[var(--text)]'
                       }`}
                     >
                       Sign In
@@ -412,7 +412,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                       type="button"
                       onClick={() => setAuthMode('register')}
                       className={`relative z-10 rounded-full px-4 py-3 text-sm font-semibold transition-colors duration-300 ${
-                        switchMode === 'register' ? 'text-white dark:text-[#121812]' : 'text-[var(--text)]'
+                        switchMode === 'register' ? 'text-[var(--primary-foreground)]' : 'text-[var(--text)]'
                       }`}
                     >
                         Register

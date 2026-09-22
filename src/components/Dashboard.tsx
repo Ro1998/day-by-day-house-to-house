@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useData } from '@/components/DataProvider'
+import { useTheme } from '@/components/ThemeProvider'
 import { Pie, Bar } from 'react-chartjs-2'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js'
 import { formatCurrency } from '@/lib/format'
@@ -20,6 +21,7 @@ const REPORT_STATUS_LABELS = {
 } as const
 
 export function Dashboard() {
+  const { theme } = useTheme()
   const {
     expenses,
     monthlyBalance,
@@ -66,22 +68,92 @@ export function Dashboard() {
     return acc
   }, {} as Record<string, number>), [expenses])
 
+  const themeTokens = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return {
+        text: '#19324A',
+        muted: '#64788A',
+        border: '#D9E5EF',
+        surface: '#FFFFFF',
+        charts: ['#EF6A78', '#4F9FE8', '#F2C94C', '#55B8B3', '#8B5CF6'],
+        cash: ['#4CAF78', '#EF5B4D', '#4F9FE8'],
+      }
+    }
+
+    const styles = getComputedStyle(document.documentElement)
+    const cssVar = (name: string) => styles.getPropertyValue(name).trim()
+
+    return {
+      text: cssVar('--text') || '#19324A',
+      muted: cssVar('--text-soft') || '#64788A',
+      border: cssVar('--border') || '#D9E5EF',
+      surface: cssVar('--surface') || '#FFFFFF',
+      charts: ['--chart-1', '--chart-2', '--chart-3', '--chart-4', '--chart-5'].map((name) => cssVar(name)),
+      cash: ['--cash-in', '--cash-out', '--balance'].map((name) => cssVar(name)),
+    }
+  }, [theme])
+
   const pieData = useMemo(() => ({
     labels: Object.keys(categoryData),
     datasets: [{
       data: Object.values(categoryData),
-      backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
+      backgroundColor: themeTokens.charts,
+      borderColor: themeTokens.surface,
+      borderWidth: 2,
     }],
-  }), [categoryData])
+  }), [categoryData, themeTokens])
 
   const barData = useMemo(() => ({
     labels: ['Cash In', 'Cash Out', 'Balance'],
     datasets: [{
       label: 'Amount',
       data: [cashIn, cashOut, monthlyBalance],
-      backgroundColor: ['#4CAF50', '#F44336', '#2196F3'],
+      backgroundColor: themeTokens.cash,
+      borderRadius: 8,
     }],
-  }), [cashIn, cashOut, monthlyBalance])
+  }), [cashIn, cashOut, monthlyBalance, themeTokens])
+
+  const chartOptions = useMemo(() => ({
+    plugins: {
+      legend: {
+        labels: {
+          color: themeTokens.muted,
+          boxWidth: 12,
+          boxHeight: 12,
+          useBorderRadius: true,
+        },
+      },
+      tooltip: {
+        backgroundColor: theme === 'dark' ? '#182B43' : '#FFFFFF',
+        borderColor: themeTokens.border,
+        borderWidth: 1,
+        titleColor: themeTokens.text,
+        bodyColor: themeTokens.text,
+      },
+    },
+  }), [theme, themeTokens])
+
+  const barOptions = useMemo(() => ({
+    ...chartOptions,
+    scales: {
+      x: {
+        grid: {
+          color: 'transparent',
+        },
+        ticks: {
+          color: themeTokens.muted,
+        },
+      },
+      y: {
+        grid: {
+          color: themeTokens.border,
+        },
+        ticks: {
+          color: themeTokens.muted,
+        },
+      },
+    },
+  }), [chartOptions, themeTokens])
 
   const currentMonth = new Date().toISOString().slice(0, 7)
   const currentWeek = format(startOfWeek(new Date(), { weekStartsOn: 2 }), 'yyyy-MM-dd')
@@ -614,7 +686,7 @@ export function Dashboard() {
         {canSeeFullCashInDetails && (
           <div className="app-panel rounded-3xl p-6">
             <h3 className="text-lg font-semibold mb-2">This Month&apos;s Income</h3>
-            <p className="text-2xl font-bold text-green-600">{formatCurrency(monthIncome)}</p>
+            <p className="text-2xl font-bold text-[var(--success)]">{formatCurrency(monthIncome)}</p>
           </div>
         )}
         {canSeeFullCashInDetails && (
@@ -626,7 +698,7 @@ export function Dashboard() {
         )}
         <div className="app-panel rounded-3xl p-6">
           <h3 className="text-lg font-semibold mb-2">This Month&apos;s Expenses</h3>
-          <p className="text-2xl font-bold text-red-600">{formatCurrency(monthSpend)}</p>
+          <p className="text-2xl font-bold text-[var(--destructive)]">{formatCurrency(monthSpend)}</p>
         </div>
         <div className="app-panel rounded-3xl p-6">
           <h3 className="text-lg font-semibold mb-2">Remaining Balance</h3>
@@ -635,7 +707,7 @@ export function Dashboard() {
         </div>
         <div className="app-panel rounded-3xl p-6">
           <h3 className="text-lg font-semibold mb-2">Status</h3>
-          <p className={`text-lg font-semibold ${lowBalance ? 'text-amber-600' : 'text-[var(--accent-strong)]'}`}>
+          <p className={`text-lg font-semibold ${lowBalance ? 'text-[var(--warning)]' : 'text-[var(--balance)]'}`}>
             {lowBalance ? 'Low Balance Warning!' : 'Good'}
           </p>
         </div>
@@ -765,7 +837,7 @@ export function Dashboard() {
                 value={eventForm.description}
                 onChange={(e) => setEventForm((prev) => ({ ...prev, description: e.target.value }))}
               />
-              <div className="rounded-2xl border border-[var(--border)] bg-white/70 px-3 py-2 text-xs app-muted">
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs app-muted">
                 {editingEventId
                   ? 'Saving changes will update the calendar item for everyone. Only admin and overseer can edit or delete events.'
                   : 'Creating an event will email approved users, include an Add to Google Calendar link, and open Google Calendar for the admin.'}
@@ -863,11 +935,11 @@ export function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="app-panel rounded-3xl p-6">
             <h3 className="text-lg font-semibold mb-4">Expenses by Category</h3>
-            <Pie data={pieData} />
+            <Pie data={pieData} options={chartOptions} />
           </div>
           <div className="app-panel rounded-3xl p-6">
             <h3 className="text-lg font-semibold mb-4">Cash Flow</h3>
-            <Bar data={barData} />
+            <Bar data={barData} options={barOptions} />
           </div>
         </div>
       ) : (

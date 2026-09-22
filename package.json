@@ -11,6 +11,7 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "db:enable-rls": "tsx scripts/enable-supabase-rls.ts",
     "migrate:test-connections": "tsx scripts/test-connections.ts",
     "migrate:neon-to-supabase": "tsx scripts/migrate-neon-to-supabase.ts",
     "vercel-build": "prisma generate && next build --webpack",

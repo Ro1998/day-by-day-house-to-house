@@ -516,7 +516,7 @@ export function MenuPlanner() {
       </div>
 
       {viewingMenu && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(18,24,18,0.42)] px-4 py-6 backdrop-blur-sm overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] px-4 py-6 backdrop-blur-sm overflow-y-auto">
           <div className="app-panel w-full max-w-5xl rounded-3xl p-6 shadow-2xl my-auto">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-xl font-semibold">Menu for {viewingMenu.week}</h3>
