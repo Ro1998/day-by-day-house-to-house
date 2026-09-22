@@ -176,7 +176,7 @@ export function PaymentHistorySummary() {
                       <span className="text-sm text-green-600">
                         Paid: {person.months.filter((m) => m.paid).length}
                       </span>
-                      <span className={`text-sm ${unpaidMonths > 0 ? 'font-semibold text-red-600' : 'text-gray-600'}`}>
+                      <span className={`text-sm ${unpaidMonths > 0 ? 'font-semibold text-red-600' : 'text-[var(--text-soft)]'}`}>
                         Unpaid: {unpaidMonths}
                       </span>
                       <span className="app-muted text-sm">Total: {formatCurrency(totalAmount)}</span>
@@ -213,7 +213,7 @@ export function PaymentHistorySummary() {
                               {month.paymentType || 'custom'}
                             </p>
                             <p className="mt-1 font-semibold">{formatCurrency(month.amount)}</p>
-                            {month.note && <p className="mt-1 text-xs italic text-gray-600 dark:text-gray-400">{month.note}</p>}
+                            {month.note && <p className="app-muted mt-1 text-xs italic">{month.note}</p>}
                           </div>
                           <div
                             className={`flex h-6 w-6 items-center justify-center rounded-full text-sm font-bold ${

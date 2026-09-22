@@ -72,7 +72,7 @@ export function Dashboard() {
     if (typeof window === 'undefined') {
       return {
         text: '#19324A',
-        muted: '#64788A',
+        muted: '#526A7D',
         border: '#D9E5EF',
         surface: '#FFFFFF',
         charts: ['#EF6A78', '#4F9FE8', '#F2C94C', '#55B8B3', '#8B5CF6'],
@@ -85,7 +85,7 @@ export function Dashboard() {
 
     return {
       text: cssVar('--text') || '#19324A',
-      muted: cssVar('--text-soft') || '#64788A',
+      muted: cssVar('--text-soft') || '#526A7D',
       border: cssVar('--border') || '#D9E5EF',
       surface: cssVar('--surface') || '#FFFFFF',
       charts: ['--chart-1', '--chart-2', '--chart-3', '--chart-4', '--chart-5'].map((name) => cssVar(name)),

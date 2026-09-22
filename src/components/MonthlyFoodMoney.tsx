@@ -549,7 +549,7 @@ export function MonthlyFoodMoney() {
                               <button
                                 type="button"
                                 onClick={() => setOpenMenuId(null)}
-                                className="app-button app-button-ghost px-2 py-1.5 text-xs text-gray-500"
+                                className="app-button app-button-ghost px-2 py-1.5 text-xs text-[var(--text-soft)]"
                               >
                                 Cancel
                               </button>
