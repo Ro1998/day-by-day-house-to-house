@@ -5,7 +5,7 @@ import { buildEventIcsContent, buildGoogleCalendarUrl } from '@/lib/calendar'
 
 type EmailRecipient = { email: string; name: string }
 
-const APP_NAME = 'Day by Day'
+const APP_NAME = 'Brothers House'
 
 const escapeHtml = (value: string) =>
   value

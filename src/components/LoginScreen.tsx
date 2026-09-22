@@ -316,7 +316,7 @@ export function LoginScreen({ onContinue }: LoginScreenProps) {
                   Shared House Hub
                 </p>
                 <h1 className="max-w-xl text-4xl font-black tracking-tight sm:text-5xl">
-                  Day by Day, House to House
+                  Brothers House
                 </h1>
                 <p className="app-muted mt-4 max-w-xl text-base sm:text-lg">
                   Track food money, expenses, and weekly kitchen planning from one calm, shared workspace.

@@ -58,14 +58,11 @@ export function AppLogoIcon({ className = 'h-11 w-16 sm:h-16 sm:w-24' }: AppLogo
 
 export function BrandLogo() {
   return (
-    <div className="app-logo flex items-center gap-2 sm:gap-4" aria-label="Day by Day and House to House">
+    <div className="app-logo flex items-center gap-2 sm:gap-4" aria-label="Brothers House">
       <AppLogoIcon />
       <div className="hidden min-w-0 sm:block">
-        <div className="app-logo-text text-sm font-black uppercase tracking-[0.28em]">
-          Day By Day
-        </div>
-        <div className="app-logo-muted text-xs font-semibold uppercase tracking-[0.36em]">
-          And House To House
+        <div className="app-logo-text text-sm font-black uppercase tracking-[0.2em]">
+          Brothers House
         </div>
       </div>
     </div>

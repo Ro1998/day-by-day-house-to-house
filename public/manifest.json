@@ -1,7 +1,7 @@
 {
-  "name": "Family - Day by Day House to House",
-  "short_name": "Family",
-  "description": "Shared home planning, food money tracking, supplies, and daily coordination for family life.",
+  "name": "Brothers House",
+  "short_name": "Brothers House",
+  "description": "Shared planning, food money tracking, supplies, and daily coordination for Brothers House.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -65,21 +65,21 @@
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Family App Dashboard on Mobile"
+      "label": "Brothers House dashboard on mobile"
     },
     {
       "src": "/screenshot-desktop.png", 
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Family App Dashboard on Desktop"
+      "label": "Brothers House dashboard on desktop"
     }
   ],
   "shortcuts": [
     {
       "name": "Dashboard",
       "short_name": "Dashboard",
-      "description": "View family dashboard and overview",
+      "description": "View the Brothers House dashboard and overview",
       "url": "/?tab=dashboard",
       "icons": [
         {

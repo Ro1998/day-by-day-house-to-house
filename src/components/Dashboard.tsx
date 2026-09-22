@@ -117,7 +117,11 @@ export function Dashboard() {
     plugins: {
       legend: {
         labels: {
-          color: themeTokens.muted,
+          color: themeTokens.text,
+          font: {
+            size: 13,
+            weight: 600,
+          },
           boxWidth: 12,
           boxHeight: 12,
           useBorderRadius: true,

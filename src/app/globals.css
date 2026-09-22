@@ -8,11 +8,11 @@
   --card: #ffffff;
   --card-foreground: #19324a;
   --muted: #eef5fb;
-  --muted-foreground: #64788a;
+  --muted-foreground: #526a7d;
   --border: #d9e5ef;
   --primary: #3b82c4;
   --primary-foreground: #ffffff;
-  --primary-strong: #1e4f7a;
+  --primary-strong: #16476d;
   --success: #22a06b;
   --destructive: #ef5b4d;
   --warning: #f2c94c;
@@ -54,8 +54,8 @@
   --logo-landscape: #4f9fe8;
   --logo-sun: #f7c948;
   --logo-moon: #dcebff;
-  --logo-text: #1e4f7a;
-  --logo-muted: #3b82c4;
+  --logo-text: #16476d;
+  --logo-muted: #245f89;
   --logo-sun-opacity: 1;
   --logo-moon-opacity: 0;
 }

@@ -7,13 +7,13 @@ import { DataProvider } from '@/components/DataProvider'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Day by Day, House to House',
-  description: 'Meal Planner Website',
+  title: 'Brothers House',
+  description: 'Shared planning and household coordination for Brothers House.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Family',
+    title: 'Brothers House',
   },
   icons: {
     icon: '/icon.svg',

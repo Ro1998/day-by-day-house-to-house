@@ -1,4 +1,4 @@
-const CACHE_NAME = 'family-app-v3';
+const CACHE_NAME = 'brothers-house-app-v4';
 const APP_SHELL = [
   '/',
   '/manifest.json',
@@ -8,8 +8,8 @@ const APP_SHELL = [
   '/icon-512.png',
   '/icon-96.png'
 ];
-const API_CACHE = 'family-api-v1';
-const STATIC_CACHE = 'family-static-v1';
+const API_CACHE = 'brothers-house-api-v1';
+const STATIC_CACHE = 'brothers-house-static-v1';
 
 // Cache strategies
 const CACHE_STRATEGIES = {
