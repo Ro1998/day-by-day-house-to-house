@@ -117,7 +117,7 @@ export function Dashboard() {
     plugins: {
       legend: {
         labels: {
-          color: themeTokens.text,
+          color: theme === 'dark' ? '#F8FAFC' : '#19324A',
           font: {
             size: 13,
             weight: 600,
@@ -131,8 +131,8 @@ export function Dashboard() {
         backgroundColor: theme === 'dark' ? '#182B43' : '#FFFFFF',
         borderColor: themeTokens.border,
         borderWidth: 1,
-        titleColor: themeTokens.text,
-        bodyColor: themeTokens.text,
+        titleColor: theme === 'dark' ? '#F8FAFC' : '#19324A',
+        bodyColor: theme === 'dark' ? '#F8FAFC' : '#19324A',
       },
     },
   }), [theme, themeTokens])
@@ -939,7 +939,7 @@ export function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="app-panel rounded-3xl p-6">
             <h3 className="text-lg font-semibold mb-4">Expenses by Category</h3>
-            <Pie data={pieData} options={chartOptions} />
+            <Pie key={`pie-${theme}`} data={pieData} options={chartOptions} />
           </div>
           <div className="app-panel rounded-3xl p-6">
             <h3 className="text-lg font-semibold mb-4">Cash Flow</h3>
